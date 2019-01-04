@@ -1,5 +1,7 @@
 import json
 
+VERSION = '0.2'
+
 class WimObject(object):
     @classmethod
     def __from_dict__(cls, d):
@@ -31,6 +33,34 @@ class WimTuple(list):
         def __init__(self):
             self.types = types
         return type('_WimTuple', (WimTuple,), { '__init__': __init__ })
+
+class Meta(WimObject):
+    class Build(WimObject):
+        def __init__(self):
+            self.date = ''
+            self.machine = ''
+            self.hash = ''
+            self.branch = ''
+
+        @classmethod
+        def __from_dict__(cls, d):
+            b = cls()
+            b.date = d.get('date', '')
+            b.machine = d.get('machine', '')
+            b.hash = d.get('hash', '')
+            b.branch = d.get('branch', '')
+            return b
+
+    def __init__(self):
+        self.version = VERSION
+        self.build = Meta.Build()
+
+
+    @classmethod
+    def __from_dict__(cls, d):
+        m = Meta()
+        m.version = d.get('version', '')
+        m.build = ModelEncoder.dict_to_object(d.get('build', {}), m.build)
 
 class ModelEncoder(json.JSONEncoder):
     def default(self, obj):

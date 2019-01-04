@@ -1,4 +1,4 @@
-from . import ModelEncoder, WimObject, WimList, WimTuple
+from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
 
 class Node(WimObject):
     def __init__(self, id, x, y, z=0.):
@@ -303,6 +303,7 @@ class Step(WimObject):
 class Model(WimObject):
     def __init__(self, name):
         self.name = name
+        self.meta = Meta()
         self.mesh = Mesh()
         self.regions = Regions()
         self.materials = WimList(Material)

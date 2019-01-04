@@ -1,4 +1,4 @@
-from . import ModelEncoder, WimObject, WimList, WimTuple
+from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
 
 class ResultValue(WimObject):
     def __init__(self, id, data=None, sid=None):
@@ -63,5 +63,6 @@ class Step(WimObject):
 
 class Database(WimObject):
     def __init__(self):
+        self.meta = Meta()
         self.steps = WimList(Step)
 
