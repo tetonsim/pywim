@@ -3,9 +3,7 @@ import json
 VERSION = '0.2'
 
 class WimObject(object):
-    @classmethod
-    def __from_dict__(cls, d):
-        raise NotImplementedError('__from_dict__ not implemented in %s' % cls)
+    pass
 
 class WimList(list):
     def __init__(self, list_type):
@@ -101,9 +99,13 @@ class ModelEncoder(json.JSONEncoder):
 
                 if newv is not None:
                     obj.__dict__[k] = newv
+        return obj
 
     @staticmethod
     def dict_to_object(d, obj):
+        if isinstance(obj, type):
+            obj = obj()
+
         new_obj = None
         if isinstance(obj, WimList):
             new_obj = obj.new()
@@ -115,40 +117,28 @@ class ModelEncoder(json.JSONEncoder):
                     new_t.set(o)
                     new_obj.append(o) 
                 elif issubclass(obj.list_type, WimObject):
-                    new_obj.append(obj.list_type.__from_dict__(o))
+                    if hasattr(obj.list_type, '__from_dict__'):
+                        new_obj.append(obj.list_type.__from_dict__(o))
+                    else:
+                        new_t = obj.list_type()
+                        new_obj.append(ModelEncoder._set_object_attrs(new_t, o))
                 else:
                     raise Exception('Unsupported type for WimList deserialization: %s' % obj.list_type)
         elif isinstance(obj, WimTuple):
             new_obj = obj.new()
             new_obj.set(d)
         elif isinstance(obj, WimObject):
-            #ModelEncoder._set_object_attrs(obj, d)
-            new_obj = type(obj).__from_dict__(d)
-        elif isinstance(obj, (int, float, str)):
+            if hasattr(obj, '__from_dict__'):
+                new_obj = type(obj).__from_dict__(d)
+            else:
+                new_obj = type(obj)()
+                ModelEncoder._set_object_attrs(new_obj, d)
+        elif isinstance(obj, (int, float, str)) or obj is None:
             new_obj = d
-        #elif isinstance(obj, (list, tuple)):
-            #new_obj = list()
-            #ModelEncoder._set_object_attrs(new_obj, d)
-        #elif isinstance(obj, dict):
-        #    pass
         else:
             raise Exception('Unsupported type for deserialization: %s' % type(obj))
 
-        return new_obj
-
-    @staticmethod
-    def dict_to_model(d):
-        from .model import Model
-        mdl = Model(d.get('name', 'model'))
-        ModelEncoder._set_object_attrs(mdl, d)
-        return mdl
-
-    @staticmethod
-    def dict_to_results(d):
-        from .result import Database
-        db = Database()
-        ModelEncoder._set_object_attrs(db, d)
-        return db        
+        return new_obj     
 
 del json
 
