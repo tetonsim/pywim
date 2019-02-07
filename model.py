@@ -93,8 +93,8 @@ class Elastic(WimObject):
 
     @classmethod
     def __from_dict__(cls, d):
-        elas_type = d.pop('type', 'isotropic')
-        iso_plane = d.pop('iso_plane', None)
+        elas_type = d.get('type', 'isotropic')
+        iso_plane = d.get('iso_plane', None)
         return cls(elas_type, d, iso_plane)
 
 class Expansion(WimObject):
@@ -106,7 +106,7 @@ class Expansion(WimObject):
 
     @classmethod
     def __from_dict__(cls, d):
-        elas_type = d.pop('type')
+        elas_type = d.get('type')
         return cls(elas_type, d)
 
 class Material(WimObject):
