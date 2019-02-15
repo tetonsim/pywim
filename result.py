@@ -1,10 +1,10 @@
 from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
 
 class ResultValue(WimObject):
-    def __init__(self, id, data=None, sid=None):
+    def __init__(self, id, data=None, values=None):
         self.id = id
-        self.sid = sid
         self.data = data if data else []
+        self.values = values if values else WimList(ResultValue)
 
     @classmethod
     def __from_dict__(cls, d):
@@ -23,8 +23,10 @@ class ResultMult(Result):
         for v in d['values']:
             pid = v['id']
             vals = WimList(ResultValue)
+            subvals = WimList(ResultValue)
             for sv in v['values']:
-                vals.append( ResultValue(pid, sv['data'], sv['id']) )
+                subvals.append(ResultValue(sv['id'], sv['data']))
+            vals.append( ResultValue(pid, values=subvals) )
             rslt.values.extend(vals)
         return rslt
 
