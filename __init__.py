@@ -12,6 +12,13 @@ class WimList(list):
     def new(self):
         return WimList(self.list_type)
 
+    def add(self, val):
+        if self.list_type == float and type(vals) == int:
+            val = float(val)
+        assert type(val) == self.list_type, f'WimList incompatible type ({type(vals)} != {self.list_type})'
+        self.clear()
+        self.append(val)
+
 class WimTuple(list):
     def __init__(self, *types):
         self.types = types
@@ -20,9 +27,11 @@ class WimTuple(list):
         return WimTuple(*self.types)
 
     def set(self, vals):
-        assert len(vals) == len(self.types)
+        assert len(vals) == len(self.types), 'WimTuple incompatible lengths'
         for i in range(len(vals)):
-            assert type(vals[i]) == self.types[i]
+            if self.types[i] == float and type(vals[i]) == int:
+                vals[i] = float(vals[i])
+            assert type(vals[i]) == self.types[i], f'WimTuple incompatible type ({type(vals[i])} != {self.types[i]})'
         self.clear()
         self.extend(vals)
 
@@ -111,11 +120,11 @@ class ModelEncoder(json.JSONEncoder):
             new_obj = obj.new()
             for o in d:
                 if obj.list_type in (int, float, str):
-                    new_obj.append(o)
+                    new_obj.add(o)
                 elif issubclass(obj.list_type, WimTuple):
                     new_t = obj.list_type()
                     new_t.set(o)
-                    new_obj.append(o) 
+                    new_obj.append(new_t) 
                 elif issubclass(obj.list_type, WimObject):
                     if hasattr(obj.list_type, '__from_dict__'):
                         new_obj.append(obj.list_type.__from_dict__(o))
