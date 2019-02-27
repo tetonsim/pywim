@@ -1,6 +1,6 @@
 import json
 
-VERSION = '0.2'
+VERSION = '19.0.0'
 
 class WimObject(object):
     pass
@@ -151,4 +151,5 @@ class ModelEncoder(json.JSONEncoder):
 
 del json
 
-from . import abaqus, model, result
+from . import abaqus, model, result, vtk
+
