@@ -306,6 +306,10 @@ def abaqus_to_wim(inpname):
         model.node_temperatures.append(wtemp)
         add_bcs_to_steps(inp, model, temp, wtemp, 'node_temperatures')
 
+    # Create default outputs
+    model.outputs.append(Output('displacement', ['node']))
+    model.outputs.append(Output('stress', ['node']))
+
     return model
 
 def add_bcs_to_steps(inp, model, bc, wbc, bc_list_name):

@@ -227,6 +227,11 @@ class Step(WimObject):
         self.distributed_forces = WimList(str)
         self.node_temperatures = WimList(str)
 
+class Output(WimObject):
+    def __init__(self, name=None, locations=None):
+        self.name = name if name else 'displacement'
+        self.locations = locations
+
 class Model(WimObject):
     def __init__(self, name=None):
         self.name = name if name else 'model'
@@ -243,3 +248,4 @@ class Model(WimObject):
         self.distributed_forces = WimList(DistributedForce)
         self.node_temperatures = WimList(NodeTemperature)
         self.steps = WimList(Step)
+        self.outputs = WimList(Output)
