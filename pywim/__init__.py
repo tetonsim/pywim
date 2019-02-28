@@ -1,7 +1,5 @@
 import json
 
-VERSION = '19.0.0'
-
 class WimObject(object):
     pass
 
@@ -13,9 +11,9 @@ class WimList(list):
         return WimList(self.list_type)
 
     def add(self, val):
-        if self.list_type == float and type(vals) == int:
+        if self.list_type == float and type(val) == int:
             val = float(val)
-        assert type(val) == self.list_type, f'WimList incompatible type ({type(vals)} != {self.list_type})'
+        assert type(val) == self.list_type, f'WimList incompatible type ({type(val)} != {self.list_type})'
         self.clear()
         self.append(val)
 
@@ -59,7 +57,7 @@ class Meta(WimObject):
             return b
 
     def __init__(self):
-        self.version = VERSION
+        self.version = None
         self.build = Meta.Build()
 
 
