@@ -94,19 +94,25 @@ def from_fea(mdl, inc):
         ngps = 1
         for v in r.values:
             ngps = max(ngps, len(v.values))
+        
+        # Build a dictionary of element Id to index for quicker searching
+        eid2index = {}
+        index = 0
+        for v in r.values:
+            eid2index[v.id] = index
+            index += 1
 
         for gp in range(ngps):
             gpid = gp + 1
 
             out_name = f'{r.name}_{gpid}'
-            print(f' {out_name}')
 
             array = vtk.vtkFloatArray()
             array.SetName(out_name)
             array.SetNumberOfComponents(r.size)
 
             for eid in range(1, nels + 1):
-                elv = next(v for v in r.values if v.id == eid)
+                elv = r.values[ eid2index[eid] ]
 
                 if elv.id != eid:
                     print(f'Element id mismatch: {eid} != {elv.id}')
@@ -127,9 +133,11 @@ def from_fea(mdl, inc):
             celldata.AddArray(array)
 
     for r in inc.node_results:
+        print(f'\tTranslating {r.name} Node Result')
         add_node_results(r)
 
     for r in inc.gauss_point_results:
+        print(f'\tTranslating {r.name} Gauss Point Result')
         add_gp_results(r)
 
     return grid
