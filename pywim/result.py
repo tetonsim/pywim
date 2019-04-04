@@ -1,14 +1,24 @@
 from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
 
 class ResultValue(WimObject):
-    def __init__(self, id, data=None, values=None):
+    def __init__(self, id, data=None, values=None, l=0, k=0):
         self.id = id
         self.data = data if data else []
         self.values = values if values else WimList(ResultValue)
+        self.l = l
+        self.k = k
 
     @classmethod
     def __from_dict__(cls, d):
-       return cls(d['id'], d['data']) 
+       return cls(d['id'], d['data'])
+
+    @property
+    def layer(self):
+        return self.l
+
+    @property
+    def section_point(self):
+        return self.k
 
 class Result(WimObject):
     def __init__(self, name=None, size=1):
@@ -25,7 +35,7 @@ class ResultMult(Result):
             vals = WimList(ResultValue)
             subvals = WimList(ResultValue)
             for sv in v['values']:
-                subvals.append(ResultValue(sv['id'], sv['data']))
+                subvals.append(ResultValue(sv['id'], sv['data'], None, sv.get('l', 0), sv.get('k', 0)))
             vals.append( ResultValue(pid, values=subvals) )
             rslt.values.extend(vals)
         return rslt

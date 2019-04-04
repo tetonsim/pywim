@@ -128,10 +128,30 @@ class CoordinateSystem(WimObject):
         self.xyplane.set(xyplane)
 
 class Section(WimObject):
-    def __init__(self, name=None, material=None, csys=None):
+    def __init__(self, name=None, csys=None):
         self.name = name if name else 'section'
-        self.material = material if material else 'material'
+        self.type = ''
         self.csys = csys
+
+class HomogeneousSection(Section):
+    def __init__(self, name=None, material=None, csys=None):
+        super().__init__(name, csys)
+        self.type = 'homogeneous'
+        self.material = material if material else 'material'
+
+class LayeredSection(Section):
+    def __init__(self, name=None, csys=None):
+        super().__init__(name, csys)
+        self.type = 'layered'
+        self.layers = WimList(WimTuple(str, float, float))
+        self.stack_direction = 3
+        self.rotation_axis = 3
+        self.section_points = 3
+
+    def add_layer(self, material, angle, thickness):
+        layer = self.layers.list_type.new()
+        layer.set([material, angle, thickness])
+        self.layers.append(layer)
 
 class SectionAssignment(WimObject):
     def __init__(self, name=None, section=None, elset=None):

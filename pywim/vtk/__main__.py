@@ -98,14 +98,48 @@ def from_fea(mdl, inc):
         # Build a dictionary of element Id to index for quicker searching
         eid2index = {}
         index = 0
+        nlayers = 0
+        nsectpts = 0
         for v in r.values:
             eid2index[v.id] = index
             index += 1
 
-        for gp in range(ngps):
-            gpid = gp + 1
+            nlayers = max(nlayers, max([sv.layer for sv in v.values]))
+            nsectpts = max(nsectpts, max([sv.section_point for sv in v.values]))
 
-            out_name = f'{r.name}_{gpid}'
+        if nlayers > 0:
+            ngps = int(round(ngps / (nlayers * nsectpts)))
+            gp_iter = []
+            for l in range(nlayers):
+                for k in range(nsectpts):
+                    for g in range(ngps):
+                        gp_iter.append((l, k, g))
+        else:
+            gp_iter = list(range(ngps))
+
+        # This is a severe limitation right now:
+        # For layered data we are assuming all elements have the same number of
+        # layers and section points, but we do check each element for total # gauss
+        # pts to handle differences (e.g. WEDL6 vs HEXL8)
+        def get_gauss_point_data(elv, gpid):
+            this_ngps = int( round(len(elv.values) / (nlayers * nsectpts)) )
+
+            if gpid is int:
+                g = gpid
+            else:
+                g = this_ngps * (gpid[0] * nsectpts + gpid[1]) + gpid[2]
+
+            if len(elv.values) < (g + 1) or gpid[2] >= this_ngps:
+                return [0., 0., 0., 0., 0., 0.]
+            else:
+                return elv.values[g].data
+
+        for gp in gp_iter:
+            if gp is int:
+                out_name = f'{r.name}_G{gp + 1}'
+
+            else:
+                out_name = f'{r.name}_L{gp[0] + 1}_K{gp[1] + 1}_G{gp[2] + 1}'            
 
             array = vtk.vtkFloatArray()
             array.SetName(out_name)
@@ -117,10 +151,12 @@ def from_fea(mdl, inc):
                 if elv.id != eid:
                     print(f'Element id mismatch: {eid} != {elv.id}')
 
-                if len(elv.values) < (gp + 1):
-                    gpdata = [0., 0., 0., 0., 0., 0.]
-                else:
-                    gpdata = elv.values[gp].data
+                gpdata = get_gauss_point_data(elv, gp)
+
+                #if len(elv.values) < (gp + 1):
+                #    gpdata = [0., 0., 0., 0., 0., 0.]
+                #else:
+                #    gpdata = elv.values[gp].data
                 
                 # last two vals intentionally swapped because VTU ordering is XX, YY, ZZ, XY, YZ, XZ
                 if r.size == 1:

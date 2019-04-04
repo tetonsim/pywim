@@ -186,11 +186,38 @@ def abaqus_to_wim(inpname):
         elset = sect.param_value('ELSET')
         material = sect.param_value('MATERIAL')
         ori = sect.param_value('ORIENTATION')
+        composite = sect.has_param('COMPOSITE')
 
         #if len(sect.datalines) > 0:
         #    thickness, = sect.cast_all_data(float)
+
+        if composite:
+            new_section = LayeredSection(name, ori)
+            new_section.stack_direction = sect.param_value('STACKDIRECTION', new_section.stack_direction)
+            min_nspt = None
+            max_nspt = None
+            
+            for layer in sect.datalines:
+                thickness, nspt, material, angle, layer_name = layer.cast(float, int, str, float, str)
+
+                new_section.add_layer(material, angle, thickness)
+
+                min_nspt = min(min_nspt, nspt) if min_nspt else nspt
+                max_nspt = max(max_nspt, nspt) if max_nspt else nspt
+
+            if sect.has_param('SYMMETRIC'):
+                for layer in reversed(new_section.layers):
+                    new_section.add_layer(layer[0], layer[1], layer[2])
+
+            if min_nspt != max_nspt:
+                raise ValueError('All layers in COMPOSITE section must have same number of section points')
+
+            new_section.section_points = min_nspt
+
+        else:
+            new_section = HomogeneousSection(name, material, ori)
         
-        model.sections.append(Section(name, material, ori))
+        model.sections.append(new_section)
         model.section_assignments.append(SectionAssignment(name + '-' + elset, name, elset))
     
     for step in inp.keywords_by_name('STEP'):
