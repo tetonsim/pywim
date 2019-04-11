@@ -228,27 +228,30 @@ def abaqus_to_wim(inpname):
         model.steps.append(Step(name))
 
     for eq in inp.keywords_by_name('EQUATION'):
-        weq = ConstraintEquation()
+        
 
         # First data line is just an integer defining the number of terms - we can ignore that
-        for dl in eq.datalines[1:]:
-            nset_name, dof, value = dl.cast(str, int, float)
 
-            try:
-                nd = int(nset_name)
-            except:
-                nd = None
+        # Check the first term, it can have multiple nodes
+        node0, dof0, value0 = dataline_to_eqterm(model, eq.datalines[1])
+        if len(node0) > 1:
+            for nd0 in node0:
+                weq = ConstraintEquation()
+                weq.add_term(nd0, dof0, value0)
+                for dl in eq.datalines[2:]:
+                    nd, dof, value = dataline_to_eqterm(model, dl)
 
-            if not nd:
-                nset = next(ns for ns in model.regions.node_sets if ns.name == nset_name)
+                    weq.add_term(nd[0], dof, value)
 
-                assert len(nset.nodes) == 1
+                model.constraints.equations.append(weq)
+        else:
+            weq = ConstraintEquation()
+            for dl in eq.datalines[1:]:
+                nd, dof, value = dataline_to_eqterm(model, dl)
 
-                nd = nset.nodes[0]
+                weq.add_term(nd[0], dof, value)
 
-            weq.add_term(nd, dof, value)
-
-        model.constraints.equations.append(weq)
+            model.constraints.equations.append(weq)
 
     ibc = 0
     for bc in inp.keywords_by_name('BOUNDARY'):
@@ -338,6 +341,20 @@ def abaqus_to_wim(inpname):
     model.outputs.append(Output('stress', ['node']))
 
     return model
+
+def dataline_to_eqterm(model, dl):
+    nset_name, dof, value = dl.cast(str, int, float)
+
+    try:
+        nd = [int(nset_name)]
+    except:
+        nd = None
+
+    if not nd:
+        nset = next(ns for ns in model.regions.node_sets if ns.name == nset_name)
+        nd = nset.nodes
+
+    return (nd, dof, value)
 
 def add_bcs_to_steps(inp, model, bc, wbc, bc_list_name):
     stepkw = inp.inside(bc, 'STEP')
