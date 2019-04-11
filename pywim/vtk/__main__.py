@@ -122,22 +122,23 @@ def from_fea(mdl, inc):
         # layers and section points, but we do check each element for total # gauss
         # pts to handle differences (e.g. WEDL6 vs HEXL8)
         def get_gauss_point_data(elv, gpid):
-            this_ngps = int( round(len(elv.values) / (nlayers * nsectpts)) )
 
-            if gpid is int:
+            if type(gpid) is int:
                 g = gpid
+                g_out_of_range = False
             else:
+                this_ngps = int( round(len(elv.values) / (nlayers * nsectpts)) )
                 g = this_ngps * (gpid[0] * nsectpts + gpid[1]) + gpid[2]
+                g_out_of_range = gpid[2] >= this_ngps
 
-            if len(elv.values) < (g + 1) or gpid[2] >= this_ngps:
+            if len(elv.values) < (g + 1) or g_out_of_range:
                 return [0., 0., 0., 0., 0., 0.]
             else:
                 return elv.values[g].data
 
         for gp in gp_iter:
-            if gp is int:
+            if type(gp) is int:
                 out_name = f'{r.name}_G{gp + 1}'
-
             else:
                 out_name = f'{r.name}_L{gp[0] + 1}_K{gp[1] + 1}_G{gp[2] + 1}'            
 
