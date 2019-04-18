@@ -1,5 +1,10 @@
 from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
 
+class Process(WimObject):
+    def __init__(self):
+        self.xaxis = WimTuple(float, float, float)
+        self.zaxis = WimTuple(float, float, float)
+
 class Node(WimObject):
     def __init__(self, id, x, y, z=0.):
         self.id = id
@@ -130,28 +135,61 @@ class CoordinateSystem(WimObject):
 class Section(WimObject):
     def __init__(self, name=None, csys=None):
         self.name = name if name else 'section'
-        self.type = ''
+        self.type = None
         self.csys = csys
 
 class HomogeneousSection(Section):
+    JSONTYPENAME = 'homogeneous'
     def __init__(self, name=None, material=None, csys=None):
         super().__init__(name, csys)
-        self.type = 'homogeneous'
+        self.type = HomogeneousSection.JSONTYPENAME
         self.material = material if material else 'material'
 
+class Layer(WimObject):
+    def __init__(self, material=None, angle=None, thickness=None):
+        self.material = material if material else ''
+        self.angle = angle if angle else 0.0
+        self.thickness = thickness if thickness else 1.0
+    
+    @classmethod
+    def __from_dict__(cls, d):
+        return cls(d[0], d[1], d[2])
+
+    def __json__(self):
+        return [self.material, self.angle, self.thickness]
+
 class LayeredSection(Section):
+    JSONTYPENAME = 'layered'
     def __init__(self, name=None, csys=None):
         super().__init__(name, csys)
-        self.type = 'layered'
-        self.layers = WimList(WimTuple(str, float, float))
+        self.type = LayeredSection.JSONTYPENAME
+        self.layers = WimList(Layer)
         self.stack_direction = 3
         self.rotation_axis = 3
         self.section_points = 3
 
     def add_layer(self, material, angle, thickness):
-        layer = self.layers.list_type.new()
-        layer.set([material, angle, thickness])
+        layer = Layer(material, angle, thickness)
         self.layers.append(layer)
+
+class FDMInfillSection(HomogeneousSection):
+    JSONTYPENAME = 'fdm_infill'
+    def __init__(self, name=None, material=None, angle=None):
+        super().__init__(name, None)
+        self.type = FDMInfillSection.JSONTYPENAME
+        self.angle = angle if angle else 0.0
+
+class FDMLayerSection(LayeredSection):
+    JSONTYPENAME = 'fdm_layer'
+    def __init__(self, name=None):
+        super().__init__(name, None)
+        self.type = FDMLayerSection.JSONTYPENAME
+
+class FDMWallSection(LayeredSection):
+    JSONTYPENAME = 'fdm_wall'
+    def __init__(self, name=None):
+        super().__init__(name, None)
+        self.type = FDMWallSection.JSONTYPENAME
 
 class SectionAssignment(WimObject):
     def __init__(self, name=None, section=None, elset=None):
@@ -256,6 +294,7 @@ class Model(WimObject):
     def __init__(self, name=None):
         self.name = name if name else 'model'
         self.meta = Meta()
+        self.process = Process()
         self.mesh = Mesh()
         self.regions = Regions()
         self.materials = WimList(Material)

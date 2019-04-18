@@ -1,7 +1,20 @@
 import json
 
+def _all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in _all_subclasses(c)])
+
 class WimObject(object):
-    pass
+    @classmethod
+    def from_json(cls, j):
+        dmodel = json.loads(j)
+        return ModelEncoder.dict_to_object(dmodel, cls())
+
+    @classmethod
+    def model_from_file(cls, f):
+        with open(f, 'r') as ff:
+            dmodel = json.load(ff)
+        return ModelEncoder.dict_to_object(dmodel, cls())
 
 class WimList(list):
     def __init__(self, list_type):
@@ -109,6 +122,20 @@ class ModelEncoder(json.JSONEncoder):
         return obj
 
     @staticmethod
+    def _new_object_polymorphic(t, d):
+        dtype = d.get('type')
+        
+        if dtype:
+            subclasses = _all_subclasses(t)
+            for c in subclasses:
+                jtype = getattr(c, 'JSONTYPENAME', None)
+                print(dtype, c, jtype)
+                if jtype and jtype == dtype:
+                    return c()
+
+        return t()
+
+    @staticmethod
     def dict_to_object(d, obj):
         if isinstance(obj, type):
             obj = obj()
@@ -127,7 +154,8 @@ class ModelEncoder(json.JSONEncoder):
                     if hasattr(obj.list_type, '__from_dict__'):
                         new_obj.append(obj.list_type.__from_dict__(o))
                     else:
-                        new_t = obj.list_type()
+                        #new_t = obj.list_type()
+                        new_t = ModelEncoder._new_object_polymorphic(obj.list_type, o)
                         new_obj.append(ModelEncoder._set_object_attrs(new_t, o))
                 else:
                     raise Exception('Unsupported type for WimList deserialization: %s' % obj.list_type)
@@ -138,7 +166,8 @@ class ModelEncoder(json.JSONEncoder):
             if hasattr(obj, '__from_dict__'):
                 new_obj = type(obj).__from_dict__(d)
             else:
-                new_obj = type(obj)()
+                #new_obj = type(obj)()
+                new_obj = ModelEncoder._new_object_polymorphic(type(obj), d)
                 ModelEncoder._set_object_attrs(new_obj, d)
         elif isinstance(obj, (int, float, str)) or obj is None:
             new_obj = d
@@ -147,7 +176,7 @@ class ModelEncoder(json.JSONEncoder):
 
         return new_obj     
 
-del json
+#del json
 
 from . import abaqus, model, result, vtk
 
