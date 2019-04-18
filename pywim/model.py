@@ -185,11 +185,16 @@ class FDMLayerSection(LayeredSection):
         super().__init__(name, None)
         self.type = FDMLayerSection.JSONTYPENAME
 
-class FDMWallSection(LayeredSection):
+class FDMWallSection(Section):
     JSONTYPENAME = 'fdm_wall'
-    def __init__(self, name=None):
+    def __init__(self, name=None, material=None, wall_count=None):
         super().__init__(name, None)
         self.type = FDMWallSection.JSONTYPENAME
+        self.material = material
+        self.wall_count = wall_count if wall_count else 1
+        self.stack_direction = 3
+        self.rotation_axis = 3
+        self.section_points = 3
 
 class SectionAssignment(WimObject):
     def __init__(self, name=None, section=None, elset=None):

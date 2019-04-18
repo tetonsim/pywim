@@ -129,7 +129,7 @@ class ModelEncoder(json.JSONEncoder):
             subclasses = _all_subclasses(t)
             for c in subclasses:
                 jtype = getattr(c, 'JSONTYPENAME', None)
-                print(dtype, c, jtype)
+                
                 if jtype and jtype == dtype:
                     return c()
 
