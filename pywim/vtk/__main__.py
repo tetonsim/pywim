@@ -169,6 +169,21 @@ def from_fea(mdl, inc):
 
             celldata.AddArray(array)
 
+    def add_elem_results(r):
+        if not (r.size == 6 and r.name == 'orientation'):
+            print(f'Unrecognized element result {r.name}')
+            return
+
+        array = vtk.vtkFloatArray()
+        array.SetName(r.name)
+        array.SetNumberOfComponents(r.size)
+
+        for e in r.values:    
+            if r.size == 6 and r.name == 'orientation':
+                array.InsertNextTuple6(e.data[0], e.data[1], e.data[2], e.data[3], e.data[4], e.data[5])
+
+        celldata.AddArray(array)
+
     for r in inc.node_results:
         print(f'\tTranslating {r.name} Node Result')
         add_node_results(r)
@@ -176,6 +191,10 @@ def from_fea(mdl, inc):
     for r in inc.gauss_point_results:
         print(f'\tTranslating {r.name} Gauss Point Result')
         add_gp_results(r)
+
+    for r in inc.element_results:
+        print(f'\tTranslating {r.name} Element Result')
+        add_elem_results(r)
 
     return grid
 
