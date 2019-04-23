@@ -1,9 +1,12 @@
 from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
 
 class Process(WimObject):
-    def __init__(self):
+    def __init__(self, xaxis=None, zaxis=None):
         self.xaxis = WimTuple(float, float, float)
         self.zaxis = WimTuple(float, float, float)
+
+        self.xaxis.set(xaxis if xaxis else (1., 0., 0.))
+        self.zaxis.set(zaxis if zaxis else (0., 0., 1.))
 
 class Node(WimObject):
     def __init__(self, id, x, y, z=0.):
