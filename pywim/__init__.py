@@ -27,7 +27,6 @@ class WimList(list):
         if self.list_type == float and type(val) == int:
             val = float(val)
         assert type(val) == self.list_type, f'WimList incompatible type ({type(val)} != {self.list_type})'
-        self.clear()
         self.append(val)
 
 class WimTuple(list):
