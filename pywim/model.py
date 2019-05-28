@@ -178,7 +178,7 @@ class LayeredSection(Section):
 class FDMInfillSection(HomogeneousSection):
     JSONTYPENAME = 'fdm_infill'
     def __init__(self, name=None, material=None, angle=None):
-        super().__init__(name, None)
+        super().__init__(name, material)
         self.type = FDMInfillSection.JSONTYPENAME
         self.angle = angle if angle else 0.0
 
@@ -193,7 +193,7 @@ class FDMWallSection(Section):
     def __init__(self, name=None, material=None, wall_count=None):
         super().__init__(name, None)
         self.type = FDMWallSection.JSONTYPENAME
-        self.material = material
+        self.material = material if material else 'material'
         self.wall_count = wall_count if wall_count else 1
         self.stack_direction = 3
         self.rotation_axis = 3
