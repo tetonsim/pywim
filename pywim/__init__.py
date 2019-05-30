@@ -85,6 +85,12 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def _obj_to_dict(obj):
+        import warnings
+        warnings.warn('_obj_to_dict deprecated, use object_to_dict', DeprecationWarning, stacklevel=2)
+        return ModelEncoder.object_to_dict(obj)
+
+    @staticmethod
+    def object_to_dict(obj):
         if obj is None:
             return None
         elif getattr(obj, '__json__', None):
@@ -92,14 +98,14 @@ class ModelEncoder(json.JSONEncoder):
         elif isinstance(obj, (int, float, str)):
             return obj
         elif isinstance(obj, (list, tuple)):
-            return [ ModelEncoder._obj_to_dict(v) for v in obj ]
+            return [ ModelEncoder.object_to_dict(v) for v in obj ]
 
         d = {}
         for k in obj.__dict__.keys():
             if k.startswith('_'):
                 continue
 
-            v = ModelEncoder._obj_to_dict(getattr(obj, k))
+            v = ModelEncoder.object_to_dict(getattr(obj, k))
 
             if v is not None:
                 d[k] = v
@@ -177,5 +183,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, model, result, vtk
+from . import abaqus, am, model, result, vtk
 
