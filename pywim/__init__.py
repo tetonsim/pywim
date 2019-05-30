@@ -101,7 +101,10 @@ class ModelEncoder(json.JSONEncoder):
             return [ ModelEncoder.object_to_dict(v) for v in obj ]
 
         d = {}
-        for k in obj.__dict__.keys():
+
+        keys = obj.keys() if isinstance(obj, dict) else obj.__dict__.keys()
+        
+        for k in keys:
             if k.startswith('_'):
                 continue
 
@@ -183,5 +186,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, model, result, vtk
+from . import abaqus, am, micro, model, result, vtk
 

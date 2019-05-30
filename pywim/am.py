@@ -1,5 +1,7 @@
 from . import WimObject, WimList
 
+import math
+
 class Infill(WimObject):
     def __init__(self):
         self.pattern = 'grid'
@@ -49,3 +51,7 @@ class Config(WimObject):
         self.bottom_layer = Stack.Cycle(6, [45., -45.])
         self.top_layer = Stack.Cycle(6, [45., -45.])
         self.infill = Infill()
+
+    @staticmethod
+    def default_overlap(layer_height):
+        return layer_height * (1.0 - math.pi / 4.0)
