@@ -177,7 +177,7 @@ class ModelEncoder(json.JSONEncoder):
                 #new_obj = type(obj)()
                 new_obj = ModelEncoder._new_object_polymorphic(type(obj), d)
                 ModelEncoder._set_object_attrs(new_obj, d)
-        elif isinstance(obj, (int, float, str)) or obj is None:
+        elif isinstance(obj, (int, float, str, dict)) or obj is None:
             new_obj = d
         else:
             raise Exception('Unsupported type for deserialization: %s' % type(obj))
