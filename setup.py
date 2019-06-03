@@ -1,7 +1,7 @@
 import os
 import setuptools
 
-version = '19.0.15'
+version = '19.0.16'
 
 #with open('requirements.txt', 'r') as freq:
 #    requirements = freq.readlines()
@@ -17,5 +17,5 @@ setuptools.setup(
     author='Teton Simulation',
     author_email='info@tetonsim.com',
     packages=setuptools.find_packages(),
-    install_requires=['vtk']
+    install_requires=['vtk', 'pika']
 )
