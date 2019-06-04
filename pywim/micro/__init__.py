@@ -94,6 +94,7 @@ class Run(WimObject):
     def __init__(self, input : Tree, target : str):
         self.input = input
         self.target = target
+        self.all = False
 
 class Result(WimObject):
     def __init__(self):
