@@ -6,3 +6,4 @@ __pycache__
 /build/
 dist/
 pywim.egg-info/
+teton_pywim.egg-info/

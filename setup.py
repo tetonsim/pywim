@@ -12,7 +12,7 @@ if build_num:
     version += '.' + str(build_num)
 
 setuptools.setup(
-    name='pywim',
+    name='teton-pywim',
     version=version,
     author='Teton Simulation',
     author_email='info@tetonsim.com',
