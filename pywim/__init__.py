@@ -20,6 +20,13 @@ class WimList(list):
     def __init__(self, list_type):
         self.list_type = list_type
 
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return super().__getitem__(key)
+        elif isinstance(key, str):
+            return next(o for o in self if o.name == key)
+        raise TypeError('WimList key must be int or str')
+
     def new(self):
         return WimList(self.list_type)
 

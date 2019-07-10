@@ -26,6 +26,9 @@ class Result(WimObject):
         self.size = size
         self.values = WimList(ResultValue)
 
+    def value(self, id):
+        return next(v for v in self.values if v.id == id)
+
 class ResultMult(Result):
     @classmethod
     def __from_dict__(cls, d):

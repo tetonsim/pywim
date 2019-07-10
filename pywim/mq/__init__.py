@@ -66,7 +66,7 @@ class SimpleConnection(object):
 
         return id
 
-    def get(self):
+    def get(self, id=None):
         method, properties, body = self._channel.basic_get(self._queue_consume)
 
         if method is None:
@@ -82,6 +82,13 @@ class SimpleConnection(object):
                 return None
         
         if msg_consumed:
-            self._channel.basic_ack(method.delivery_tag)
+            if id is None:
+                self._channel.basic_ack(method.delivery_tag)
+            else:
+                if id == dbody['id']:
+                    self._channel.basic_ack(method.delivery_tag)
+                else:
+                    self._channel.basic_nack(method.delivery_tag)
+                    return None
 
         return dbody

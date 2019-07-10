@@ -1,7 +1,15 @@
 import time
 import uuid
+import threading
+import collections
 
 from .. import micro, model, mq, result, ModelEncoder
+
+class Result:
+    def __init__(self, success=False, result=None, thread=None):
+        self.thread = thread
+        self.success = success
+        self.result = result
 
 class Agent:
     def __init__(self, input_type, output_type, url, queue_produce=None, queue_consume=None):
@@ -28,7 +36,7 @@ class Agent:
         resp = None
 
         while resp is None:
-            resp = connection.get()
+            resp = connection.get(rid)
 
             if resp and resp['id'] != rid:
                 # Not the Id we were looking for, reset resp to None and let that message die
@@ -37,11 +45,23 @@ class Agent:
                 resp = None
 
             if resp is None:
-                time.sleep(1)
+                time.sleep(0.2)
 
         if len(resp['errors']) > 0:
-            return False, None
+            return Result()
 
         result = ModelEncoder.dict_to_object(resp['content'], self.output_type)
 
-        return True, result
+        return Result(True, result)
+
+    def run(self, job_input):
+        run_result = Result()
+        
+        def thread_func():
+            r = self.run_sync(job_input)
+            run_result.success = r.success
+            run_result.result = r.result
+        
+        run_result.thread = threading.Thread(target=thread_func)
+        
+        return run_result
