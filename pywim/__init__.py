@@ -36,6 +36,12 @@ class WimList(list):
         assert type(val) == self.list_type, f'WimList incompatible type ({type(val)} != {self.list_type})'
         self.append(val)
 
+    def names(self):
+        return [o.name for o in self]
+
+    def keys(self):
+        return self.names()
+
 class WimTuple(list):
     def __init__(self, *types):
         self.types = types

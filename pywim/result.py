@@ -43,6 +43,12 @@ class ResultMult(Result):
             rslt.values.extend(vals)
         return rslt
 
+class ModelResults(WimObject):
+    def __init__(self):
+        self.model_mass = WimTuple(int, float)
+        self.maximum_displacement_magnitude = WimTuple(int, float)
+        self.minimum_safety_factor = WimTuple(int, float)
+
 class Increment(WimObject):
     def __init__(self, time=0.0, dtime=1.0):
         self.time = time
@@ -50,6 +56,7 @@ class Increment(WimObject):
         self.node_results = WimList(Result)
         self.element_results = WimList(Result)
         self.gauss_point_results = WimList(ResultMult)
+        self.model_results = ModelResults()
 
 class Step(WimObject):
     def __init__(self, name=None):
