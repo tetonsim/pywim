@@ -1,4 +1,5 @@
 from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
+from . import micro
 
 class Process(WimObject):
     def __init__(self, xaxis=None, zaxis=None):
@@ -317,3 +318,4 @@ class Model(WimObject):
         self.node_temperatures = WimList(NodeTemperature)
         self.steps = WimList(Step)
         self.outputs = WimList(Output)
+        self.jobs = WimList(micro.Job)
