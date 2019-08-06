@@ -7,3 +7,5 @@ __pycache__
 dist/
 pywim.egg-info/
 teton_pywim.egg-info/
+
+sandbox/
