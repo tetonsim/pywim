@@ -6,9 +6,10 @@ import collections
 from .. import micro, model, mq, result, ModelEncoder
 
 class Result:
-    def __init__(self, success=False, result=None, thread=None):
+    def __init__(self, success=False, input=None, result=None, thread=None):
         self.thread = thread
         self.success = success
+        self.input = input
         self.result = result
 
 class Agent:
@@ -52,7 +53,7 @@ class Agent:
 
         result = ModelEncoder.dict_to_object(resp['content'], self.output_type)
 
-        return Result(True, result)
+        return Result(True, job_input, result)
 
     def run(self, job_input):
         run_result = Result()
@@ -60,6 +61,7 @@ class Agent:
         def thread_func():
             r = self.run_sync(job_input)
             run_result.success = r.success
+            run_result.input = r.input
             run_result.result = r.result
         
         run_result.thread = threading.Thread(target=thread_func)
