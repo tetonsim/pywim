@@ -37,8 +37,14 @@ class Agent:
 
         resp = conn.get()
 
+        if resp is None:
+            return Result(False, errors=['Missing response'])
+
         if len(resp['errors']) > 0:
             return Result(resp['errors'])
+
+        if resp['content'] is None:
+            return Result(False, errors=['Missing response content'])
 
         result = ModelEncoder.dict_to_object(resp['content'], self.output_type)
 

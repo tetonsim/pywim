@@ -45,10 +45,13 @@ def ExtrudedLayer(source : Union[model.Material, micro.Job], config : am.Config,
 
     return job
 
-def Infill(layer : micro.Job, config : am.Config, name=None):
+def Infill(layer : Union[model.Material, micro.Job], config : am.Config, name=None):
     infill = micro.Infill.FromConfig(config)
     job = micro.Job(name if name else 'infill', infill)
 
-    job.materials.append( micro.JobMaterial.FromJob('extrusion', layer.name) )
+    if isinstance(layer, model.Material):
+        job.materials.append( micro.JobMaterial.FromMaterial('extrusion', layer.name) )
+    else:
+        job.materials.append( micro.JobMaterial.FromJob('extrusion', layer.name) )
 
     return job
