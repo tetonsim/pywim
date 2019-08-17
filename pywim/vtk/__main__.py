@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import pywim
+from . import grid_to_vtu, wim_result_to_vtu
 
 def main():
     if len(sys.argv) < 2:
@@ -26,7 +27,7 @@ def main():
         
             db = pywim.ModelEncoder.dict_to_object(drdb, pywim.result.Database)
 
-        wim_result_to_vtu(jmdl, mdl, db)
+        wim_result_to_vtu(mdl, db)
 
 def usage():
     print('Usage:')
