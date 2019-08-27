@@ -118,12 +118,38 @@ class Expansion(WimObject):
         elas_type = d.get('type')
         return cls(elas_type, d)
 
+class Yield(WimObject):
+    def __init__(self, type="von_mises", properties=None, iso_plane=None):
+        self.type = type
+        self.iso_plane = iso_plane
+        if properties:
+            for p, v in properties.items():
+                self.__dict__[p] = v
+
+    @classmethod
+    def __from_dict__(cls, d):
+        yield_type = d.get('type', 'von_mises')
+        iso_plane = d.get('iso_plane', None)
+        return cls(yield_type, d, iso_plane)
+
+class Fracture(WimObject):
+    def __init__(self, properties=None):
+        if properties:
+            for p, v in properties.items():
+                self.__dict__[p] = v
+
+    @classmethod
+    def __from_dict__(cls, d):
+        return cls(d)
+
 class Material(WimObject):
     def __init__(self, name=None):
         self.name = name if name else 'material'
         self.density = 0.0
         self.elastic = Elastic()
         self.expansion = Expansion()
+        self.failure_yield = Yield()
+        self.fracture = Fracture()
 
 class CoordinateSystem(WimObject):
     def __init__(self, name=None, xaxis=(1., 0., 0.), xyplane=(0., 1., 0.), origin=(0., 0., 0.)):

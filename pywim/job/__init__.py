@@ -31,7 +31,6 @@ class Agent:
 
     def run_sync(self, job_input):
         dinput = ModelEncoder.object_to_dict(job_input)
-        
         conn = self.mq()
         conn.publish(dinput)
 
@@ -45,7 +44,6 @@ class Agent:
 
         if resp['content'] is None:
             return Result(False, errors=['Missing response content'])
-
         result = ModelEncoder.dict_to_object(resp['content'], self.output_type)
 
         return Result(True, job_input, result)
