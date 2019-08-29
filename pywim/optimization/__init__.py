@@ -158,7 +158,7 @@ def optimize_bulk(test_data=None, config=Config):
 
     bulk.density = test_data.axial_ratio() * test_data.density
 
-    Ea = EX # test_data.axial_ratio() * EX
+    Ea = test_data.axial_ratio() * EX
     Et = Ea
     nuat = 0.4
     nutt = 0.35
