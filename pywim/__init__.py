@@ -199,5 +199,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, job, micro, model, mq, result, vtk, optimization
+from . import abaqus, am, job, micro, model, mq, optimization, result, vtk
 

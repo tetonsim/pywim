@@ -133,14 +133,8 @@ class Yield(WimObject):
         return cls(yield_type, d, iso_plane)
 
 class Fracture(WimObject):
-    def __init__(self, properties=None):
-        if properties:
-            for p, v in properties.items():
-                self.__dict__[p] = v
-
-    @classmethod
-    def __from_dict__(cls, d):
-        return cls(d)
+    def __init__(self, KIc=None):
+        self.KIc = KIc
 
 class Material(WimObject):
     def __init__(self, name=None):

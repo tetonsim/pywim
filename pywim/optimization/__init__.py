@@ -1,218 +1,232 @@
 import pywim
-import time
 import scipy
-import numpy
+import math
 from .. import WimObject
 from scipy.optimize import Bounds
 
-# Global variables which can be overidden with a configuration file
-tests = {'X': 'XY0', 'Y': 'XY90', 'Z': 'ZX90'}
-micro_url = 'amqp://guest:guest@localhost'
-micro_queue = 'microd' 
-max_error = 0.01
-xatol = 1.e-3
-maxiter = 25
+# A class which sets up the data used to test dogbones.
+class ExtrusionTest(WimObject):
+    def __init__(self):
+        self.name = None
+        self.geometry = pywim.am.Config()
+        self.type = 'unfilled'
+        self.density = 0.0
+        self.EXY0 = None
+        self.EXY90 = None
+        self.EZX90 = None
+        self.SXY0 = None
+        self.SXY90 = None
+        self.SZX90 = None
 
+    # Returns the ratio of bulk to extrusion for any axial property based on layer 
+    # width divided by layer height.
+    def axial_ratio(self):
+        x = self.geometry.layer_width / self.geometry.layer_height
+        return 1. / (1 - 3.6397e9 * math.exp(-24.1988981 * math.pow(x, 0.04)))
+
+    # Returns the ratio of transverse bulk stiffness to transverse extrusion stiffness 
+    # based on layer width divided by layer height.
+    def transverse_ratio(self, direction='Z'):
+        x = self.geometry.layer_width / self.geometry.layer_height
+        if direction == 'Y':
+            return 1. / (1 - 8.0301e9 * math.exp(-24.3731764 * math.pow(x, 0.04)))
+        
+        return 1. / (1 - 4.7477e95 * math.exp(-220.731058 * math.pow(x, 0.005)))
+
+    # Returns the ratio of transverse extrusion yield strength to axial extrusion yield  
+    # strength based on layer width divided by layer height.
+    def transverse_yield_ratio(self):
+        x = self.geometry.layer_width / self.geometry.layer_height
+        return 0.19 + 0.14 * x - 6.1e-3 * math.pwo(x, 2)
+
+# Configuration for the optimization routine
 class Config(WimObject):
     def __init__(self):
-        self.test_names = tests
-        self.micro_url = micro_url
-        self.micro_queue = micro_queue
-        self.max_error = max_error
-        self.xatol = xatol
-        self.maxiter = maxiter
+        self.mq_url = 'amqp://guest:guest@localhost'
+        self.mq_queue = 'microd' 
+        self.max_error = 0.01
+        self.xatol = 0.001
+        self.maxiter = 25
 
-def axial_ratio(layer_config):
-    x = layer_config.layer_width / layer_config.layer_height
-    return 1. / (1 - 3.6397e9 * numpy.exp(-24.1988981 * numpy.power(x, 0.04)))
+# Class for optimizing bulk materials
+class BulkOptimization():
+    def __init__(self, opt_config=Config):
+        self.config = opt_config
 
-def transverse_ratio(layer_config, direction='Z'):
-    x = layer_config.layer_width / layer_config.layer_height
-    if (direction == 'Y'):
-        return 1. / (1 - 8.0301e9 * numpy.exp(-24.3731764 * numpy.power(x, 0.04)))
+    def run_model(self, bulk, layer_config):
+        layer = pywim.micro.build.run.ExtrudedLayer(bulk, layer_config)
+
+        micro_agent = pywim.job.Agent.Micromechanics(self.config.mq_url, self.config.mq_queue)
+        results = micro_agent.run_sync(layer)
+
+        return results.result.materials['layer']
+
+    def error(self, predicted, known):
+        return abs((predicted - known) / known)
+
+    def density_error(self, d, density, bulk, layer_config):
+        bulk.density = d
+        layer_mat = self.run_model(bulk, layer_config)
+
+        return self.error(layer_mat.density, density)
+
+    def axial_error(self, Eb, stiffness, bulk, layer_config):
+
+        if bulk.elastic.type == 'isotropic':
+            bulk.elastic.E = Eb
+        else:
+            bulk.elastic.Ea = Eb
+        
+        layer_mat = self.run_model(bulk, layer_config)
+
+        return self.error(layer_mat.elastic.E11, stiffness)
+
+    def transverse_error(self, Eb, stiffness, bulk, layer_config, direction='Z'):
+
+        if bulk.elastic.type == 'isotropic':
+            bulk.elastic.E = Eb
+        else:
+            bulk.elastic.Et = Eb
+
+        layer_mat = self.run_model(bulk, layer_config)
+
+        if direction == 'Y':
+            return self.error(layer_mat.elastic.E22, stiffness)
+
+        return self.error(layer_mat.elastic.E33, stiffness)
+
+    def axial_yield_error(self, S, yield_strength, bulk, layer_config):
+
+        bulk.failure_yield.Sy = S
+
+        layer_mat = self.run_model(bulk, layer_config)
+
+        return self.error(layer_mat.failure_yield.T11, yield_strength)
+
+    def transverse_yield_error(self, kt, yield_strength, bulk, layer_config, direction='Z'):
+
+        bulk.fracture.KIc = kt
+
+        layer_mat = self.run_model(bulk, layer_config)
+
+        if direction == 'Y':
+            return self.error(layer_mat.failure_yield.T22, yield_strength)
+
+        return self.error(layer_mat.failure_yield.T33, yield_strength)
+
+    def minimize(self, opt_fun=None, opt_args=None, opt_bounds=None, tol=1.e-3):
+        res = scipy.optimize.minimize_scalar(fun=opt_fun, method='bounded', args=opt_args, bounds=opt_bounds, 
+                                             options={'xatol': tol, 'maxiter': self.config.maxiter})
+        return res.x
+
+# Optimizes bulk material properties from an extrusion test
+def optimize_bulk(test_data=None, config=Config):
+
+    EX = test_data.EXY0
     
-    return 1. / (1 - 4.7477e95 * numpy.exp(-220.731058 * numpy.power(x, 0.005)))
-
-def transverse_yield_ratio(layer_config):
-    x = layer_config.layer_width / layer_config.layer_height
-    return 0.19 + 0.14 * x - 6.1e-3 * x * x
-
-def run_model(bulk, layer_config):
-    layer = pywim.micro.build.run.ExtrudedLayer(bulk, layer_config)
-
-    micro_agent = pywim.job.Agent.Micromechanics(micro_url, micro_queue)
-    results = micro_agent.run_sync(layer)
-
-    return results.result.materials['layer']
-
-def error(predicted, known):
-    return numpy.abs((predicted - known) / known)
-
-def density_error(d, density, bulk, layer_config):
-    bulk.density = d
-    layer_mat = run_model(bulk, layer_config)
-
-    return error(layer_mat.density, density)
-
-def axial_error(Eb, stiffness, bulk, layer_config):
-    
-    if (bulk.elastic.type == 'isotropic'):
-        bulk.elastic.E = Eb
+    if test_data.EXY90 != None:
+        EY = test_data.EXY90
     else:
-        bulk.elastic.Ea = Eb
+        EY = None
     
-    layer_mat = run_model(bulk, layer_config)
-
-    return error(layer_mat.elastic.E11, stiffness)
-
-def transverse_error(Eb, stiffness, bulk, layer_config, direction='Z'):
-
-    if (bulk.elastic.type == 'isotropic'):
-        bulk.elastic.E = Eb
+    if test_data.EZX90 != None:
+        EZ = test_data.EZX90
     else:
-        bulk.elastic.Et = Eb
+        EZ = None
 
-    layer_mat = run_model(bulk, layer_config)
 
-    if (direction == 'Y'):
-        return error(layer_mat.elastic.E22, stiffness)
+    SX = test_data.SXY0
 
-    return error(layer_mat.elastic.E33, stiffness)
-
-def axial_yield_error(S, yield_strength, bulk, layer_config):
-
-    bulk.failure_yield.Sy = S
-
-    layer_mat = run_model(bulk, layer_config)
-
-    return error(layer_mat.failure_yield.T11, yield_strength)
-
-def transverse_yield_error(kt, yield_strength, bulk, layer_config, direction='Z'):
-
-    bulk.fracture.KIc = kt
-
-    layer_mat = run_model(bulk, layer_config)
-
-    if (direction == 'Y'):
-        return error(layer_mat.failure_yield.T22, yield_strength)
-
-    return error(layer_mat.failure_yield.T33, yield_strength)
-
-def optimize_bulk(stiffnesses, strengths, density=0.0, layer_config=None, type='unfilled', opt_config=None):
-
-    global tests
-    global micro_url
-    global micro_queue
-    global max_error
-    global maxiter
-    global xatol
+    if test_data.SXY90:
+        SY = test_data.SXY90
+    else:
+        SY = None
     
-    if (opt_config != None):
-        tests = opt_config.test_names
-        micro_queue = opt_config.micro_queue
-        micro_url = opt_config.micro_url
-        max_error = opt_config.max_error
-        maxiter = opt_config.maxiter
-        xatol = opt_config.xatol
+    if test_data.SZX90:
+        SZ = test_data.SZX90
+    else:
+        SZ = None
 
-    if (type == 'filled' and tests['Y'] not in stiffnesses.keys() and tests['Z'] not in stiffnesses.keys()):
-        raise Exception('A transverse stiffness of type Y or Z was not supplied for the filled material')
+    if test_data.type == 'filled' and EY == None and EZ == None:
+        raise Exception('A transverse stiffness of type XY90 or ZX90 needs to be supplied for filled materials')
 
+    if test_data.type == 'filled' and SY == None and SZ == None:
+        raise Exception('A transverse yield strength of type XY90 or ZX90 needs to be supplied for filled materials')
+
+    # Setup the first guess for the bulk material
     bulk = pywim.model.Material('bulk')
 
-    Ea = axial_ratio(layer_config) * stiffnesses[tests['X']]
+    bulk.density = test_data.axial_ratio() * test_data.density
+
+    Ea = EX # test_data.axial_ratio() * EX
     Et = Ea
     nuat = 0.4
     nutt = 0.35
     Gat = 0.6 * Ea
 
-    S11 = axial_ratio(layer_config) * strengths[tests['X']]
-    kc_mode1 = 6.0
+    Sy = test_data.axial_ratio() * SX
+    KIc = 6.0
 
-    # Set the material properties depending on if the material is filled or unfilled
-    bulk.density = axial_ratio(layer_config) * density
-    if (type == 'unfilled'):
+    if test_data.type == 'unfilled':
         bulk.elastic = pywim.model.Elastic(type = 'isotropic', properties = {'E': Ea, 'nu': nutt})
     else:
-        if (tests['Y'] in stiffnesses.keys()):
-            Et = transverse_ratio(layer_config, 'Y') * stiffnesses[tests['Y']]
+        if EY != None:
+            Et = test_data.transverse_ratio('Y') * EY
         else:
-            Et = transverse_ratio(layer_config, 'Z') * stiffnesses[tests['Z']]
+            Et = test_data.transverse_ratio('Z') * EZ
 
         bulk.elastic = pywim.model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et, 
                                            'nuat': nuat, 'nutt': nutt, 'Gat': Gat})
 
-    bulk.failure_yield = pywim.model.Yield(type = 'von_mises', properties = {'Sy': S11})
-    bulk.fracture = pywim.model.Fracture(properties = {'KIc': kc_mode1})
+    bulk.failure_yield = pywim.model.Yield(type = 'von_mises', properties = {'Sy': Sy})
+    bulk.fracture = pywim.model.Fracture(KIc)
 
-    # Run the micromechanics model with the base material definition
-    mat_0 = run_model(bulk, layer_config)
+    
+    bulk_opt = BulkOptimization(opt_config=config)
+
+    mat_0 = bulk_opt.run_model(bulk, test_data.geometry)
     
     # Optimize the axial modulus
-    if (error(mat_0.elastic.E11, stiffnesses[tests['X']]) > max_error):
-        axial_res = scipy.optimize.minimize_scalar(fun=axial_error, method='bounded', args=(stiffnesses[tests['X']], bulk, layer_config), 
-                                                   bounds=(stiffnesses[tests['X']], stiffnesses[tests['X']] / 0.88),
-                                                   options={'xatol': xatol * stiffnesses[tests['X']], 'maxiter': maxiter})
-        Ea = axial_res.x
-    
+    if bulk_opt.error(mat_0.elastic.E11, EX) > config.max_error:
+        Ea = bulk_opt.minimize(bulk_opt.axial_error, (EX, bulk, test_data.geometry), (EX, EX / 0.88), config.xatol * EX)
+
     # Optimize transverse modulus for filled materials
-    if (type == 'unfilled'):
+    if test_data.type == 'unfilled':
         bulk.elastic.E = Ea
 
     else:
-    
-        if (tests['Y'] in stiffnesses.keys() and error(mat_0.elastic.E22, stiffnesses[tests['Y']]) > max_error):
-            transverse_res = scipy.optimize.minimize_scalar(fun=transverse_error, method='bounded', args=(stiffnesses[tests['Y']], bulk, layer_config, 'Y'), 
-                                                            bounds=(stiffnesses[tests['Y']], stiffnesses[tests['Y']] / 0.8),
-                                                            options={'xatol': xatol * stiffnesses[tests['Y']], 'maxiter': maxiter})
+        if EY != None and bulk_opt.error(mat_0.elastic.E22, EY) > config.max_error:
+            Et = bulk_opt.minimize(bulk_opt.transverse_error, (EY, bulk, test_data.geometry, 'Y'), (EY, EY / 0.80), config.xatol * EY)
 
-            Et = transverse_res.x
-
-        elif (tests['Z'] in stiffnesses.keys() and error(mat_0.elastic.E33, stiffnesses[tests['Z']]) > max_error):
-            transverse_res = scipy.optimize.minimize_scalar(fun=transverse_error, method='bounded', args=(stiffnesses[tests['Z']], bulk, layer_config, 'Z'), 
-                                                            bounds=(stiffnesses[tests['Z']], stiffnesses[tests['Z']] / 0.35),
-                                                            options={'xatol': xatol * stiffnesses[tests['Z']], 'maxiter': maxiter})
-
-            Et = transverse_res.x
+        elif EZ != None and bulk_opt.error(mat_0.elastic.E33, EZ) > config.max_error:
+            Et = bulk_opt.minimize(bulk_opt.transverse_error, (EZ, bulk, test_data.geometry, 'Z'), (EZ, EZ / 0.35), config.xatol * EZ)
 
         bulk.elastic.Ea = Ea
         bulk.elastic.Et = Et
 
     # Optimize the bulk yield strength
-    if (mat_0.failure_yield.T11, strengths[tests['X']] > max_error):
-
-        axial_yield_res = scipy.optimize.minimize_scalar(fun=axial_yield_error, method='bounded', args=(strengths[tests['X']], bulk, layer_config), 
-                                                        bounds=(strengths[tests['X']], strengths[tests['X']] / 0.88),
-                                                        options={'xatol': xatol * strengths[tests['X']], 'maxiter': maxiter})
-        bulk.failure_yield.Sy = axial_yield_res.x
+    if bulk_opt.error(mat_0.failure_yield.T11, SX) > config.max_error:
+        bulk.failure_yield.Sy = bulk_opt.minimize(bulk_opt.axial_yield_error, (SX, bulk, test_data.geometry), (SX, SX / 0.88), 
+                                                  config.xatol * SX)
 
     # Optimize the fracture toughness
-    if (tests['Y'] in strengths.keys() and error(mat_0.failure_yield.T22, strengths[tests['Y']]) > max_error):
-        transverse_yield_res = scipy.optimize.minimize_scalar(fun=transverse_yield_error, method='bounded', args=(strengths[tests['Y']], bulk, layer_config, 'Y'), 
-                                                              bounds=(strengths[tests['Y']] * 0.1, strengths[tests['Y']] * 0.8),
-                                                              options={'xatol': xatol * strengths[tests['Y']], 'maxiter': maxiter})
+    if SY != None and bulk_opt.error(mat_0.failure_yield.T22, SY) > config.max_error:
+        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SY, bulk, test_data.geometry, 'Y'), (SY * 0.1, SY * 0.8), 
+                                              config.xatol * SY)
 
-        bulk.fracture.KIc = transverse_yield_res.x
+    elif SZ != None and bulk_opt.error(mat_0.failure_yield.T33, SZ) > config.max_error:
+        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SZ, bulk, test_data.geometry, 'Z'), (SZ * 0.1, SZ * 1.5), 
+                                              config.xatol * SZ)
 
-    elif (tests['Z'] in strengths.keys() and error(mat_0.failure_yield.T33, strengths[tests['Z']]) > max_error):
-        transverse_yield_res = scipy.optimize.minimize_scalar(fun=transverse_yield_error, method='bounded', args=(strengths[tests['Z']], bulk, layer_config, 'Z'), 
-                                                              bounds=(strengths[tests['Z']] * 0.1, strengths[tests['Z']] * 1.5),
-                                                              options={'xatol': xatol * strengths[tests['Z']], 'maxiter': maxiter})
-
-        bulk.fracture.KIc = transverse_yield_res.x
     else:
-        T22 = transverse_yield_ratio(layer_config) * strengths[tests['X']]
-        transverse_yield_res = scipy.optimize.minimize_scalar(fun=transverse_yield_error, method='bounded', args=(T22, bulk, layer_config, 'Y'), 
-                                                              bounds=(T22 * 0.1, T22 * 0.8), options={'xatol': xatol * T22, 'maxiter': maxiter})
-
-        bulk.fracture.KIc = transverse_yield_res.x
-
+        SY = test_data.transverse_yield_ratio() * SX
+        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SY, bulk, test_data.geometry, 'Y'), (SY * 0.1, SY * 0.8), 
+                                              config.xatol * SY)
 
     # Optimize the density of the material
-    if (density > 0.0 and error(mat_0.density, density) > max_error):
-        res = scipy.optimize.minimize_scalar(fun=density_error, args=(density, bulk, layer_config), method='bounded',
-                                             bounds=(density, density / 0.88), options={'xatol':xatol * density, 'maxiter': maxiter})
-        bulk.density = res.x
+    if test_data.density > 0.0 and bulk_opt.error(mat_0.density, test_data.density) > config.max_error:
+        bulk.density = bulk_opt.minimize(bulk_opt.density_error, (test_data.density, bulk, test_data.geometry), 
+                                         (test_data.density, test_data.density / 0.88), config.xatol * test_data.density)
 
     return bulk
 

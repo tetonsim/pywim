@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import pywim
-from . import *
+from . import BulkOptimization, ExtrusionTest, Config, optimize_bulk
 
 def main():
     if len(sys.argv) < 2:
@@ -13,27 +13,16 @@ def main():
     pconfig = os.path.isfile('opt.config')
 
     if (pconfig):
-        with open('opt.config', 'r') as fconfig:
-            oconfig = Config().from_json(json.dumps(json.load(fconfig)))
+        oconfig = Config.model_from_file('opt.config')
     else:
         oconfig = Config()
 
-    # Retreive the input file and set the inputs to the optimization routine
     jopt = sys.argv[1]
 
-    with open(jopt, 'r') as fopt:
-        dopt = json.load(fopt)
+    extrusion_test = ExtrusionTest.model_from_file(jopt)
 
-    layer_config = pywim.am.Config().from_json(json.dumps(dopt['geometry']))
-
-    name = dopt['name']
-    bulk_type = dopt['type']
-    density = dopt['density']
-    stiffnesses = dopt['stiffness']
-    strengths = dopt['yield_strength']
-
-    bulk_mat = optimize_bulk(stiffnesses, strengths, density, layer_config, bulk_type, oconfig)
-    bulk_mat.name = name + '_bulk'
+    bulk_mat = optimize_bulk(extrusion_test, oconfig)
+    bulk_mat.name = extrusion_test.name + '_bulk'
 
     jrst = f'{jopt}.bulk'
 
