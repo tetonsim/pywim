@@ -42,7 +42,7 @@ class ExtrusionTest(WimObject):
         x = self.geometry.layer_width / self.geometry.layer_height
         if direction == 'Y':
             return 1. / (1 - 8.0301e9 * math.exp(-24.3731764 * math.pow(x, 0.04)))
-        
+
         return 1. / (1 - 4.7477e95 * math.exp(-220.731058 * math.pow(x, 0.005)))
 
     def transverse_yield_ratio(self):
@@ -64,7 +64,7 @@ class Config(WimObject):
     '''
     def __init__(self):
         self.mq_url = 'amqp://guest:guest@localhost'
-        self.mq_queue = 'microd' 
+        self.mq_queue = 'microd'
         self.max_error = 0.01
         self.xatol = 0.001
         self.maxiter = 25
@@ -99,7 +99,7 @@ class BulkOptimization():
             bulk.elastic.E = Eb
         else:
             bulk.elastic.Ea = Eb
-        
+
         layer_mat = self.run_model(bulk, layer_config)
 
         return self.error(layer_mat.elastic.E11, stiffness)
@@ -178,10 +178,13 @@ class BulkOptimization():
                                              options={'xatol': tol, 'maxiter': self.config.maxiter})
         return res.x
 
-def optimize_bulk(test_data : ExtrusionTest, config : Config = Config()):
+def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     '''
     This routine optimizes bulk material data based on measured extrusion layer data.
     '''
+
+    if config is None:
+        config = Config()
 
     EX = test_data.EXY0
     EY = test_data.EXY90
@@ -225,11 +228,11 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = Config()):
     bulk.failure_yield = pywim.model.Yield(type = 'von_mises', properties = {'Sy': Sy})
     bulk.fracture = pywim.model.Fracture(KIc)
 
-    
+
     bulk_opt = BulkOptimization(opt_config=config)
 
     mat_0 = bulk_opt.run_model(bulk, test_data.geometry)
-    
+
     # Optimize the axial modulus
     if bulk_opt.error(mat_0.elastic.E11, EX) > config.max_error:
         Ea = bulk_opt.minimize(bulk_opt.axial_error, (EX, bulk, test_data.geometry), bulk_opt.axial_bounds(EX), config.xatol * EX)
