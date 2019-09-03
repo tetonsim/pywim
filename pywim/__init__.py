@@ -12,9 +12,46 @@ class WimObject(object):
 
     @classmethod
     def model_from_file(cls, f):
-        with open(f, 'r') as ff:
-            dmodel = json.load(ff)
+        close_fp = False
+
+        if isinstance(f, str):
+            close_fp = True
+            fp = open(f, 'r')
+        else:
+            fp = f
+        
+        dmodel = json.load(fp)
+
+        if close_fp:
+            fp.close()
+
         return ModelEncoder.dict_to_object(dmodel, cls())
+
+    def to_json(self):
+        return json.dumps(ModelEncoder.object_to_dict(self))
+
+    def to_json_file(self, f, indent=None):
+        close_fp = False
+
+        if isinstance(f, str):
+            close_fp = True
+            fp = open(f, 'w')
+        else:
+            fp = f
+
+        json.dump(ModelEncoder.object_to_dict(self), fp, indent=indent)
+
+        if close_fp:
+            fp.close()
+
+    def is_empty(self):
+        '''
+        Returns true if all attributes are None
+        '''
+        for k, v in self.__dict__.items():
+            if v is not None:
+                return False
+        return True
 
 class WimList(list):
     def __init__(self, list_type):
@@ -104,7 +141,7 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def object_to_dict(obj):
-        if obj is None:
+        if obj is None or (isinstance(obj, WimObject) and obj.is_empty()):
             return None
         elif getattr(obj, '__json__', None):
             return obj.__json__()
@@ -145,6 +182,9 @@ class ModelEncoder(json.JSONEncoder):
     @staticmethod
     def _new_object_polymorphic(t, d):
         dtype = d.get('type')
+
+        if dtype is None:
+            dtype = getattr(t, 'DEFAULTTYPENAME', None)
         
         if dtype:
             subclasses = _all_subclasses(t)

@@ -107,7 +107,7 @@ class Elastic(WimObject):
         return cls(elas_type, d, iso_plane)
 
 class Expansion(WimObject):
-    def __init__(self, type='isotropic', properties=None):
+    def __init__(self, type=None, properties=None):
         self.type = type
         if properties:
             for p, v in properties.items():
@@ -119,7 +119,7 @@ class Expansion(WimObject):
         return cls(elas_type, d)
 
 class Yield(WimObject):
-    def __init__(self, type="von_mises", properties=None, iso_plane=None):
+    def __init__(self, type=None, properties=None, iso_plane=None):
         self.type = type
         self.iso_plane = iso_plane
         if properties:
@@ -158,6 +158,7 @@ class CoordinateSystem(WimObject):
         self.xyplane.set(xyplane)
 
 class Section(WimObject):
+    DEFAULTTYPENAME = 'homogeneous'
     def __init__(self, name=None, csys=None):
         self.name = name if name else 'section'
         self.type = None
