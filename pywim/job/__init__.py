@@ -95,7 +95,10 @@ class FEACLIAgent(_Agent):
         dtmp = tempfile.TemporaryDirectory()
         jtmp = tempfile.NamedTemporaryFile(mode='w', dir=dtmp.name, delete=False)
 
-        job_input.to_json_file(jtmp)
+        if isinstance(job_input, str):
+            jtmp.write(job_input)
+        else:
+            job_input.to_json_file(jtmp)
 
         jtmp.close()
 
