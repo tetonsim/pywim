@@ -17,5 +17,5 @@ setuptools.setup(
     author='Teton Simulation',
     author_email='info@tetonsim.com',
     packages=setuptools.find_packages(),
-    install_requires=['vtk', 'pika']
+    install_requires=['vtk', 'pika', 'scipy']
 )
