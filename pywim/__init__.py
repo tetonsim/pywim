@@ -79,6 +79,9 @@ class WimList(list):
     def keys(self):
         return self.names()
 
+    def is_empty(self):
+        return len(self) == 0
+
 class WimTuple(list):
     def __init__(self, *types):
         self.types = types
@@ -141,7 +144,7 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def object_to_dict(obj):
-        if obj is None or (isinstance(obj, WimObject) and obj.is_empty()):
+        if obj is None or (isinstance(obj, (WimObject, WimList)) and obj.is_empty()):
             return None
         elif getattr(obj, '__json__', None):
             return obj.__json__()
@@ -239,5 +242,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, job, micro, model, mq, optimization, result
+from . import abaqus, am, job, micro, model, optimization, result
 

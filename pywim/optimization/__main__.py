@@ -1,8 +1,8 @@
 import os
 import sys
 import json
-import pywim
 from . import BulkOptimization, ExtrusionTest, Config, optimize_bulk
+from .. import ModelEncoder
 
 def main():
     if len(sys.argv) < 2:
@@ -27,7 +27,7 @@ def main():
     jrst = f'{jopt}.bulk'
 
     with open(jrst, 'w') as f:
-        json.dump(pywim.ModelEncoder.object_to_dict(bulk_mat), f)
+        json.dump(ModelEncoder.object_to_dict(bulk_mat), f)
 
 def usage():
     print('Usage:')

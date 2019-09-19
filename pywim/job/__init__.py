@@ -4,8 +4,9 @@ import shutil
 import threading
 import tempfile
 import subprocess
+import requests
 
-from .. import micro, model, mq, result, ModelEncoder
+from .. import micro, model, result, ModelEncoder
 
 class Result:
     def __init__(self, success=False, input=None, result=None, thread=None, errors=None):
@@ -25,57 +26,6 @@ class _Agent:
 
     def run(self, job_input):
         raise NotImplementedError()
-
-class MQAgent(_Agent):
-    def __init__(self, input_type, output_type, url, queue_produce=None, queue_consume=None):
-        super().__init__(input_type, output_type)
-
-        # Create a connection maker with default queue names
-        self.mq = mq.ConnectionMaker(mq.DirectReplyConnection, url, queue_produce, queue_consume)
-
-    @classmethod
-    def FEA(cls, url, queue_produce=None, queue_consume=None):
-        return cls(model.Model, result.Database, url, queue_produce, queue_consume)
-
-    @classmethod
-    def Micromechanics(cls, url, queue_produce=None, queue_consume=None):
-        return cls(micro.Run, micro.Result, url, queue_produce, queue_consume)
-
-    def run_sync(self, job_input):
-        dinput = ModelEncoder.object_to_dict(job_input)
-        
-        conn = self.mq()
-        conn.publish(dinput)
-
-        resp = conn.get()
-
-        if resp is None:
-            return Result(False, errors=['Missing response'])
-
-        if len(resp['errors']) > 0:
-            return Result(resp['errors'])
-
-        if resp['content'] is None:
-            return Result(False, errors=['Missing response content'])
-
-        result = ModelEncoder.dict_to_object(resp['content'], self.output_type)
-
-        return Result(True, job_input, result)
-
-    def run(self, job_input):
-        run_result = Result()
-        
-        def thread_func():
-            r = self.run_sync(job_input)
-            run_result.success = r.success
-            run_result.input = r.input
-            run_result.result = r.result
-        
-        run_result.thread = threading.Thread(target=thread_func)
-        
-        return run_result
-
-Agent = MQAgent # Use of "Agent" deprecated in 19.0.28
 
 class FEACLIAgent(_Agent):
     def __init__(self, exe_name='wim-cli-json', exe_path=None):
@@ -119,3 +69,45 @@ class FEACLIAgent(_Agent):
         result = self.output_type.model_from_file(jrst_name)
 
         return Result(True, job_input, result)
+
+class SimpleHttpAgent(_Agent):
+    DEFAULT_ADDRESS = '127.0.0.1'
+    DEFAULT_PORT = 8002
+
+    def __init__(self, input_type, output_type, route, address=DEFAULT_ADDRESS, port=DEFAULT_PORT):
+        super().__init__(input_type, output_type)
+
+        self.route = route
+        self.address = address
+        self.port = port
+
+    @classmethod
+    def FEARunner(cls, address=DEFAULT_ADDRESS, port=DEFAULT_PORT):
+        return cls(model.Model, result.Database, '/fea/run', address, port)
+
+    @classmethod
+    def MicroRunner(cls, address=DEFAULT_ADDRESS, port=DEFAULT_PORT):
+        return cls(micro.Run, micro.Result, '/micro/run', address, port)
+
+    @property
+    def _url(self):
+        return f'http://{self.address}:{self.port}{self.route}'
+
+    def run_sync(self, job_input):
+        data = {}
+        data['model'] = ModelEncoder.object_to_dict(job_input)
+
+        resp = requests.post(self._url, json=data)
+
+        jresp = resp.json()
+
+        success = jresp['success']
+        errors = jresp['errors']
+        result = ModelEncoder.dict_to_object(jresp['result'], self.output_type)
+
+        return Result(
+            success,
+            job_input,
+            result,
+            errors=errors
+        )

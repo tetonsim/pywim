@@ -1,8 +1,8 @@
-import pywim
 import scipy
 import math
-from .. import WimObject
 from scipy.optimize import Bounds
+from .. import WimObject
+from .. import am, job, micro, model
 
 class ExtrusionTest(WimObject):
     '''
@@ -10,7 +10,7 @@ class ExtrusionTest(WimObject):
     '''
     def __init__(self):
         self.name = None
-        self.geometry = pywim.am.Config()
+        self.geometry = am.Config()
         self.type = 'unfilled'
         self.density = 0.0
         self.EXY0 = None
@@ -77,9 +77,9 @@ class BulkOptimization():
         self.config = opt_config if opt_config else Config()
 
     def run_model(self, bulk, layer_config):
-        layer = pywim.micro.build.run.ExtrudedLayer(bulk, layer_config)
+        layer = micro.build.run.ExtrudedLayer(bulk, layer_config)
 
-        micro_agent = pywim.job.Agent.Micromechanics(self.config.mq_url, self.config.mq_queue)
+        micro_agent = job.SimpleHttpAgent.MicroRunner()
         results = micro_agent.run_sync(layer)
 
         return results.result.materials['layer']
@@ -201,7 +201,7 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
         raise Exception('A transverse yield strength of type XY90 or ZX90 needs to be supplied for filled materials')
 
     # Setup the first guess for the bulk material
-    bulk = pywim.model.Material('bulk')
+    bulk = model.Material('bulk')
 
     bulk.density = test_data.axial_ratio() * test_data.density
 
@@ -215,18 +215,18 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     KIc = 6.0
 
     if test_data.type == 'unfilled':
-        bulk.elastic = pywim.model.Elastic(type = 'isotropic', properties = {'E': Ea, 'nu': nutt})
+        bulk.elastic = model.Elastic(type = 'isotropic', properties = {'E': Ea, 'nu': nutt})
     else:
         if EY is not None:
             Et = test_data.transverse_ratio('Y') * EY
         else:
             Et = test_data.transverse_ratio('Z') * EZ
 
-        bulk.elastic = pywim.model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et, 
+        bulk.elastic = model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et, 
                                            'nuat': nuat, 'nutt': nutt, 'Gat': Gat})
 
-    bulk.failure_yield = pywim.model.Yield(type = 'von_mises', properties = {'Sy': Sy})
-    bulk.fracture = pywim.model.Fracture(KIc)
+    bulk.failure_yield = model.Yield(type = 'von_mises', properties = {'Sy': Sy})
+    bulk.fracture = model.Fracture(KIc)
 
 
     bulk_opt = BulkOptimization(opt_config=config)
