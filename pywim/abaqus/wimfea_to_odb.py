@@ -38,7 +38,7 @@ def translate_wim_files(wim_model_name):
     odb.save()
 
 def wim_to_odb(wim_model, wim_result, wim_model_name):
-    odb = Odb(name=wim_model_name, path=wim_model_name + '_translated_temp.odb')
+    odb = Odb(name=wim_model_name, path=wim_model_name + '_translated.odb')
 
     instance = _add_mesh_to_odb(wim_model, odb)
     
@@ -80,9 +80,7 @@ def _add_inc_results_to_odb_step(inc, odb_step, inc_num, instance):
     # add displacements to odb_frame
     node_results = inc['node_results']
 
-    for x in node_results:
-        if x['name'] == 'displacement':
-            disp_values = x['values']
+    disp_values = _get_result_by_name(node_results, 'displacement')['values']
 
     abq_node_labels = tuple(n['id'] for n in disp_values)
     abq_displacements = tuple(tuple(n['data']) for n in disp_values)
@@ -93,9 +91,7 @@ def _add_inc_results_to_odb_step(inc, odb_step, inc_num, instance):
     # add stresses to odb_frame
     gp_results = inc['gauss_point_results']
 
-    for x in gp_results:
-        if x['name'] == 'stress':
-            stress_values = x['values']
+    stress_values = _get_result_by_name(gp_results, 'stress')['values']
 
     gp_stresses = []
 
@@ -119,8 +115,20 @@ def _add_inc_results_to_odb_step(inc, odb_step, inc_num, instance):
     stress_field = odb_frame.FieldOutput(name='S', description='Stress', type=TENSOR_3D_FULL, validInvariants=(MISES,))
     stress_field.addData(position=INTEGRATION_POINT, instance=instance, labels=abq_element_labels, data=abq_gp_stresses)
 
+def _get_result_by_name(entity_results, result_name):
+    result = None
+    for r in entity_results:
+        if r['name'] == result_name:
+            result = r
+            break
+
+    if result is None:
+        raise KeyError(result_name + ' result is missing')
+
+    return result
+
 def main():
-    # add error message if user does not supply -- filename argument
+    # add error message if user does not supply filename argument
     translate_wim_files(sys.argv[-1])
 
 if __name__ == '__main__':
