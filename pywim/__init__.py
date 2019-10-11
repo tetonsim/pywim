@@ -4,11 +4,17 @@ def _all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in _all_subclasses(c)])
 
-class WimObject(object):
+class WimException(Exception):
+    pass
+
+class WimObject:
+    @classmethod
+    def from_dict(cls, d):
+        return ModelEncoder.dict_to_object(d, cls())
+
     @classmethod
     def from_json(cls, j):
-        dmodel = json.loads(j)
-        return ModelEncoder.dict_to_object(dmodel, cls())
+        return cls.from_dict(json.loads(j))
 
     @classmethod
     def model_from_file(cls, f):
@@ -27,8 +33,11 @@ class WimObject(object):
 
         return ModelEncoder.dict_to_object(dmodel, cls())
 
+    def to_dict(self):
+        return ModelEncoder.object_to_dict(self)
+
     def to_json(self):
-        return json.dumps(ModelEncoder.object_to_dict(self))
+        return json.dumps(self.to_dict())
 
     def to_json_file(self, f, indent=None):
         close_fp = False
@@ -104,6 +113,11 @@ class WimTuple(list):
             self.types = types
         return type('_WimTuple', (WimTuple,), { '__init__': __init__ })
 
+class WimEnum:
+    def __init__(self, enum_type):
+        self.enum_type = enum_type
+        self.enum_value = self.enum_type(1)
+        
 class Meta(WimObject):
     class Build(WimObject):
         def __init__(self):
@@ -152,6 +166,8 @@ class ModelEncoder(json.JSONEncoder):
             return obj
         elif isinstance(obj, (list, tuple)):
             return [ ModelEncoder.object_to_dict(v) for v in obj ]
+        elif isinstance(obj, WimEnum):
+            return obj.enum_value.name
 
         d = {}
 
@@ -222,7 +238,7 @@ class ModelEncoder(json.JSONEncoder):
                         new_t = ModelEncoder._new_object_polymorphic(obj.list_type, o)
                         new_obj.append(ModelEncoder._set_object_attrs(new_t, o))
                 else:
-                    raise Exception('Unsupported type for WimList deserialization: %s' % obj.list_type)
+                    raise WimException('Unsupported type for WimList deserialization: %s' % obj.list_type)
         elif isinstance(obj, WimTuple):
             new_obj = obj.new()
             new_obj.set(d)
@@ -233,12 +249,15 @@ class ModelEncoder(json.JSONEncoder):
                 #new_obj = type(obj)()
                 new_obj = ModelEncoder._new_object_polymorphic(type(obj), d)
                 ModelEncoder._set_object_attrs(new_obj, d)
+        elif isinstance(obj, WimEnum):
+            new_obj = obj
+            new_obj.enum_value = new_obj.enum_type[d]
         elif isinstance(obj, (int, float, str, dict)) or obj is None:
             new_obj = d
         else:
-            raise Exception('Unsupported type for deserialization: %s' % type(obj))
+            raise WimException('Unsupported type for deserialization: %s' % type(obj))
 
-        return new_obj     
+        return new_obj
 
 #del json
 

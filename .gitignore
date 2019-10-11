@@ -3,6 +3,8 @@
 __pycache__
 .vscode
 
+venv/
+
 /build/
 dist/
 pywim.egg-info/
