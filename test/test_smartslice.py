@@ -20,11 +20,13 @@ class MeshTest(unittest.TestCase):
             ]
         )
 
-        mesh = pywim.chop.Mesh()
+        mesh = pywim.chop.mesh.Mesh()
         mesh.transform = T
+        mesh.type = pywim.chop.mesh.MeshType.infill
 
         d = mesh.to_dict()
 
-        mesh2 = pywim.chop.Mesh.from_dict(d)
+        mesh2 = pywim.chop.mesh.Mesh.from_dict(d)
 
         self.assertTrue(np.array_equal(mesh2.transform, T))
+        self.assertEqual(mesh2.type, pywim.chop.mesh.MeshType.infill)

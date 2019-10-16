@@ -1,6 +1,6 @@
 import threemf
 
-from . import job, machine, opt, result, slicer
+from . import job, opt, result
 from .. import WimException
 
 class JobThreeMFAsset(threemf.extension.Asset):

@@ -1,43 +1,10 @@
 import enum
 
-from .. import am, chop
+from .. import chop
 from .. import Meta, WimObject, WimList, WimTuple, WimIgnore
 from .. import model
 
-from . import machine, opt, slicer
-
-class BoundaryCondition(WimObject):
-    DEFAULTTYPENAME = 'fixed'
-    def __init__(self, name=None):
-        self.name = name if name else 'bc'
-        self.type = None
-        self.face = WimList(int)
-
-class FixedBoundaryCondition(BoundaryCondition):
-    JSONTYPENAME = 'fixed'
-
-#class SlideBoundaryCondition(BoundaryCondition):
-#    JSONTYPENAME = 'slide'
-
-class Load(WimObject):
-    DEFAULTTYPENAME = 'pressure'
-    def __init__(self, name=None):
-        self.name = name if name else 'load'
-        self.type = None
-        self.face = WimList(int)
-
-class Force(Load):
-    JSONTYPENAME = 'force'
-    def __init__(self, name=None):
-        super().__init__(name)
-        self.type = Force.JSONTYPENAME
-        self.force = WimTuple(float, float, float)
-
-class Step(WimObject):
-    def __init__(self, name=None):
-        self.name = name if name else 'default'
-        self.boundary_conditions = WimList(BoundaryCondition)
-        self.loads = WimList(Load)
+from . import  opt
 
 class JobType(enum.Enum):
     validation = 1
@@ -47,9 +14,7 @@ class Job(WimObject):
     def __init__(self):
         self.meta = Meta()
         self.type = JobType.validation
-        self.print_config = am.Config()
-        self.mesh = chop.Mesh()
+        self.chop = chop.job.Job()
+        #self.mesh = chop.mesh.Mesh()
         self.bulk = model.Material()
-        self.steps = WimList(Step)
-        self.slicer = slicer.Slicer()
         self.optimization = opt.Optimization()

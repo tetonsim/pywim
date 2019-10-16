@@ -48,9 +48,9 @@ class Infill(UnitCell):
 
     @staticmethod
     def FromConfig(config : am.Config):
-        if config.infill.pattern.lower() in ('grid', 'square'):
+        if config.infill.pattern == am.InfillType.grid:
             return InfillSquare(config.infill.density, config.layer_width)
-        elif config.infill.pattern.lower() in ('tri', 'triangle'):
+        elif config.infill.pattern == am.InfillType.triangle:
             return InfillTriangle(config.infill.density, config.layer_width)
         
         raise Exception(f'Unrecognized infill unit cell name: {config.infill.pattern}')
