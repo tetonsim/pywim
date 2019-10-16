@@ -20,7 +20,7 @@ class Node(WimObject):
     def __from_dict__(cls, d):
         return cls(d[0], d[1], d[2], d[3] if len(d) >= 4 else 0.)
 
-    def __json__(self):
+    def __to_dict__(self):
         return [self.id, self.x, self.y, self.z]
 
 class Element(WimObject):
@@ -32,7 +32,7 @@ class Element(WimObject):
     def __from_dict__(cls, d):
         return cls(d[0], d[1:])
 
-    def __json__(self):
+    def __to_dict__(self):
         return [self.id, *self.nodes]
 
 class ElementGroup(WimObject):
@@ -181,7 +181,7 @@ class Layer(WimObject):
     def __from_dict__(cls, d):
         return cls(d[0], d[1], d[2])
 
-    def __json__(self):
+    def __to_dict__(self):
         return [self.material, self.angle, self.thickness]
 
 class LayeredSection(Section):

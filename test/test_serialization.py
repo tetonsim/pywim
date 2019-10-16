@@ -4,9 +4,9 @@ import enum
 import pywim
 
 class Primitives(pywim.WimObject):
-    def __init__(self):
+    def __init__(self, b=None):
         self.a = 0
-        self.b = 'test'
+        self.b = b if b else 'test'
         self.c = 99.9
         self.d = None
 
@@ -20,7 +20,12 @@ class TestEnum(enum.Enum):
 
 class ObjectWithEnum(pywim.WimObject):
     def __init__(self):
-        self.e = pywim.WimEnum(TestEnum)
+        self.e = TestEnum(1)
+
+class ObjectIgnore(pywim.WimObject):
+    def __init__(self):
+        self.x = Primitives('alaska')
+        self.y = pywim.WimIgnore.make(Primitives)('alabama')
 
 class WimObjectTest(unittest.TestCase):
     def test_primitives(self):
@@ -69,7 +74,7 @@ class WimObjectTest(unittest.TestCase):
         e1 = ObjectWithEnum()
         e2 = ObjectWithEnum()
 
-        e2.e.enum_value = TestEnum.B
+        e2.e = TestEnum.B
 
         d1 = e1.to_dict()
         d2 = e2.to_dict()
@@ -77,5 +82,29 @@ class WimObjectTest(unittest.TestCase):
         e3 = ObjectWithEnum.from_dict(d1)
         e4 = ObjectWithEnum.from_dict(d2)
 
-        self.assertEqual(e3.e.enum_value, TestEnum.A)
-        self.assertEqual(e4.e.enum_value, TestEnum.B)
+        self.assertEqual(e3.e, TestEnum.A)
+        self.assertEqual(e4.e, TestEnum.B)
+
+    def test_ignore(self):
+        i1 = ObjectIgnore()
+        
+        i1.x.a = 101
+
+        # modify y - our tests below will make sure
+        # these values are not persistent through the
+        # serialization/deserialization process
+        i1.y.a = 102
+        i1.y.b = 'arkansas'
+
+        d1 = i1.to_dict()
+
+        self.assertTrue('x' in d1.keys())
+        self.assertFalse('y' in d1.keys())
+
+        i2 = ObjectIgnore.from_dict(d1)
+
+        self.assertEqual(i2.x.a, 101)
+        self.assertEqual(i2.x.b, 'alaska')
+
+        self.assertNotEqual(i2.y.a, 102)
+        self.assertEqual(i2.y.b, 'alabama') # should be equal to what ObjectIgnore constructs it to

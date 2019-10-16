@@ -1,4 +1,7 @@
 import json
+import enum
+import datetime
+from warnings import warn
 
 def _all_subclasses(cls):
     return set(cls.__subclasses__()).union(
@@ -113,11 +116,17 @@ class WimTuple(list):
             self.types = types
         return type('_WimTuple', (WimTuple,), { '__init__': __init__ })
 
-class WimEnum:
-    def __init__(self, enum_type):
-        self.enum_type = enum_type
-        self.enum_value = self.enum_type(1)
-        
+class WimIgnore:
+    def __init__(self, object_type):
+        self.type = object_type
+
+    @staticmethod
+    def make(object_type):
+        def __init__(self, *args, **kwargs):
+            WimIgnore.__init__(self, object_type)            
+            object_type.__init__(self, *args, **kwargs)
+        return type(f'_WimIgnore_{object_type.__name__}', (WimIgnore, object_type), { '__init__': __init__ })
+
 class Meta(WimObject):
     class Build(WimObject):
         def __init__(self):
@@ -125,6 +134,10 @@ class Meta(WimObject):
             self.machine = ''
             self.hash = ''
             self.branch = ''
+
+        def populate(self):
+            pass
+            # TODO - is there anything here we want to grab during setup/distribution?
 
         @classmethod
         def __from_dict__(cls, d):
@@ -137,8 +150,15 @@ class Meta(WimObject):
 
     def __init__(self):
         self.version = None
+        self.app = None
+        self.date = None
         self.build = Meta.Build()
 
+    def populate(self, app=None):
+        self.version = '' # TODO, need to get this from somewhere that setup.py can also get it from
+        self.app = app if app else 'pywim'
+        self.date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.build.populate()
 
     @classmethod
     def __from_dict__(cls, d):
@@ -152,26 +172,31 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def _obj_to_dict(obj):
-        import warnings
-        warnings.warn('_obj_to_dict deprecated, use object_to_dict', DeprecationWarning, stacklevel=2)
+        warn('_obj_to_dict deprecated, use object_to_dict', DeprecationWarning)
         return ModelEncoder.object_to_dict(obj)
 
     @staticmethod
     def object_to_dict(obj):
-        if obj is None or (isinstance(obj, (WimObject, WimList)) and obj.is_empty()):
+        if obj is None or (isinstance(obj, (WimObject, WimList)) and obj.is_empty()) or isinstance(obj, WimIgnore):
             return None
+        elif getattr(obj, '__to_dict__', None):
+            return obj.__to_dict__()
         elif getattr(obj, '__json__', None):
+            warn(f'__json__ extension is deprecated, use __to_dict__: {type(obj)}', DeprecationWarning)
             return obj.__json__()
         elif isinstance(obj, (int, float, str)):
             return obj
         elif isinstance(obj, (list, tuple)):
             return [ ModelEncoder.object_to_dict(v) for v in obj ]
-        elif isinstance(obj, WimEnum):
-            return obj.enum_value.name
+        elif isinstance(obj, enum.Enum):
+            return obj.name
 
         d = {}
 
         keys = obj.keys() if isinstance(obj, dict) else obj.__dict__.keys()
+
+        if len(keys) == 0:
+            return None
         
         for k in keys:
             if k.startswith('_'):
@@ -238,7 +263,7 @@ class ModelEncoder(json.JSONEncoder):
                         new_t = ModelEncoder._new_object_polymorphic(obj.list_type, o)
                         new_obj.append(ModelEncoder._set_object_attrs(new_t, o))
                 else:
-                    raise WimException('Unsupported type for WimList deserialization: %s' % obj.list_type)
+                    raise WimException(f'Unsupported type for WimList deserialization: {obj.list_type}')
         elif isinstance(obj, WimTuple):
             new_obj = obj.new()
             new_obj.set(d)
@@ -249,11 +274,12 @@ class ModelEncoder(json.JSONEncoder):
                 #new_obj = type(obj)()
                 new_obj = ModelEncoder._new_object_polymorphic(type(obj), d)
                 ModelEncoder._set_object_attrs(new_obj, d)
-        elif isinstance(obj, WimEnum):
-            new_obj = obj
-            new_obj.enum_value = new_obj.enum_type[d]
+        elif isinstance(obj, enum.Enum):
+            new_obj = obj.__class__[d]
         elif isinstance(obj, (int, float, str, dict)) or obj is None:
             new_obj = d
+        elif isinstance(obj, WimIgnore):
+            new_obj = obj.__class__()
         else:
             raise WimException('Unsupported type for deserialization: %s' % type(obj))
 
@@ -261,5 +287,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, job, micro, model, optimization, result
+from . import abaqus, am, job, micro, model, optimization, result, smartslice
 
