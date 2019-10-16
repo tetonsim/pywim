@@ -72,7 +72,7 @@ class FEACLIAgent(_Agent):
 
 class SimpleHttpAgent(_Agent):
     DEFAULT_ADDRESS = '127.0.0.1'
-    DEFAULT_PORT = 8002
+    DEFAULT_PORT = 8000
 
     def __init__(self, input_type, output_type, route, address=DEFAULT_ADDRESS, port=DEFAULT_PORT):
         super().__init__(input_type, output_type)

@@ -287,5 +287,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, job, micro, model, optimization, result, smartslice
+from . import abaqus, am, chop, job, micro, model, optimization, result, smartslice
 

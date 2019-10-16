@@ -20,11 +20,11 @@ class MeshTest(unittest.TestCase):
             ]
         )
 
-        mesh = pywim.smartslice.job.Mesh()
+        mesh = pywim.chop.Mesh()
         mesh.transform = T
 
         d = mesh.to_dict()
 
-        mesh2 = pywim.smartslice.job.Mesh.from_dict(d)
+        mesh2 = pywim.chop.Mesh.from_dict(d)
 
         self.assertTrue(np.array_equal(mesh2.transform, T))
