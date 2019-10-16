@@ -11,6 +11,11 @@ class MeshType(enum.Enum):
     infill = 2
     cutting = 3
 
+class MaterialNames(WimObject):
+    def __init__(self):
+        self.extrusion = ''
+        self.infill = ''
+
 class Mesh(WimObject, threemf.mesh.Mesh):
     def __init__(self, name=None):
         super().__init__()
@@ -18,6 +23,7 @@ class Mesh(WimObject, threemf.mesh.Mesh):
         self.name = name if name else ''
         self.type = MeshType.normal
         self.print_config = None
+        self.materials = MaterialNames()
 
     @staticmethod
     def cast_from_base(base_mesh):
@@ -33,9 +39,10 @@ class Mesh(WimObject, threemf.mesh.Mesh):
         return {
             'name': self.name,
             'type': self.type.name,
+            'materials': self.materials.to_dict(),
+            'transform': list(self.transform.flatten()),
             'vertices': verts,
             'triangles': tris,
-            'transform': list(self.transform.flatten())
         }
 
     @classmethod
@@ -54,6 +61,7 @@ class Mesh(WimObject, threemf.mesh.Mesh):
 
         m.transform = np.array(d['transform']).reshape(4, 4)
 
+        m.materials = MaterialNames.from_dict(d.get('materials', {}))
         m.type = MeshType[d.get('type', MeshType.normal.name)]
 
         if 'print_config' in d.keys():
