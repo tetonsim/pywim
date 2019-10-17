@@ -2,7 +2,7 @@ import scipy
 import math
 from scipy.optimize import Bounds
 from .. import WimObject
-from .. import am, job, micro, model
+from .. import am, fea, job, micro
 
 class ExtrusionTest(WimObject):
     '''
@@ -215,18 +215,18 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     KIc = 6.0
 
     if test_data.type == 'unfilled':
-        bulk.elastic = model.Elastic(type = 'isotropic', properties = {'E': Ea, 'nu': nutt})
+        bulk.elastic = fea.model.Elastic(type = 'isotropic', properties = {'E': Ea, 'nu': nutt})
     else:
         if EY is not None:
             Et = test_data.transverse_ratio('Y') * EY
         else:
             Et = test_data.transverse_ratio('Z') * EZ
 
-        bulk.elastic = model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et, 
+        bulk.elastic = fea.model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et, 
                                            'nuat': nuat, 'nutt': nutt, 'Gat': Gat})
 
-    bulk.failure_yield = model.Yield(type = 'von_mises', properties = {'Sy': Sy})
-    bulk.fracture = model.Fracture(KIc)
+    bulk.failure_yield = fea.model.Yield(type = 'von_mises', properties = {'Sy': Sy})
+    bulk.fracture = fea.model.Fracture(KIc)
 
 
     bulk_opt = BulkOptimization(opt_config=config)

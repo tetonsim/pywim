@@ -1,4 +1,4 @@
-from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
+from .. import WimObject, WimList, WimTuple, Meta
 
 class ResultValue(WimObject):
     def __init__(self, id, data=None, values=None, l=0, k=0):

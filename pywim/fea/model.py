@@ -1,5 +1,4 @@
-from . import ModelEncoder, WimObject, WimList, WimTuple, Meta
-from . import micro
+from .. import WimObject, WimList, WimTuple, Meta
 
 class Process(WimObject):
     def __init__(self, xaxis=None, zaxis=None):
@@ -320,6 +319,8 @@ class Output(WimObject):
     def __init__(self, name=None, locations=None):
         self.name = name if name else 'displacement'
         self.locations = locations
+
+from .. import micro
 
 class Model(WimObject):
     def __init__(self, name=None):

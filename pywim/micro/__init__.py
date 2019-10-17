@@ -1,11 +1,12 @@
-from .. import WimObject, WimList, WimTuple, am, model
+from .. import WimObject, WimList, WimTuple, am
+from ..fea.model import Material
 
 class UnitCell(WimObject):
     def __init__(self, unit_cell):
         self.unit_cell = unit_cell
 
 class Composite(WimObject):
-    def __init__(self, fiber : model.Material, matrix : model.Material, volume_fraction, L_over_D=None):
+    def __init__(self, fiber : Material, matrix : Material, volume_fraction, L_over_D=None):
         self.fiber = fiber
         self.matrix = matrix
         self.volume_fraction = volume_fraction
@@ -87,7 +88,7 @@ class Job(WimObject):
 
 class Tree(WimObject):
     def __init__(self):
-        self.materials = WimList(model.Material)
+        self.materials = WimList(Material)
         self.jobs = WimList(Job)
 
 class Run(WimObject):
@@ -99,6 +100,6 @@ class Run(WimObject):
 class Result(WimObject):
     def __init__(self):
         self.meta = {}
-        self.materials = WimList(model.Material)
+        self.materials = WimList(Material)
 
 from . import build

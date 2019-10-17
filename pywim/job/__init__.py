@@ -6,7 +6,11 @@ import tempfile
 import subprocess
 import requests
 
-from .. import micro, model, result, ModelEncoder
+from .. import fea, micro, ModelEncoder
+
+import warnings
+
+warnings.warn('pywim.job is deprecated, use pywim.http instead', DeprecationWarning)
 
 class Result:
     def __init__(self, success=False, input=None, result=None, thread=None, errors=None):

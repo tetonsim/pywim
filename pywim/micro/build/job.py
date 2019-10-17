@@ -1,4 +1,5 @@
-from ... import am, micro, model
+from ... import am, micro
+from ...fea.model import Material
 from typing import Union
 
 def Hexpack(composite : micro.Composite, name=None):
@@ -34,22 +35,22 @@ def ShortFiber(hexpack : micro.Job, particulate : micro.Job, composite : micro.C
 
     return job
 
-def ExtrudedLayer(source : Union[model.Material, micro.Job], config : am.Config, name=None):
+def ExtrudedLayer(source : Union[Material, micro.Job], config : am.Config, name=None):
     layer = micro.ExtrudedLayer(config)
     job = micro.Job(name if name else 'layer', layer)
 
-    if isinstance(source, model.Material):
+    if isinstance(source, Material):
         job.materials.append( micro.JobMaterial.FromMaterial('plastic', source.name) )
     else:
         job.materials.append( micro.JobMaterial.FromJob('plastic', source.name) )
 
     return job
 
-def Infill(layer : Union[model.Material, micro.Job], config : am.Config, name=None):
+def Infill(layer : Union[Material, micro.Job], config : am.Config, name=None):
     infill = micro.Infill.FromConfig(config)
     job = micro.Job(name if name else 'infill', infill)
 
-    if isinstance(layer, model.Material):
+    if isinstance(layer, Material):
         job.materials.append( micro.JobMaterial.FromMaterial('extrusion', layer.name) )
     else:
         job.materials.append( micro.JobMaterial.FromJob('extrusion', layer.name) )

@@ -1,4 +1,5 @@
-from ... import am, micro, model
+from ... import am, micro
+from ...fea.model import Material
 from typing import Union
 
 def Hexpack(composite : micro.Composite):
@@ -27,10 +28,10 @@ def ShortFiber(composite : micro.Composite):
 
     return micro.Run(tree, sf.name)
 
-def ExtrudedLayer(material : Union[model.Material, micro.Composite], config : am.Config):
+def ExtrudedLayer(material : Union[Material, micro.Composite], config : am.Config):
     tree = micro.Tree()
 
-    if isinstance(material, model.Material):
+    if isinstance(material, Material):
         tree.materials.append(material)
         layer = micro.build.job.ExtrudedLayer(material, config)
         tree.jobs.append(layer)
@@ -46,10 +47,10 @@ def ExtrudedLayer(material : Union[model.Material, micro.Composite], config : am
 
     return micro.Run(tree, layer.name)
 
-def Infill(material : Union[model.Material, micro.Composite], config : am.Config):
+def Infill(material : Union[Material, micro.Composite], config : am.Config):
     tree = micro.Tree()
 
-    if isinstance(material, model.Material):
+    if isinstance(material, Material):
         tree.materials.append(material)
 
         layer = micro.build.job.ExtrudedLayer(material, config)

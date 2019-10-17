@@ -160,12 +160,6 @@ class Meta(WimObject):
         self.date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.build.populate()
 
-    @classmethod
-    def __from_dict__(cls, d):
-        m = Meta()
-        m.version = d.get('version', '')
-        m.build = ModelEncoder.dict_to_object(d.get('build', {}), m.build)
-
 class ModelEncoder(json.JSONEncoder):
     def default(self, obj):
         return ModelEncoder._obj_to_dict(obj)
@@ -287,5 +281,5 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, chop, job, micro, model, optimization, result, smartslice
+from . import abaqus, am, chop, fea, http, micro, optimization, smartslice
 
