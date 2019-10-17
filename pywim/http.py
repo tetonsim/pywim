@@ -19,7 +19,9 @@ class Response(Generic[T]):
         self.log = None
 
     @classmethod
-    def from_dict(cls, dresp : dict, result_type : T = None):
+    def from_dict(cls, http_response : requests.Response, result_type : T = None):
+        dresp = http_response.json()
+
         r = cls()
         r.success = dresp.get('success', False)
         r.errors = dresp.get('errors', [])
@@ -34,6 +36,10 @@ class Response(Generic[T]):
                 r.result = result_type(dresult)
         else:
             r.result = dresult
+
+        if http_response.status_code >= 400:
+            r.success = False
+            r.errors.append(f'Server returned error code {http_response.status_code}')
 
         return r
 
@@ -58,13 +64,13 @@ class HttpClient:
 
     def _get(self, route, result_type : T = None) -> Response[T]:
         http_resp = requests.get(self._url(route))
-        return Response.from_dict(http_resp.json(), result_type)
+        return Response.from_dict(http_resp, result_type)
 
     def _post(self, route, data, result_type : T = None) -> Response[T]:
         if isinstance(data, (WimObject, WimList)):
             data = data.to_dict()
         http_resp = requests.post(self._url(route), json=data)
-        return Response.from_dict(http_resp.json(), result_type)
+        return Response.from_dict(http_resp, result_type)
 
 class HttpSolverClient(HttpClient):
     def __init__(self, address=HttpClient.DEFAULT_ADDRESS, port=HttpClient.DEFAULT_PORT, protocol='http'):
