@@ -6,8 +6,8 @@ import pywim
 
 class MeshTest(unittest.TestCase):
     def test_mesh_transform(self):
-        # This tests that the transformation matrix gets
-        # serialized and de-serialized correctly
+        # The chop Mesh object has to use the __from_dict__ and __to_dict__
+        # method overrides, so this is to test those are working correctly
 
         # This is not a valid transformation matrix, just using
         # it to test the individual components get restored correctly
@@ -23,6 +23,8 @@ class MeshTest(unittest.TestCase):
         mesh = pywim.chop.mesh.Mesh()
         mesh.transform = T
         mesh.type = pywim.chop.mesh.MeshType.infill
+        mesh.materials.extrusion = 'mat-1'
+        mesh.materials.infill = 'mat-2'
 
         d = mesh.to_dict()
 
@@ -30,3 +32,5 @@ class MeshTest(unittest.TestCase):
 
         self.assertTrue(np.array_equal(mesh2.transform, T))
         self.assertEqual(mesh2.type, pywim.chop.mesh.MeshType.infill)
+        self.assertEqual(mesh2.materials.extrusion, 'mat-1')
+        self.assertEqual(mesh2.materials.infill, 'mat-2')
