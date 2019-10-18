@@ -184,6 +184,8 @@ class ModelEncoder(json.JSONEncoder):
             return [ ModelEncoder.object_to_dict(v) for v in obj ]
         elif isinstance(obj, enum.Enum):
             return obj.name
+        elif isinstance(obj, dict):
+            return obj
 
         d = {}
 
