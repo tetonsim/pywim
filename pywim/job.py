@@ -6,7 +6,7 @@ import tempfile
 import subprocess
 import requests
 
-from .. import fea, micro, ModelEncoder
+from . import fea, micro, ModelEncoder
 
 import warnings
 
