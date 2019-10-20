@@ -292,7 +292,7 @@ class SolverClient(HttpClient):
         chop_r += RouteAdd(
             'voxel',
             apis = {
-                Method.Post: Api(_fea.model.Mode, chop.job.Job)
+                Method.Post: Api(_fea.model.Model, chop.job.Job)
             }
         )
 
@@ -314,8 +314,6 @@ class ThorClient(HttpClient):
     def __call__(self, request_method, endpoint, response_type : T, data=None, **kwargs) -> T:
         if data and isinstance(data, (WimObject, WimList)):
             data = data.to_dict()
-
-        print(self._url(endpoint, **kwargs))
 
         http_resp = request_method(
             self._url(endpoint, **kwargs),
