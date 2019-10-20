@@ -80,36 +80,30 @@ class Route:
             )
         return api
 
-    def _call_client(self, method, request_method, data=None, **kwargs):
+    def _call_client(self, method, data=None, **kwargs):
         route = self._get_route(**kwargs)
         api = self._get_api(route, method)
 
         endpoint = route.endpoint if isinstance(route, Route) else self.endpoint + route.endpoint
 
-        http_resp = self.client(
-            request_method,
-            endpoint,
-            api.response_type,
-            data,
-            **kwargs
-        )
+        resp_data = self.client(api, method, endpoint, data, **kwargs)
 
         if api.callback:
-            api.callback(http_resp)
+            api.callback(resp_data)
 
-        return http_resp
+        return resp_data
 
     def get(self, **kwargs):
-        return self._call_client(Method.Get, requests.get, **kwargs)
+        return self._call_client(Method.Get, **kwargs)
 
     def post(self, data=None, **kwargs):
-        return self._call_client(Method.Post, requests.post, data, **kwargs)
+        return self._call_client(Method.Post, data, **kwargs)
 
     def put(self, data=None, **kwargs):
-        return self._call_client(Method.Put, requests.put, data, **kwargs)
+        return self._call_client(Method.Put, data, **kwargs)
 
     def delete(self, **kwargs):
-        return self._call_client(Method.Delete, requests.delete, **kwargs)
+        return self._call_client(Method.Delete, **kwargs)
 
 class HttpClient:
     DEFAULT_ADDRESS = '127.0.0.1'
@@ -151,8 +145,23 @@ class HttpClient:
             hdrs['Authorization'] = 'Bearer ' + self._bearer_token
         return hdrs
 
-    def __call__(self, request_method, endpoint, response_type, data, **kwargs):
-        raise NotImplementedError()
+    def _serialize_request(self, data, request_type):
+        return data
+
+    def _deserialize_response(self, response, response_type):
+        return response.json()
+
+    def __call__(self, api, method, endpoint, data, **kwargs):
+        data = self._serialize_request(data, api.request_type)
+
+        http_resp = requests.request(
+            method.name.lower(),
+            self._url(endpoint, **kwargs),
+            headers=self._headers(),
+            json=data
+        )
+
+        return self._deserialize_response(http_resp, api.response_type)
 
 class WimSolverResponse(Generic[T]):
     def __init__(self, success : bool = False, result : T = None, errors : List[str] = None):
@@ -209,29 +218,21 @@ class SolverClient(HttpClient):
 
         return client()
 
-    def _input_dict(self, mdl : WimObject):
-        return {
-            'model': mdl.to_dict()
-        }
-        return hdrs
-
-    def __call__(self, request_method, endpoint, response_type : T, data=None, **kwargs) -> T:
+    def _serialize_request(self, data, request_type):
         if data and isinstance(data, (WimObject, WimList)):
-            data = self._input_dict(data)
+            return {
+                'model': data.to_dict()
+            }
+        return data
 
-        http_resp = request_method(
-            self._url(endpoint, **kwargs),
-            headers=self._headers(),
-            json=data
-        )
-        
+    def _deserialize_response(self, response, response_type):
         if response_type == ServerInfo:
             # This is kind of hacky. The / endpoint doesn't
             # return the response JSON in the usual format, so we
             # handle it differently
-            return ServerInfo.from_dict(http_resp.json())
+            return ServerInfo.from_dict(response.json())
 
-        return WimSolverResponse.from_dict(http_resp, response_type)
+        return WimSolverResponse.from_dict(response, response_type)
 
     @property
     def info(self):
@@ -302,26 +303,18 @@ class ThorClient(HttpClient):
     def __init__(self, address='api.fea.cloud', port=443, protocol='https'):
         super().__init__(address=address, port=port, protocol=protocol)
 
-    @staticmethod
-    def _cast_response(http_resp, response_type):
-        if response_type == dict:
-            return http_resp.json()
-        elif hasattr(response_type, 'from_dict'):
-            return response_type.from_dict(http_resp)
-
-        return response_type(http_resp.text)
-
-    def __call__(self, request_method, endpoint, response_type : T, data=None, **kwargs) -> T:
+    def _serialize_request(self, data, request_type):
         if data and isinstance(data, (WimObject, WimList)):
-            data = data.to_dict()
+            return data.to_dict()
+        return data
 
-        http_resp = request_method(
-            self._url(endpoint, **kwargs),
-            headers=self._headers(),
-            json=data
-        )
+    def _deserialize_response(self, response, response_type):
+        if response_type == dict:
+            return response.json()
+        elif hasattr(response_type, 'from_dict'):
+            return response_type.from_dict(response)
 
-        return ThorClient._cast_response(http_resp, response_type)
+        return response_type(response.text)
 
     @property
     def auth(self):
