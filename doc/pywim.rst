@@ -34,15 +34,6 @@ pywim.http module
    :undoc-members:
    :show-inheritance:
 
-pywim.mq module
----------------
-
-.. automodule:: pywim.mq
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 Module contents
 ---------------
 

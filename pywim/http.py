@@ -1,7 +1,6 @@
 import enum
 import requests
-
-from collections import namedtuple
+import urllib.parse
 
 from typing import TypeVar, Generic, List
 
@@ -11,7 +10,7 @@ from . import fea as _fea # need to redefine so we can use "fea" as a property i
 
 T = TypeVar('T', WimObject, int)
 
-class Methods(enum.Enum):
+class Method(enum.Enum):
     Get = 1
     Post = 2
     Put = 3
@@ -23,49 +22,94 @@ class Api:
         self.request_type = request_type
         self.callback = callback
 
+class RouteAdd:
+    def __init__(self, endpoint, apis=None, alias=None):
+        self.endpoint = endpoint
+        self.apis = apis
+        self.alias = alias
+
+class RouteParam:
+    def __init__(self, params, apis=None):
+        self.params = params if isinstance(params, (tuple, list)) else (params, )
+        self.apis = apis
+
+    @property
+    def endpoint(self):
+        ep = ''
+        for p in self.params:
+            ep += ('/{%s}' % p)
+        return ep
+
 class Route:
     def __init__(self, client, endpoint, apis=None):
         self.client = client
         self.endpoint = endpoint
         self.apis = apis if apis else {}
+        self._sub_routes = []
+        self._params = []
 
-    def _get_api(self, method):
-        api = self.apis.get(method)
+    def __iadd__(self, other):
+        if isinstance(other, RouteAdd):
+            slash_index = other.endpoint.find('/')
+            name = other.endpoint[:slash_index] if slash_index > 0 else other.endpoint
+            sub_route = Route(self.client, self.endpoint.rstrip('/') + '/' + name, other.apis)
+            self._sub_routes.append(sub_route)
+            attr_name = other.alias if other.alias else name
+            self.__dict__[attr_name] = sub_route
+        elif isinstance(other, RouteParam):
+            self._params.append(other)
+
+        return self
+
+    def _get_route(self, **kwargs):
+        # Look to see if any of the RouteParam variations are satisfied from kwargs
+        r = self
+        max_args = 0
+        for p in self._params:
+            all_args_provided = all(n in kwargs.keys() for n in p.params)
+            if all_args_provided and len(p.params) > max_args:
+                max_args = len(p.params)
+                r = p
+        return r
+
+    def _get_api(self, route, method):
+        api = route.apis.get(method)
         if api is None:
             raise WimException(
-                '%s method is not available on %s' % (method.name, self.client._url(self.endpoint))
+                '%s method is not available on %s' % (method.name, self.client._url(route.endpoint))
             )
         return api
 
-    def get(self):
-        api = self._get_api(Methods.Get)
-        return self.client._get(
-            self.endpoint,
-            api.response_type
-        )
+    def _call_client(self, method, request_method, data=None, **kwargs):
+        route = self._get_route(**kwargs)
+        api = self._get_api(route, method)
 
-    def post(self, data=None):
-        api = self._get_api(Methods.Post)
-        return self.client._post(
-            self.endpoint,
+        endpoint = route.endpoint if isinstance(route, Route) else self.endpoint + route.endpoint
+
+        http_resp = self.client(
+            request_method,
+            endpoint,
             api.response_type,
-            data
+            data,
+            **kwargs
         )
 
-    def put(self, data=None):
-        api = self._get_api(Methods.Put)
-        return self.client._put(
-            self.endpoint,
-            api.response_type,
-            data
-        )
+        if api.callback:
+            api.callback(http_resp)
 
-    def delete(self):
-        api = self._get_api(Methods.Delete)
-        return self.client._delete(
-            self.endpoint,
-            api.response_type
-        )
+        return http_resp
+
+    def get(self, **kwargs):
+        return self._call_client(Method.Get, requests.get, **kwargs)
+
+    def post(self, data=None, **kwargs):
+        return self._call_client(Method.Post, requests.post, data, **kwargs)
+
+    def put(self, data=None, **kwargs):
+        return self._call_client(Method.Put, requests.put, data, **kwargs)
+
+    def delete(self, **kwargs):
+        return self._call_client(Method.Delete, requests.delete, **kwargs)
 
 class HttpClient:
     DEFAULT_ADDRESS = '127.0.0.1'
@@ -77,26 +121,37 @@ class HttpClient:
         self.protocol = protocol
         self._bearer_token = None
 
-    def _url(self, endpoint):
+    def _url(self, endpoint, **kwargs):
         if not endpoint.startswith('/'):
             endpoint = '/' + endpoint
-        return f'{self.protocol}://{self.address}:{self.port}{endpoint}'
+
+        url = f'{self.protocol}://{self.address}:{self.port}{endpoint}'
+
+        # If there are keyword arguments search for a tag with the arg
+        # name, {name}, in the url. If it exists, replace it with the value
+        # Otherwise, add the argument name and value to the query string
+        if len(kwargs) > 0:
+            query_params = {}
+            for n, v in kwargs.items():
+                nt = '{%s}' % n
+                if nt in url:
+                    url = url.replace(
+                        nt, urllib.parse.quote(str(v))
+                    )
+                else:
+                    query_params[n] = v
+            if len(query_params) > 0:
+                url += '?' + urllib.parse.urlencode(query_params)
+
+        return url
 
     def _headers(self):
         hdrs = {}
         if self._bearer_token:
             hdrs['Authorization'] = 'Bearer ' + self._bearer_token
+        return hdrs
 
-    def _get(self, endpoint, response_type, *args, **kwargs):
-        raise NotImplementedError()
-
-    def _post(self, endpoint, response_type, data, *args, **kwargs):
-        raise NotImplementedError()
-
-    def _put(self, endpoint, response_type, data, *args, **kwargs):
-        raise NotImplementedError()
-
-    def _delete(self, endpoint, response_type, *args, **kwargs):
+    def __call__(self, request_method, endpoint, response_type, data, **kwargs):
         raise NotImplementedError()
 
 class WimSolverResponse(Generic[T]):
@@ -136,7 +191,7 @@ class ServerInfo(WimObject):
         self.load = dict()
         self.meta = Meta()
 
-class HttpSolverClient(HttpClient):
+class SolverClient(HttpClient):
     def __init__(self, address=HttpClient.DEFAULT_ADDRESS, port=HttpClient.DEFAULT_PORT, protocol='http'):
         super().__init__(address=address, port=port, protocol=protocol)
 
@@ -160,10 +215,14 @@ class HttpSolverClient(HttpClient):
         }
         return hdrs
 
-    def _get(self, endpoint, response_type : T) -> WimSolverResponse[T]:
-        http_resp = requests.get(
-            self._url(endpoint),
-            headers=self._headers()
+    def __call__(self, request_method, endpoint, response_type : T, data=None, **kwargs) -> T:
+        if data and isinstance(data, (WimObject, WimList)):
+            data = self._input_dict(data)
+
+        http_resp = request_method(
+            self._url(endpoint, **kwargs),
+            headers=self._headers(),
+            json=data
         )
         
         if response_type == ServerInfo:
@@ -174,44 +233,33 @@ class HttpSolverClient(HttpClient):
 
         return WimSolverResponse.from_dict(http_resp, response_type)
 
-    def _post(self, endpoint, response_type : T, data) -> WimSolverResponse[T]:
-        if isinstance(data, (WimObject, WimList)):
-            data = self._input_dict(data)
-        http_resp = requests.post(
-            self._url(endpoint),
-            json=data,
-            headers=self._headers()
-        )
-        return WimSolverResponse.from_dict(http_resp, response_type)
-
     @property
     def info(self):
         return Route(
             self,
             '/',
             apis = {
-                Methods.Get: Api(ServerInfo)
+                Method.Get: Api(ServerInfo)
             }
         )
 
     @property
     def fea(self):
         fea_r = Route(self, '/fea')
-        
-        fea_r.stats = Route(
-            self,
-            '/fea/stats',
+
+        fea_r += RouteAdd(
+            'stats',
             apis = {
-                Methods.Post: Api(int, _fea.model.Model)
+                Method.Post: Api(int, _fea.model.Model)
             }
         )
 
-        fea_r.solve = Route(
-            self,
-            '/fea/run',
+        fea_r += RouteAdd(
+            'run',
             apis = {
-                Methods.Post: Api(_fea.result.Database, _fea.model.Model)
-            }
+                Method.Post: Api(_fea.result.Database, _fea.model.Model)
+            },
+            alias = 'solve'
         )
 
         return fea_r
@@ -220,12 +268,12 @@ class HttpSolverClient(HttpClient):
     def micro(self):
         micro_r = Route(self, '/micro')
         
-        micro_r.solve = Route(
-            self,
-            '/micro/run',
+        micro_r += RouteAdd(
+            'run',
             apis = {
-                Methods.Post: Api(micro.Result, micro.Run)
-            }
+                Method.Post: Api(micro.Result, micro.Run)
+            },
+            alias = 'solve'
         )
 
         return micro_r
@@ -234,50 +282,129 @@ class HttpSolverClient(HttpClient):
     def chop(self):
         chop_r = Route(self, '/chop')
         
-        chop_r.slice = Route(
-            self,
-            '/chop/slice',
+        chop_r += RouteAdd(
+            'slice',
             apis = {
-                Methods.Post: Api(int, chop.job.Job)
+                Method.Post: Api(int, chop.job.Job)
             }
         )
 
-        chop_r.voxel = Route(
-            self,
-            '/chop/voxel',
+        chop_r += RouteAdd(
+            'voxel',
             apis = {
-                Methods.Post: Api(_fea.model.Mode, chop.job.Job)
+                Method.Post: Api(_fea.model.Mode, chop.job.Job)
             }
         )
 
         return chop_r
 
-class HttpThorClient(HttpClient):
-    def __init__(self, address=HttpClient.DEFAULT_ADDRESS, port=HttpClient.DEFAULT_PORT, protocol='https'):
+class ThorClient(HttpClient):
+    def __init__(self, address='api.fea.cloud', port=443, protocol='https'):
         super().__init__(address=address, port=port, protocol=protocol)
 
-    def _get(self, endpoint, response_type : T) -> T:
-        http_resp = requests.get(
-            self._url(endpoint),
-            headers=self._headers()
-        )
+    @staticmethod
+    def _cast_response(http_resp, response_type):
+        if response_type == dict:
+            return http_resp.json()
+        elif hasattr(response_type, 'from_dict'):
+            return response_type.from_dict(http_resp)
 
-        return response_type.from_dict(http_resp.json())
+        return response_type(http_resp.text)
 
-    def _post(self, endpoint, response_type : T, data) -> T:
-        if isinstance(data, (WimObject, WimList)):
+    def __call__(self, request_method, endpoint, response_type : T, data=None, **kwargs) -> T:
+        if data and isinstance(data, (WimObject, WimList)):
             data = data.to_dict()
 
-        http_resp = requests.post(
-            self._url(endpoint),
-            json=data,
-            headers=self._headers()
+        print(self._url(endpoint, **kwargs))
+
+        http_resp = request_method(
+            self._url(endpoint, **kwargs),
+            headers=self._headers(),
+            json=data
         )
 
-        return response_type.from_dict(http_resp)
+        return ThorClient._cast_response(http_resp, response_type)
 
     @property
     def auth(self):
-        pass
+        auth_r = Route(self, '/auth')
 
+        auth_r += RouteAdd(
+            'register'
+        )
 
+        auth_r.register += RouteAdd(
+            'setup',
+            apis = {
+                Method.Post: Api(bool, dict)
+            }
+        )
+
+        def update_token(r):
+            self._bearer_token = r['token']['id']
+
+        def remove_token(r):
+            self._bearer_token = None
+
+        auth_r += RouteAdd(
+            'token',
+            apis = {
+                Method.Post: Api(dict, dict, callback=update_token),
+                Method.Put: Api(dict),
+                Method.Delete: Api(dict, callback=remove_token)
+            }
+        )
+
+        auth_r += RouteAdd(
+            'whoami',
+            apis = {
+                Method.Get: Api(dict)
+            }
+        )
+
+        return auth_r
+
+    @property
+    def smart_slice(self):
+        ss_r = Route(
+            self,
+            '/is',
+            apis = {
+                Method.Get: Api(WimList(dict)),
+                Method.Post: Api(dict, dict)
+            }
+        )
+
+        ss_r += RouteParam(
+            'id',
+            apis = {
+                Method.Get: Api(dict),
+                Method.Delete: Api(bool)
+            }
+        )
+
+        ss_r += RouteAdd(
+            'file'
+        )
+
+        ss_r.file += RouteParam(
+            'id',
+            apis = {
+                Method.Get: Api(bytes),
+                Method.Delete: Api(bool)
+            }
+        )
+
+        ss_r += RouteAdd(
+            'exec',
+            alias = 'execute'
+        )
+
+        ss_r.execute += RouteParam(
+            'id',
+            apis = {
+                Method.Post: Api(dict)
+            }
+        )
+
+        return ss_r
