@@ -10,6 +10,17 @@ from . import fea as _fea # need to redefine so we can use "fea" as a property i
 
 T = TypeVar('T', WimObject, int)
 
+class WimHttpException(WimException):
+    pass
+
+class ClientException(WimHttpException):
+    pass
+
+class ServerException(WimHttpException):
+    def __init__(self, response, message):
+        super().__init__(message)
+        self.response = response
+
 class Method(enum.Enum):
     Get = 1
     Post = 2
@@ -75,7 +86,7 @@ class Route:
     def _get_api(self, route, method):
         api = route.apis.get(method)
         if api is None:
-            raise WimException(
+            raise ClientException(
                 '%s method is not available on %s' % (method.name, self.client._url(route.endpoint))
             )
         return api
@@ -161,7 +172,38 @@ class HttpClient:
             json=data
         )
 
-        return self._deserialize_response(http_resp, api.response_type)
+        if http_resp.ok:
+            return self._deserialize_response(http_resp, api.response_type)
+        elif int(http_resp.status_code / 100) == 4:
+            return self._handle_4XX_status_code(http_resp, method, endpoint)
+        elif int(http_resp.status_code / 100) == 5:
+            return self._handle_4XX_status_code(http_resp, method, endpoint)
+
+        raise ServerException(http_resp, 'HTTP client cannot handle %i status code' % http_resp.status_code)
+
+    def _handle_4XX_status_code(self, response, method, endpoint):
+        call_name = '%s %s' % (method.name.upper(), endpoint)
+        if response.status_code == 401:
+            raise ServerException(
+                response,
+                'Unauthorized HTTP request on %s' % call_name
+            )
+        elif response.status_code == 404:
+            raise ServerException(
+                response,
+                'Not found on %s' % call_name
+            )
+        raise ServerException(
+            response,
+            'Unknown HTTP error %i on %s' % (response.status_code, call_name)
+        )
+
+    def _handle_5XX_status_code(self, response, method, endpoint):
+        call_name = '%s %s' % (method.name.upper(), endpoint)
+        raise ServerException(
+            response,
+            'HTTP server error %i on %s' % (response.status_code, call_name)
+        )
 
 class WimSolverResponse(Generic[T]):
     def __init__(self, success : bool = False, result : T = None, errors : List[str] = None):
