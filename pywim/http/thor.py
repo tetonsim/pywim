@@ -1,6 +1,9 @@
+import enum
+
 from . import HttpClient, Method, Api, Route, RouteAdd, RouteParam
 
 from .. import WimObject, WimList
+from .. import smartslice
 
 class User(WimObject):
     def __init__(self):
@@ -15,12 +18,46 @@ class Token(WimObject):
         self.id = ''
         self.expires = ''
 
-class Credentials(WimObject):
+class UserAuth(WimObject):
     def __init__(self):
         self.success = False
         self.error = ''
         self.user = User()
         self.token = Token()
+
+class UploadStatus(WimObject):
+    def __init__(self):
+        self.name = None
+        self.success = False
+        self.error = None
+        self.md5 = None
+
+class NewSmartSliceJob(WimObject):
+    def __init__(self, name : str, job_type : smartslice.job.JobType):
+        self.name = name
+        self.type = job_type
+
+class SmartSliceJobStatus(enum.Enum):
+    new = 1
+    submitted = 2
+    running = 3
+    failed = 4
+    finished = 5
+
+class SmartSliceJob(WimObject):
+    def __init__(self):
+        self.id = None
+        self.name = None
+        self.type = smartslice.job.JobType.validation
+        self.status = SmartSliceJobStatus()
+        self.size = 0
+        self.deleted = False
+
+class JobSubmission(WimObject):
+    def __init__(self):
+        self.job = SmartSliceJob()
+        self.success = False
+        self.error = None
 
 class Client(HttpClient):
     def __init__(self, address='api.fea.cloud', port=443, protocol='https'):
@@ -52,8 +89,8 @@ class Client(HttpClient):
         auth_r += RouteAdd(
             'token',
             apis = {
-                Method.Post: Api(Credentials, dict, callback=update_token),
-                Method.Put: Api(Credentials),
+                Method.Post: Api(UserAuth, dict, callback=update_token),
+                Method.Put: Api(UserAuth),
                 Method.Delete: Api(dict, callback=remove_token)
             }
         )
@@ -61,7 +98,7 @@ class Client(HttpClient):
         auth_r += RouteAdd(
             'whoami',
             apis = {
-                Method.Get: Api(Credentials)
+                Method.Get: Api(UserAuth)
             }
         )
 
@@ -73,15 +110,15 @@ class Client(HttpClient):
             self,
             '/is',
             apis = {
-                Method.Get: Api(WimList(dict)),
-                Method.Post: Api(dict, dict)
+                Method.Get: Api(WimList(SmartSliceJob)),
+                Method.Post: Api(SmartSliceJob, NewSmartSliceJob)
             }
         )
 
         ss_r += RouteParam(
             'id',
             apis = {
-                Method.Get: Api(dict),
+                Method.Get: Api(SmartSliceJob),
                 Method.Delete: Api(bool)
             }
         )
@@ -94,6 +131,7 @@ class Client(HttpClient):
             'id',
             apis = {
                 Method.Get: Api(bytes),
+                Method.Post: Api(UploadStatus, bytes),
                 Method.Delete: Api(bool)
             }
         )
@@ -106,7 +144,7 @@ class Client(HttpClient):
         ss_r.execute += RouteParam(
             'id',
             apis = {
-                Method.Post: Api(dict)
+                Method.Post: Api(JobSubmission)
             }
         )
 
