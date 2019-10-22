@@ -3,7 +3,6 @@ import enum
 from . import HttpClient, Method, Api, Route, RouteAdd, RouteParam
 
 from .. import WimObject, WimList
-from .. import smartslice
 
 class LoginRequest(WimObject):
     '''
@@ -44,40 +43,39 @@ class UserAuth(WimObject):
         self.user = User()
         self.token = Token()
 
-class NewSmartSliceJob(WimObject):
+class NewTask(WimObject):
     '''
-    Information required to create a new Smart Slice job in the Thor database.
+    Information required to create a new Smart Slice task in the Thor database.
     '''
-    def __init__(self, name : str, job_type : smartslice.job.JobType):
+    def __init__(self, name : str):
         self.name = name
-        self.type = job_type
 
-class SmartSliceJobStatus(enum.Enum):
+class TaskStatus(enum.Enum):
     new = 1
     submitted = 2
     running = 3
     failed = 4
     finished = 5
 
-class SmartSliceJob(WimObject):
+class Task(WimObject):
     '''
-    Details about a Smart Slice job stored in the Thor database. Instances of this
+    Details about a Smart Slice task stored in the Thor database. Instances of this
     class are returned by the Thor server.
     '''
     def __init__(self):
         self.id = None
         self.name = None
-        self.type = smartslice.job.JobType.validation
-        self.status = SmartSliceJobStatus()
+        #self.type = smartslice.job.JobType.validation
+        self.status = TaskStatus.new
         self.size = 0
         self.deleted = False
 
-class JobSubmission(WimObject):
+class TaskSubmission(WimObject):
     '''
-    The status of a Smart Slice job submission, returned by the Thor server.
+    The status of a Smart Slice task submission, returned by the Thor server.
     '''
     def __init__(self):
-        self.job = SmartSliceJob()
+        self.task = Task()
         self.success = False
         self.error = None
 
@@ -148,15 +146,15 @@ class Client(HttpClient):
             self,
             '/is',
             apis = {
-                Method.Get: Api(WimList(SmartSliceJob)),
-                Method.Post: Api(SmartSliceJob, NewSmartSliceJob)
+                Method.Get: Api(WimList(Task)),
+                Method.Post: Api(Task, NewTask)
             }
         )
 
         ss_r += RouteParam(
             'id',
             apis = {
-                Method.Get: Api(SmartSliceJob),
+                Method.Get: Api(Task),
                 Method.Delete: Api(bool)
             }
         )
@@ -182,7 +180,7 @@ class Client(HttpClient):
         ss_r.execute += RouteParam(
             'id',
             apis = {
-                Method.Post: Api(JobSubmission)
+                Method.Post: Api(TaskSubmission)
             }
         )
 

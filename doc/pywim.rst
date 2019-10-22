@@ -6,11 +6,9 @@ Subpackages
 
 .. toctree::
 
-   pywim.abaqus
    pywim.chop
    pywim.fea
    pywim.http
-   pywim.job
    pywim.micro
    pywim.optimization
    pywim.smartslice

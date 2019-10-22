@@ -71,5 +71,7 @@ class ThreeMFExtension(threemf.extension.Extension):
         # Now get the job asset
         j = self.assets[0]
 
-        j.content.mesh = job.Mesh.cast_from_base(obj.mesh)
-        j.content.mesh.transform = T
+        mesh = job.Mesh.cast_from_base(obj.mesh)
+        mesh.transform = T
+        
+        j.content.chop.meshes.append(mesh)

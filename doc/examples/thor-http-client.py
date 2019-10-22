@@ -8,27 +8,27 @@ def do_stuff(client):
     creds = client.auth.whoami.get()
 
 def new_smart_slice_run(client, tmfpath):
-    # First, create information about our new job
-    new_job = thor.NewSmartSliceJob(tmfpath, pywim.smartslice.job.JobType.validation)
+    # First, create information about our new task
+    new_task = thor.NewTask(tmfpath)
 
-    # Create the job on the server and get back the details of our job
-    job = client.smart_slice.post(new_job)
+    # Create the task on the server and get back the details of our task
+    task = client.smart_slice.post(new_task)
 
-    # Get a pre-signed URL to upload our 3MF for the job
-    url = client.smart_slice.file.post(id=job.id)
+    # Get a pre-signed URL to upload our 3MF for the task
+    asset = client.smart_slice.file.post(id=task.id)
 
     # Upload the 3MF contents using the url
     with open(tmfpath, 'rb') as f:
         data = f.read()
-        resp = requests.put(url, data=data)
+        resp = requests.put(asset.url, data=data)
 
         if not resp.ok:
-            print('Failed to upload 3MF for job %s' % job.id)
+            print('Failed to upload 3MF for task %s' % task.id)
             print('Response: %i - %s' % resp.status_code, resp.text)
             return
 
-    # Submit the job for execution
-    submit_status = client.smart_slice.execute(id=job.id)
+    # Submit the task for execution
+    submit_status = client.smart_slice.execute(id=task.id)
 
 def main():
     client = thor.Client()

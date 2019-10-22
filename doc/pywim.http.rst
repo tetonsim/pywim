@@ -52,15 +52,15 @@ pywim.http.thor module
 
 .. autoclass:: UserAuth
 
-.. autoclass:: SmartSliceJobStatus
+.. autoclass:: TaskStatus
     :members:
     :undoc-members:
 
-.. autoclass:: NewSmartSliceJob
+.. autoclass:: NewTask
 
-.. autoclass:: SmartSliceJob
+.. autoclass:: Task
 
-.. autoclass:: JobSubmission
+.. autoclass:: TaskSubmission
 
 .. autoclass:: AssetUrl
 
