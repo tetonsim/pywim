@@ -9,6 +9,7 @@ Subpackages
    pywim.abaqus
    pywim.chop
    pywim.fea
+   pywim.http
    pywim.job
    pywim.micro
    pywim.optimization
@@ -22,14 +23,6 @@ pywim.am module
 ---------------
 
 .. automodule:: pywim.am
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pywim.http module
------------------
-
-.. automodule:: pywim.http
    :members:
    :undoc-members:
    :show-inheritance:

@@ -6,6 +6,9 @@ from .. import WimObject, WimList
 from .. import smartslice
 
 class LoginRequest(WimObject):
+    '''
+    Provides user credentials for a login request to Thor API
+    '''
     def __init__(self, email, password):
         self.email = email
         self.password = password
@@ -58,6 +61,12 @@ class JobSubmission(WimObject):
         self.error = None
 
 class AssetUrl(WimObject):
+    '''
+    Information about a pre-signed URL used for downloading (GET) or
+    uploading (PUT) a file/asset.
+
+    :param str url: Pre-signed URL
+    '''
     def __init__(self):
         self.url = ''
         self.method = ''
@@ -83,6 +92,9 @@ class Client(HttpClient):
 
     @property
     def auth(self):
+        '''
+        Provides all auth routes
+        '''
         auth_r = Route(self, '/auth')
 
         def update_token(r):

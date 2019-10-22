@@ -7,10 +7,8 @@ pywim
 =================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
-
+    pywim
 
 Indices and tables
 ==================
