@@ -5,6 +5,11 @@ from . import HttpClient, Method, Api, Route, RouteAdd, RouteParam
 from .. import WimObject, WimList
 from .. import smartslice
 
+class LoginRequest(WimObject):
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
+
 class User(WimObject):
     def __init__(self):
         self.id = ''
@@ -24,13 +29,6 @@ class UserAuth(WimObject):
         self.error = ''
         self.user = User()
         self.token = Token()
-
-class UploadStatus(WimObject):
-    def __init__(self):
-        self.name = None
-        self.success = False
-        self.error = None
-        self.md5 = None
 
 class NewSmartSliceJob(WimObject):
     def __init__(self, name : str, job_type : smartslice.job.JobType):
@@ -58,6 +56,13 @@ class JobSubmission(WimObject):
         self.job = SmartSliceJob()
         self.success = False
         self.error = None
+
+class AssetUrl(WimObject):
+    def __init__(self):
+        self.url = ''
+        self.method = ''
+        self.file_name = ''
+        self.exists = False
 
 class Client(HttpClient):
     def __init__(self, address='api.fea.cloud', port=443, protocol='https'):
@@ -89,7 +94,7 @@ class Client(HttpClient):
         auth_r += RouteAdd(
             'token',
             apis = {
-                Method.Post: Api(UserAuth, dict, callback=update_token),
+                Method.Post: Api(UserAuth, LoginRequest, callback=update_token),
                 Method.Put: Api(UserAuth),
                 Method.Delete: Api(dict, callback=remove_token)
             }
@@ -130,8 +135,8 @@ class Client(HttpClient):
         ss_r.file += RouteParam(
             'id',
             apis = {
-                Method.Get: Api(bytes),
-                Method.Post: Api(UploadStatus, bytes),
+                Method.Get: Api(AssetUrl),
+                Method.Post: Api(AssetUrl),
                 Method.Delete: Api(bool)
             }
         )
