@@ -14,6 +14,9 @@ class LoginRequest(WimObject):
         self.password = password
 
 class User(WimObject):
+    '''
+    User information, such as unique Id, email, and name
+    '''
     def __init__(self):
         self.id = ''
         self.email = ''
@@ -22,11 +25,19 @@ class User(WimObject):
         self.email_verified = False
 
 class Token(WimObject):
+    '''
+    Authentication token information
+    Important! The 'id' attribute contains the token that authenticates the user
+    with the server. This must be kept secret and safe.
+    '''
     def __init__(self):
         self.id = ''
         self.expires = ''
 
 class UserAuth(WimObject):
+    '''
+    User authentication
+    '''
     def __init__(self):
         self.success = False
         self.error = ''
@@ -34,6 +45,9 @@ class UserAuth(WimObject):
         self.token = Token()
 
 class NewSmartSliceJob(WimObject):
+    '''
+    Information required to create a new Smart Slice job in the Thor database.
+    '''
     def __init__(self, name : str, job_type : smartslice.job.JobType):
         self.name = name
         self.type = job_type
@@ -46,6 +60,10 @@ class SmartSliceJobStatus(enum.Enum):
     finished = 5
 
 class SmartSliceJob(WimObject):
+    '''
+    Details about a Smart Slice job stored in the Thor database. Instances of this
+    class are returned by the Thor server.
+    '''
     def __init__(self):
         self.id = None
         self.name = None
@@ -55,6 +73,9 @@ class SmartSliceJob(WimObject):
         self.deleted = False
 
 class JobSubmission(WimObject):
+    '''
+    The status of a Smart Slice job submission, returned by the Thor server.
+    '''
     def __init__(self):
         self.job = SmartSliceJob()
         self.success = False
@@ -74,8 +95,8 @@ class AssetUrl(WimObject):
         self.exists = False
 
 class Client(HttpClient):
-    def __init__(self, address='api.fea.cloud', port=443, protocol='https'):
-        super().__init__(address=address, port=port, protocol=protocol)
+    def __init__(self, hostname='api.fea.cloud', port=443, protocol='https'):
+        super().__init__(hostname=hostname, port=port, protocol=protocol)
 
     def _serialize_request(self, data, request_type):
         if data and isinstance(data, (WimObject, WimList)):

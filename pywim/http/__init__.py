@@ -111,20 +111,24 @@ class Route:
         return self._call_client(Method.Delete, **kwargs)
 
 class HttpClient:
-    DEFAULT_ADDRESS = '127.0.0.1'
+    DEFAULT_HOSTNAME = '127.0.0.1'
     DEFAULT_PORT = 8000
 
-    def __init__(self, address=DEFAULT_ADDRESS, port=DEFAULT_PORT, protocol='https'):
-        self.address = address
+    def __init__(self, hostname=DEFAULT_HOSTNAME, port=DEFAULT_PORT, protocol='https'):
+        self.hostname = hostname
         self.port = port
         self.protocol = protocol
         self._bearer_token = None
+
+    @property
+    def address(self):
+        return '%s://%s:%i' % (self.protocol, self.hostname, self.port)
 
     def _url(self, endpoint, **kwargs):
         if not endpoint.startswith('/'):
             endpoint = '/' + endpoint
 
-        url = f'{self.protocol}://{self.address}:{self.port}{endpoint}'
+        url = self.address + endpoint
 
         # If there are keyword arguments search for a tag with the arg
         # name, {name}, in the url. If it exists, replace it with the value

@@ -53,6 +53,8 @@ pywim.http.thor module
 .. autoclass:: UserAuth
 
 .. autoclass:: SmartSliceJobStatus
+    :members:
+    :undoc-members:
 
 .. autoclass:: NewSmartSliceJob
 
@@ -61,6 +63,8 @@ pywim.http.thor module
 .. autoclass:: JobSubmission
 
 .. autoclass:: AssetUrl
+
+.. literalinclude:: examples/thor-http-client.py
 
 pywim.http.wim module
 ---------------------

@@ -47,8 +47,8 @@ class ServerInfo(WimObject):
         self.meta = Meta()
 
 class Client(HttpClient):
-    def __init__(self, address=HttpClient.DEFAULT_ADDRESS, port=HttpClient.DEFAULT_PORT, protocol='http'):
-        super().__init__(address=address, port=port, protocol=protocol)
+    def __init__(self, hostname=HttpClient.DEFAULT_HOSTNAME, port=HttpClient.DEFAULT_PORT, protocol='http'):
+        super().__init__(hostname=hostname, port=port, protocol=protocol)
 
         self._process = None
 
@@ -57,8 +57,8 @@ class Client(HttpClient):
             pass # TODO stop it
 
     @classmethod
-    def CreateAndStart(cls, address='127.0.0.1', port=HttpClient.DEFAULT_PORT, exe_name='wim-httpd', exe_path=None):
-        client = HttpClient(address, port)
+    def CreateAndStart(cls, hostname='127.0.0.1', port=HttpClient.DEFAULT_PORT, exe_name='wim-httpd', exe_path=None):
+        client = HttpClient(hostname, port)
 
         # TODO Attempt to start
 
