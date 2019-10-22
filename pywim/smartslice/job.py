@@ -13,7 +13,7 @@ class Job(WimObject):
     def __init__(self):
         self.meta = Meta()
         self.type = JobType.validation
-        self.chop = chop.job.Job()
+        self.chop = chop.model.Model()
         #self.mesh = chop.mesh.Mesh()
         self.bulk = fea.model.Material()
         self.optimization = opt.Optimization()

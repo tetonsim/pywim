@@ -64,6 +64,9 @@ pywim.http.thor module
 
 .. autoclass:: AssetUrl
 
+Thor HTTP Client Example
+------------------------
+
 .. literalinclude:: examples/thor-http-client.py
 
 pywim.http.wim module

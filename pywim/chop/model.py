@@ -17,7 +17,7 @@ class FixedBoundaryCondition(BoundaryCondition):
 #    JSONTYPENAME = 'slide'
 
 class Load(WimObject):
-    DEFAULTTYPENAME = 'pressure'
+    DEFAULTTYPENAME = 'force'
     def __init__(self, name=None):
         self.name = name if name else 'load'
         self.type = None
@@ -36,7 +36,7 @@ class Step(WimObject):
         self.boundary_conditions = WimList(BoundaryCondition)
         self.loads = WimList(Load)
 
-class Job(WimObject):
+class Model(WimObject):
     def __init__(self):
         self.meshes = WimList(mesh.Mesh)
         self.print_config = am.Config()

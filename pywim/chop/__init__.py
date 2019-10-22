@@ -1,2 +1,2 @@
 
-from . import job, machine, mesh, slicer
+from . import machine, mesh, model, slicer

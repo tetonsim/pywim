@@ -36,3 +36,10 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+Examples
+--------
+
+Add Smart Slice job to an existing 3MF file
+
+.. literalinclude:: examples/add-smart-slice-to-3mf.py
