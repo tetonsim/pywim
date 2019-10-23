@@ -1,7 +1,7 @@
 
 from . import mesh, slicer
 from .. import am
-from .. import WimObject, WimList
+from .. import WimObject, WimList, WimTuple
 
 class BoundaryCondition(WimObject):
     DEFAULTTYPENAME = 'fixed'

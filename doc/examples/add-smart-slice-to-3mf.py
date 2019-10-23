@@ -1,4 +1,5 @@
 import pywim
+import zipfile
 
 def main():
     job = pywim.smartslice.job.Job()
@@ -16,7 +17,7 @@ def main():
     job.optimization.max_displacement = 3.0 # millimeters
 
     # Setup the chop model - chop is responsible for creating an FEA model
-    # from the triangle surface mesh, slicer configuration, and
+    # from the triangulated surface mesh, slicer configuration, and
     # the prescribed boundary conditions
     
     # The chop.model.Model class has an attribute for defining
@@ -65,7 +66,31 @@ def main():
     # loading steps.
     job.chop.steps.append(step)
 
-    # Now we need to 
+    # Now we need to setup the print/slicer configuration
+    # This is split between two attributes in the chop model:
+    # print_config: contains the print parameters that smart slice uses
+    # slicer: contains all of the configuration that is necessary
+    #   for the chosen slicer to execute
+    
+    print_config = job.chop.print_config
+    print_config.layer_width = 0.45
+    # ... and so on, check pywim.am.Config for full definition
+
+    # Setup the slicer configuration. See each class for more
+    # information. The Extruder, Printer, and Config classes each
+    # contain a "settings" dictionary which should be used to define
+    # the slicer specific settings. These will be passed on directly
+    # to the slicer (CuraEngine).
+    extruder0 = pywim.chop.machine.Extruder(diameter=0.4)
+    printer = pywim.chop.machine.Printer(name='Ultimaker S5', extruders=(extruder0, ))
+    cura_config = pywim.chop.slicer.Config(printer)
+
+    # And finally set the slicer to the Cura Engine with the
+    # config defined above
+    job.chop.slicer = pywim.chop.slicer.CuraEngine(config=cura_config)
+
+    with zipfile.ZipFile('test.3mf', 'a') as tmf:
+        tmf.writestr('SmartSlice/job.json', job.to_json())
 
 if __name__ == '__main__':
     main()

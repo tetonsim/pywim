@@ -4,14 +4,6 @@ pywim.chop package
 Submodules
 ----------
 
-pywim.chop.job module
----------------------
-
-.. automodule:: pywim.chop.job
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pywim.chop.machine module
 -------------------------
 
@@ -24,6 +16,14 @@ pywim.chop.mesh module
 ----------------------
 
 .. automodule:: pywim.chop.mesh
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pywim.chop.model module
+-----------------------
+
+.. automodule:: pywim.chop.model
    :members:
    :undoc-members:
    :show-inheritance:

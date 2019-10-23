@@ -2,20 +2,19 @@ from .. import WimObject, WimList
 
 from . import machine
 
-class SliceConfiguration(WimObject):
-    def __init__(self):
+class Config(WimObject):
+    def __init__(self, printer : machine.Printer=None, settings : dict=None):
         self.printer = machine.Printer()
-        self.extruders = WimList(machine.Extruder)
-        self.slicer_settings = {}
+        self.settings = settings if settings else {}
 
 class Slicer(WimObject):
     DEFAULTTYPENAME = 'cura'
-    def __init__(self):
+    def __init__(self, config : Config=None):
         self.type = None
-        self.configuration = SliceConfiguration()
+        self.config = config if config else Config()
 
 class CuraEngine(Slicer):
     JSONTYPENAME = 'cura'
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config : Config=None):
+        super().__init__(config)
         self.type = CuraEngine.JSONTYPENAME
