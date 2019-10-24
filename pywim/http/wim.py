@@ -1,6 +1,8 @@
 from . import HttpClient, Method, Api, Route, RouteAdd, RouteParam
 
+import os
 import requests
+import subprocess
 from typing import TypeVar, Generic, List
 
 from .. import WimObject, WimList, Meta
@@ -53,16 +55,34 @@ class Client(HttpClient):
         self._process = None
 
     def __del__(self):
-        if self._process:
-            pass # TODO stop it
+        self.close()
+
+    def close(self):
+        if self._process and self._process.poll() is None:
+            self._process.terminate()
 
     @classmethod
-    def CreateAndStart(cls, hostname='127.0.0.1', port=HttpClient.DEFAULT_PORT, exe_name='wim-httpd', exe_path=None):
-        client = HttpClient(hostname, port)
+    def CreateAndStart(cls, port=HttpClient.DEFAULT_PORT, exe_name='wim-httpd', exe_path=None,
+        debug=False, threads=1):
 
-        # TODO Attempt to start
+        hostname = '127.0.0.1'
 
-        return client()
+        client = Client(hostname, port)
+
+        exe = exe_name if not exe_path else os.path.join(exe_path, exe_name)
+
+        args = [
+            exe,
+            '-p', str(port),
+            '-t', str(threads)
+        ]
+
+        if debug:
+            args.append('-d')
+
+        client._process = subprocess.Popen(args=args, executable=exe)
+
+        return client
 
     def _serialize_request(self, data, request_type):
         if data and isinstance(data, (WimObject, WimList)):
