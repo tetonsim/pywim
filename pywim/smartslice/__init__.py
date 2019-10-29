@@ -1,7 +1,7 @@
 import threemf
 
 from . import job, opt, result
-from .. import WimException
+from .. import WimException, chop
 
 class JobThreeMFAsset(threemf.extension.Asset):
     def __init__(self, name):
@@ -71,7 +71,7 @@ class ThreeMFExtension(threemf.extension.Extension):
         # Now get the job asset
         j = self.assets[0]
 
-        mesh = job.Mesh.cast_from_base(obj.mesh)
+        mesh = chop.mesh.Mesh.cast_from_base(obj.mesh)
         mesh.transform = T
         
         j.content.chop.meshes.append(mesh)
