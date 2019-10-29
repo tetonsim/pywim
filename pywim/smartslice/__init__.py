@@ -19,9 +19,12 @@ class ThreeMFExtension(threemf.extension.Extension):
 
     def __init__(self):
         super().__init__(ThreeMFExtension.Name)
-        self.assets = [
-            JobThreeMFAsset('job.json')
-        ]
+
+    @classmethod
+    def make_asset(cls, name):
+        if name == 'job.json':
+            return JobThreeMFAsset('job.json')
+        return threemf.extension.RawFile(name)
 
     def process_threemf(self, tmf : threemf.ThreeMF):
         # We want to read the mesh from the 3mf model
