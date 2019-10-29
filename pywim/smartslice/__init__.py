@@ -23,12 +23,6 @@ class ThreeMFExtension(threemf.extension.Extension):
             JobThreeMFAsset('job.json')
         ]
 
-    @classmethod
-    def make_asset(cls, name):
-        if name == 'job.json':
-            return self.assets[0]
-        return threemf.extension.RawFile(name)
-
     def process_threemf(self, tmf : threemf.ThreeMF):
         # We want to read the mesh from the 3mf model
         if len(tmf.models) != 1:
