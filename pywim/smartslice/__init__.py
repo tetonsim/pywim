@@ -69,7 +69,7 @@ class ThreeMFExtension(threemf.extension.Extension):
         job_assets = list(filter(lambda a: isinstance(a, JobThreeMFAsset), self.assets))
             
         if len(job_assets) == 1:
-            j = self.assets[0]
+            j = job_assets[0]
 
             mesh = chop.mesh.Mesh.cast_from_base(obj.mesh)
             mesh.transform = T
