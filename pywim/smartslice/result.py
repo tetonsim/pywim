@@ -1,7 +1,7 @@
 import sys
 
 from . import job
-from .. import am
+from .. import am, chop
 from .. import Meta, WimObject, WimList, WimTuple
 
 class StructuralAnalysis(WimObject):
@@ -14,7 +14,7 @@ class Analysis(WimObject):
     def __init__(self):
         self.print_config = am.Config()
         self.structural = StructuralAnalysis()
-        self.modifier_meshes = [] # TODO
+        self.modifier_meshes = WimList(chop.mesh.Mesh)
 
 class Result(WimObject):
     def __init__(self):
