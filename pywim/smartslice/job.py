@@ -14,6 +14,5 @@ class Job(WimObject):
         self.meta = Meta()
         self.type = JobType.validation
         self.chop = chop.model.Model()
-        #self.mesh = chop.mesh.Mesh()
         self.bulk = fea.model.Material()
         self.optimization = opt.Optimization()

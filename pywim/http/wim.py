@@ -152,14 +152,14 @@ class Client(HttpClient):
         chop_r += RouteAdd(
             'slice',
             apis = {
-                Method.Post: Api(int, chop.job.Job)
+                Method.Post: Api(int, chop.model.Model)
             }
         )
 
         chop_r += RouteAdd(
             'voxel',
             apis = {
-                Method.Post: Api(_fea.model.Model, chop.job.Job)
+                Method.Post: Api(_fea.model.Model, chop.model.Model)
             }
         )
 
