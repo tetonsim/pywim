@@ -24,7 +24,8 @@ class Config(WimObject):
         self.skin_orientations = [45, 135]
         self.bottom_layers = 6
         self.top_layers = 6
-        self.infill = Infill()
+        self.global_infill = Infill()
+        self.mod_mesh_infill = Infill()
 
     @staticmethod
     def default_overlap(layer_height):
