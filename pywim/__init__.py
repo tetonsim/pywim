@@ -207,20 +207,24 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def _set_object_attrs(obj, d):
-        for k in obj.__dict__:
-            v = getattr(obj, k)
+        if d is not None:
+            for k in obj.__dict__:
+                v = getattr(obj, k)
 
-            if k in d.keys():
-                dv = d[k]
+                if k in d.keys():
+                    dv = d[k]
 
-                newv = ModelEncoder.dict_to_object(dv, v)
+                    newv = ModelEncoder.dict_to_object(dv, v)
 
-                if newv is not None:
-                    obj.__dict__[k] = newv
+                    if newv is not None:
+                        obj.__dict__[k] = newv
         return obj
 
     @staticmethod
     def _new_object_polymorphic(t, d):
+        if d is None:
+            return t()
+
         dtype = d.get('type')
 
         if dtype is None:

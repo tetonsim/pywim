@@ -163,11 +163,17 @@ class HttpClient:
     def __call__(self, api, method, endpoint, data, **kwargs):
         data = self._serialize_request(data, api.request_type)
 
+        if isinstance(data, bytes):
+            request_args = { 'data': data }
+        else:
+            request_args = { 'json': data }
+
+        request_args['headers'] = self._headers()
+
         http_resp = requests.request(
             method.name.lower(),
             self._url(endpoint, **kwargs),
-            headers=self._headers(),
-            json=data
+            **request_args
         )
 
         if http_resp.ok:
@@ -175,7 +181,7 @@ class HttpClient:
         elif int(http_resp.status_code / 100) == 4:
             return self._handle_4XX_status_code(http_resp, method, endpoint)
         elif int(http_resp.status_code / 100) == 5:
-            return self._handle_4XX_status_code(http_resp, method, endpoint)
+            return self._handle_5XX_status_code(http_resp, method, endpoint)
 
         raise ServerException(http_resp, 'HTTP client cannot handle %i status code' % http_resp.status_code)
 

@@ -13,10 +13,12 @@ class StructuralAnalysis(WimObject):
 class Analysis(WimObject):
     def __init__(self):
         self.print_config = am.Config()
+        self.mass = 0.0
+        self.print_time = 0
         self.structural = StructuralAnalysis()
         self.modifier_meshes = WimList(chop.mesh.Mesh)
 
 class Result(WimObject):
     def __init__(self):
         self.meta = Meta()
-        self.analyses = []
+        self.analyses = WimList(Analysis)

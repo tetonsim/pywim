@@ -2,7 +2,7 @@ import enum
 
 from . import HttpClient, Method, Api, Route, RouteAdd, RouteParam
 
-from .. import WimObject, WimList
+from .. import WimObject, WimList, smartslice
 
 class LoginRequest(WimObject):
     '''
@@ -185,3 +185,71 @@ class Client(HttpClient):
         )
 
         return ss_r
+
+class SimpleTask(WimObject):
+    def __init__(self):
+        self.id = ''
+        self.started = ''
+        self.finished = ''
+        self.runtime = 0
+        self.status = TaskStatus.new
+        self.result = smartslice.result.Result()
+
+class Client2019POC(HttpClient):
+    def __init__(self, hostname='api-19.fea.cloud', port=443, protocol='https'):
+        super().__init__(hostname=hostname, port=port, protocol=protocol)
+
+    def _serialize_request(self, data, request_type):
+        if data and isinstance(data, (WimObject, WimList)):
+            return data.to_dict()
+        return data
+
+    def _deserialize_response(self, response, response_type):
+        if response_type == dict:
+            return response.json()
+        elif hasattr(response_type, 'from_dict'):
+            return response_type.from_dict(response.json())
+
+        return response_type(response.text)
+
+    @property
+    def submit(self):
+        return Route(
+            self,
+            '/submit',
+            apis = {
+                Method.Post: Api(SimpleTask, bytes)
+            }
+        )
+
+    @property
+    def status(self):
+        status_r = Route(
+            self,
+            '/task'
+        )
+
+        status_r += RouteParam(
+            'id',
+            apis = {
+                Method.Get: Api(SimpleTask)
+            }
+        )
+
+        return status_r
+
+    @property
+    def result(self):
+        result_r = Route(
+            self,
+            '/result'
+        )
+
+        result_r += RouteParam(
+            'id',
+            apis = {
+                Method.Get: Api(SimpleTask)
+            }
+        )
+
+        return result_r

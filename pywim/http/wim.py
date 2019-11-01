@@ -44,9 +44,17 @@ class WimSolverResponse(Generic[T]):
         return r
 
 class ServerInfo(WimObject):
+    class Options(WimObject):
+        def __init__(self):
+            self.port = 8000
+            self.threads = 1
+            self.max_request_mb = 0
+            self.max_response_mb = 0
+
     def __init__(self):
         self.load = dict()
         self.meta = Meta()
+        self.options = ServerInfo.Options()
 
 class Client(HttpClient):
     def __init__(self, hostname=HttpClient.DEFAULT_HOSTNAME, port=HttpClient.DEFAULT_PORT, protocol='http'):
