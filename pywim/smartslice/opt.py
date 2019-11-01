@@ -6,7 +6,7 @@ class ModifierMeshCriteria(enum.Enum):
     selden = 1
 
 class ModifierMesh(WimObject):
-    def __init__(self, min_score=0.5):
+    def __init__(self, min_score=50.0):
         self.criterion = ModifierMeshCriteria.selden
         self.min_score = min_score
 
@@ -24,7 +24,7 @@ class Optimization(WimObject):
         # default modifier mesh config
         self.modifier_meshes.extend(
             (
-                ModifierMesh(0.33),
-                ModifierMesh(0.67)
+                ModifierMesh(33.0),
+                ModifierMesh(67.0)
             )
         )
