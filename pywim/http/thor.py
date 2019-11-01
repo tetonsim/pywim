@@ -191,6 +191,7 @@ class SimpleTask(WimObject):
         self.id = ''
         self.started = ''
         self.finished = ''
+        self.error = ''
         self.runtime = 0
         self.status = TaskStatus.new
         self.result = smartslice.result.Result()
