@@ -23,6 +23,7 @@ class Mesh(WimObject, threemf.mesh.Mesh):
         self.name = name if name else ''
         self.type = MeshType.normal
         self.print_config = None
+        self.slicer_settings = {}
         self.materials = MaterialNames()
 
     @staticmethod
