@@ -22,7 +22,7 @@ class Mesh(WimObject, threemf.mesh.Mesh):
         self.transform = np.identity(4)
         self.name = name if name else ''
         self.type = MeshType.normal
-        self.print_config = None
+        self.print_config = am.Config()
         self.slicer_settings = {}
         self.materials = MaterialNames()
 
@@ -42,6 +42,8 @@ class Mesh(WimObject, threemf.mesh.Mesh):
             'type': self.type.name,
             'materials': self.materials.to_dict(),
             'transform': list(self.transform.flatten()),
+            'print_config': self.print_config.to_dict(),
+            'slicer_settings': self.slicer_settings,
             'vertices': verts,
             'triangles': tris,
         }
@@ -67,5 +69,7 @@ class Mesh(WimObject, threemf.mesh.Mesh):
 
         if 'print_config' in d.keys():
             m.print_config = am.Config.from_dict(d['print_config'])
+
+        m.slicer_settings = d.get('slicer_settings', {})
 
         return m

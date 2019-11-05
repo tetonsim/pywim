@@ -12,19 +12,43 @@ class InfillType(enum.Enum):
 
 class Infill(WimObject):
     def __init__(self):
-        self.pattern = InfillType.grid
-        self.density = 50
-        self.orientation = 0.0
+        self.pattern = None
+        self.density = None
+        self.orientation = None
+
+    @classmethod
+    def Defaults(cls):
+        c = cls()
+
+        c.pattern = InfillType.grid
+        c.density = 20
+        c.orientation = 0.0
+
+        return c
 
 class Config(WimObject):
     def __init__(self):
-        self.layer_width = 0.45
-        self.layer_height = 0.2
-        self.walls = 2
-        self.skin_orientations = [45, 135]
-        self.bottom_layers = 6
-        self.top_layers = 6
+        self.layer_width = None
+        self.layer_height = None
+        self.walls = None
+        self.skin_orientations = WimList(int)
+        self.bottom_layers = None
+        self.top_layers = None
         self.infill = Infill()
+
+    @classmethod
+    def Defaults(cls):
+        c = cls()
+
+        c.layer_width = 0.45
+        c.layer_height = 0.2
+        c.walls = 2
+        c.skin_orientations.extend((45, 135))
+        c.bottom_layers = 6
+        c.top_layers = 6
+        c.infill = Infill.Defaults()
+
+        return c
 
     @staticmethod
     def default_overlap(layer_height):
