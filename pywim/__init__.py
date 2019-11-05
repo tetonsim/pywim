@@ -82,7 +82,7 @@ class WimList(list):
     def add(self, val):
         if self.list_type == float and type(val) == int:
             val = float(val)
-        assert type(val) == self.list_type, f'WimList incompatible type ({type(val)} != {self.list_type})'
+        assert type(val) == self.list_type, 'WimList incompatible type ({} != {})'.format(type(val), self.list_type)
         self.append(val)
 
     def names(self):
@@ -106,7 +106,7 @@ class WimTuple(list):
         for i in range(len(vals)):
             if self.types[i] == float and type(vals[i]) == int:
                 vals[i] = float(vals[i])
-            assert type(vals[i]) == self.types[i], f'WimTuple incompatible type ({type(vals[i])} != {self.types[i]})'
+            assert type(vals[i]) == self.types[i], 'WimTuple incompatible type ({} != {})'.format(type(vals[i]), self.types[i])
         self.clear()
         self.extend(vals)
 
@@ -125,7 +125,7 @@ class WimIgnore:
         def __init__(self, *args, **kwargs):
             WimIgnore.__init__(self, object_type)            
             object_type.__init__(self, *args, **kwargs)
-        return type(f'_WimIgnore_{object_type.__name__}', (WimIgnore, object_type), { '__init__': __init__ })
+        return type('_WimIgnore_{}'.format(object_type.__name__), (WimIgnore, object_type), { '__init__': __init__ })
 
 class Meta(WimObject):
     class Build(WimObject):
@@ -176,7 +176,7 @@ class ModelEncoder(json.JSONEncoder):
         elif getattr(obj, '__to_dict__', None):
             return obj.__to_dict__()
         elif getattr(obj, '__json__', None):
-            warn(f'__json__ extension is deprecated, use __to_dict__: {type(obj)}', DeprecationWarning)
+            warn('__json__ extension is deprecated, use __to_dict__: {}'.format(type(obj)), DeprecationWarning)
             return obj.__json__()
         elif isinstance(obj, (int, float, str)):
             return obj
@@ -263,7 +263,7 @@ class ModelEncoder(json.JSONEncoder):
                         new_t = ModelEncoder._new_object_polymorphic(obj.list_type, o)
                         new_obj.append(ModelEncoder._set_object_attrs(new_t, o))
                 else:
-                    raise WimException(f'Unsupported type for WimList deserialization: {obj.list_type}')
+                    raise WimException('Unsupported type for WimList deserialization: {}'.format(obj.list_type))
         elif isinstance(obj, WimTuple):
             new_obj = obj.new()
             new_obj.set(d)

@@ -31,7 +31,7 @@ def main():
 
 def usage():
     print('Usage:')
-    print(f'{sys.argv[0]} JSON')
+    print('{} JSON'.format(sys.argv[0]))
     print('Optimizes bulk material properties for a known set of coupon data defined in JSON format.')
 
 if __name__ == '__main__':

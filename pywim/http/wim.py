@@ -39,7 +39,7 @@ class WimSolverResponse(Generic[T]):
 
         if http_response.status_code >= 400:
             r.success = False
-            r.errors.append(f'Server returned error code {http_response.status_code}')
+            r.errors.append('Server returned error code %i' % http_response.status_code)
         
         return r
 

@@ -2,7 +2,7 @@ import scipy
 import math
 from scipy.optimize import Bounds
 from .. import WimObject
-from .. import am, fea, job, micro
+from .. import am, fea, http, micro
 
 class ExtrusionTest(WimObject):
     '''
@@ -79,8 +79,8 @@ class BulkOptimization():
     def run_model(self, bulk, layer_config):
         layer = micro.build.run.ExtrudedLayer(bulk, layer_config)
 
-        micro_agent = job.SimpleHttpAgent.MicroRunner()
-        results = micro_agent.run_sync(layer)
+        wim = http.wim.Client()
+        results = wim.micro.solve.post(layer)
 
         return results.result.materials['layer']
 

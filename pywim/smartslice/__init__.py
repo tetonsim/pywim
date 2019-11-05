@@ -29,23 +29,23 @@ class ThreeMFExtension(threemf.extension.Extension):
     def process_threemf(self, tmf : threemf.ThreeMF):
         # We want to read the mesh from the 3mf model
         if len(tmf.models) != 1:
-            raise WimException(f'No 3DModel found in 3MF')
+            raise WimException('No 3DModel found in 3MF')
 
         mdl = tmf.models[0]
 
         if mdl.unit != 'millimeter':
-            raise WimException(f'Unsupported unit type {mdl.unit} in: {mdl.path}')
+            raise WimException('Unsupported unit type {} in: {}'.format(mdl.unit, mdl.path))
 
         if len(mdl.objects) == 0:
-            raise WimException(f'No objects found in 3mf model: {mdl.path}')
+            raise WimException('No objects found in 3mf model: {}'.format(mdl.path))
 
         if len(mdl.objects) > 1:
-            raise WimException(f'Multiple objects in 3mf model is not supported: {mdl.path}')
+            raise WimException('Multiple objects in 3mf model is not supported: {}'.format(mdl.path))
 
         obj = mdl.objects[0]
 
         if not isinstance(obj, threemf.model.ObjectModel):
-            raise WimException(f'Object of type {obj.type} in 3mf model is not supported: {mdl.path}')
+            raise WimException('Object of type {} in 3mf model is not supported: {}'.format(obj.type, mdl.path))
 
         # We have the object, now let's look at the build items, verify they're
         # valid for our analysis, and get the transformation matrix for our model
@@ -53,15 +53,15 @@ class ThreeMFExtension(threemf.extension.Extension):
         build = mdl.build
 
         if len(build.items) == 0:
-            raise WimException(f'No build items found in: {mdl.path}')
+            raise WimException('No build items found in: {}'.format(mdl.path))
 
         if len(build.items) > 1:
-            raise WimException(f'Multiple build items in 3mf is not supported: {mdl.path}')
+            raise WimException('Multiple build items in 3mf is not supported: {}'.format(mdl.path))
 
         item = build.items[0]
 
         if item.objectid != obj.id:
-            raise WimException(f'Build item objectid does not match model id: {mdl.path}')
+            raise WimException('Build item objectid does not match model id: {}'.format(mdl.path))
 
         T = item.transform
 

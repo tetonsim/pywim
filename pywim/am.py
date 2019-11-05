@@ -109,7 +109,7 @@ class FDMModelFactory:
             nmdl.jobs.add(local_infill_job)
 
             local_infill_sections.append(
-                fea.model.FDMInfillSection(f'section-{local_infill_mat_name}', local_infill_mat_name, local_config.infill.orientation)
+                fea.model.FDMInfillSection('section-%s' % local_infill_mat_name, local_infill_mat_name, local_config.infill.orientation)
             )
 
         # Setup sections

@@ -54,7 +54,7 @@ class Infill(UnitCell):
         elif config.infill.pattern == am.InfillType.triangle:
             return InfillTriangle(config.infill.density, config.layer_width)
         
-        raise Exception(f'Unrecognized infill unit cell name: {config.infill.pattern}')
+        raise Exception('Unrecognized infill unit cell name: {}'.format(config.infill.pattern))
 
 class InfillSquare(Infill):
     def __init__(self, volume_fraction, layer_width):
