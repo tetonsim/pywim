@@ -144,10 +144,10 @@ def from_fea(mdl, inc):
             for gp in gp_iter:
                 if type(gp) is int:
                     layered_output = False
-                    out_name = f'{r.name}_G{gp + 1}'
+                    out_name = '{}_G{}'.format(r.name, gp + 1)
                 else:
                     layered_output = True
-                    out_name = f'{r.name}_L{gp[0] + 1}_K{gp[1] + 1}_G{gp[2] + 1}'            
+                    out_name = '{}_L{}_K{}_G{}'.format(r.name, gp[0] + 1, gp[1] + 1, gp[2] + 1)
 
                 array = vtk.vtkFloatArray()
                 array.SetName(out_name)
@@ -157,7 +157,7 @@ def from_fea(mdl, inc):
                     elv = r.values[ eid2index[eid] ]
 
                     if elv.id != eid:
-                        print(f'Element id mismatch: {eid} != {elv.id}')
+                        print('Element id mismatch: {} != {}'.format(eid, elv.id))
 
                     gpdata = get_gauss_point_data(layered_output, elv, gp)
 
@@ -178,7 +178,7 @@ def from_fea(mdl, inc):
 
     def add_elem_results(r):
         if not (r.size == 6 and r.name == 'orientation'):
-            print(f'Unrecognized element result {r.name}')
+            print('Unrecognized element result {}'.format(r.name))
             return
 
         array = vtk.vtkFloatArray()
@@ -192,22 +192,22 @@ def from_fea(mdl, inc):
         celldata.AddArray(array)
 
     for r in inc.node_results:
-        print(f'\tTranslating {r.name} Node Result')
+        print('\tTranslating {} Node Result'.format(r.name))
         add_node_results(r)
 
     for r in inc.gauss_point_results:
-        print(f'\tTranslating {r.name} Gauss Point Result')
+        print('\tTranslating {} Gauss Point Result'.format(r.name))
         add_gp_results(r)
 
     for r in inc.element_results:
-        print(f'\tTranslating {r.name} Element Result')
+        print('\tTranslating {} Element Result'.format(r.name))
         add_elem_results(r)
 
     return grid
 
 def grid_to_vtu(name, dmdl):
     gridw = vtk.vtkXMLUnstructuredGridWriter()
-    gridw.SetFileName(f'{name}.vtu')
+    gridw.SetFileName('{}.vtu'.format(name))
 
     grid = from_grid(dmdl)
 
@@ -219,7 +219,7 @@ def wim_result_to_vtu(mdl, db):
         print(step.name)
 
         gridw = vtk.vtkXMLUnstructuredGridWriter()
-        gridw.SetFileName(f'{mdl.name.replace(".json", "")}-{step.name}.vtu')
+        gridw.SetFileName('{}-{}.vtu'.format(mdl.name.replace(".json", ""), step.name))
 
         inc = step.increments[-1]
         grid = from_fea(mdl, inc)
