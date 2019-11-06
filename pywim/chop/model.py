@@ -50,6 +50,5 @@ class Step(WimObject):
 class Model(WimObject):
     def __init__(self):
         self.meshes = WimList(mesh.Mesh)
-        self.print_config = am.Config()
         self.steps = WimList(Step)
         self.slicer = slicer.Slicer()
