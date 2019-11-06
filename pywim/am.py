@@ -35,7 +35,7 @@ class Config(WimObject):
         self.bottom_layers = None
         self.top_layers = None
         self.infill = Infill()
-        self.slicer_settings = {} # any other slicer settings
+        self.auxiliary = {} # any other slicer settings
 
     @classmethod
     def Defaults(cls):
