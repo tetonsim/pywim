@@ -67,27 +67,23 @@ def main():
     job.chop.steps.append(step)
 
     # Now we need to setup the print/slicer configuration
-    # This is split between two attributes in the chop model:
-    # print_config: contains the print parameters that smart slice uses
-    # slicer: contains all of the configuration that is necessary
-    #   for the chosen slicer to execute
     
-    print_config = job.chop.print_config
+    print_config = pywim.am.Config()
     print_config.layer_width = 0.45
     # ... and so on, check pywim.am.Config for full definition
 
+    # The am.Config contains an "auxiliary" dictionary which should
+    # be used to define the slicer specific settings. These will be
+    # passed on directly to the slicer (CuraEngine).
+    print_config.auxiliary['print_bed_temperature'] = '60.0'
+
     # Setup the slicer configuration. See each class for more
-    # information. The Extruder, Printer, and Config classes each
-    # contain a "settings" dictionary which should be used to define
-    # the slicer specific settings. These will be passed on directly
-    # to the slicer (CuraEngine).
+    # information.
     extruder0 = pywim.chop.machine.Extruder(diameter=0.4)
     printer = pywim.chop.machine.Printer(name='Ultimaker S5', extruders=(extruder0, ))
-    cura_config = pywim.chop.slicer.Config(printer)
 
-    # And finally set the slicer to the Cura Engine with the
-    # config defined above
-    job.chop.slicer = pywim.chop.slicer.CuraEngine(config=cura_config)
+    # And finally set the slicer to the Cura Engine with the config and printer defined above
+    job.chop.slicer = pywim.chop.slicer.CuraEngine(config=print_config, printer=printer)
 
     with zipfile.ZipFile('test.3mf', 'a') as tmf:
         tmf.writestr('SmartSlice/job.json', job.to_json())
