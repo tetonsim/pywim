@@ -1,4 +1,5 @@
 from .. import WimObject, WimList, WimTuple, Meta
+from .model import Mesh
 
 class ResultValue(WimObject):
     def __init__(self, id, data=None, values=None, l=0, k=0):
@@ -67,4 +68,5 @@ class Database(WimObject):
     def __init__(self):
         self.meta = Meta()
         self.steps = WimList(Step)
+        self.mesh = Mesh()
 

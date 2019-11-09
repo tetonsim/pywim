@@ -176,14 +176,13 @@ class HttpClient:
             **request_args
         )
 
-        if http_resp.ok:
-            return self._deserialize_response(http_resp, api.response_type)
-        elif int(http_resp.status_code / 100) == 4:
-            return self._handle_4XX_status_code(http_resp, method, endpoint)
+        if int(http_resp.status_code / 100) == 4:
+            self._handle_4XX_status_code(http_resp, method, endpoint)
         elif int(http_resp.status_code / 100) == 5:
-            return self._handle_5XX_status_code(http_resp, method, endpoint)
+            self._handle_5XX_status_code(http_resp, method, endpoint)
 
-        raise ServerException(http_resp, 'HTTP client cannot handle %i status code' % http_resp.status_code)
+        return self._deserialize_response(http_resp, api.response_type)
+        #raise ServerException(http_resp, 'HTTP client cannot handle %i status code' % http_resp.status_code)
 
     def _handle_4XX_status_code(self, response, method, endpoint):
         call_name = '%s %s' % (method.name.upper(), endpoint)

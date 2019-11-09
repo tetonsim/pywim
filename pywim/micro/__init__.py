@@ -1,6 +1,8 @@
 from .. import WimObject, WimList, WimTuple, am
 from ..fea.model import Material
 
+import enum
+
 class UnitCell(WimObject):
     def __init__(self, unit_cell):
         self.unit_cell = unit_cell
@@ -67,22 +69,26 @@ class InfillTriangle(Infill):
         self.mesh_seed = 0.1
 
 class JobMaterial(WimObject):
-    def __init__(self, name, source, source_name):
-        self.name = name
-        self.source = source
+    class Source(enum.Enum):
+        materials = 1
+        job = 2
+
+    def __init__(self, name=None, source=Source.materials, source_name=None):
+        self.name = name if name else 'material'
+        self.source = source if source else ''
         self.source_name = source_name
 
     @classmethod
     def FromMaterial(cls, name, source_name):
-        return cls(name, 'materials', source_name)
+        return cls(name, JobMaterial.Source.materials, source_name)
     
     @classmethod
     def FromJob(cls, name, source_name):
-        return cls(name, 'job', source_name)
+        return cls(name, JobMaterial.Source.job, source_name)
 
 class Job(WimObject):
-    def __init__(self, name, geometry):
-        self.name = name
+    def __init__(self, name=None, geometry=None):
+        self.name = name if name else 'job'
         self.geometry = geometry
         self.materials = WimList(JobMaterial)
 

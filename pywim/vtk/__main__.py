@@ -19,13 +19,19 @@ def main():
     elif jmdl.endswith('.json'):
         jrst = f'{jmdl}.rst'
 
-        mdl = pywim.ModelEncoder.dict_to_object(dmdl, pywim.model.Model)
+        mdl = pywim.fea.model.Model.from_dict(dmdl)
 
         if os.path.exists(jrst):
             with open(jrst, 'r') as fjrst:
                 drdb = json.load(fjrst)
         
-            db = pywim.ModelEncoder.dict_to_object(drdb, pywim.result.Database)
+            db = pywim.fea.result.Database.from_dict(drdb)
+
+        wim_result_to_vtu(mdl, db)
+    elif jmdl.endswith('.json.rst'):
+        db = pywim.fea.result.Database.from_dict(dmdl)
+        mdl = pywim.fea.model.Model()
+        mdl.mesh = db.mesh
 
         wim_result_to_vtu(mdl, db)
 

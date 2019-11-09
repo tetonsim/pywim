@@ -245,6 +245,9 @@ class ModelEncoder(json.JSONEncoder):
         if isinstance(obj, type):
             obj = obj()
 
+        if d is None:
+            return obj
+
         new_obj = None
         if isinstance(obj, WimList):
             new_obj = obj.new()

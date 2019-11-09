@@ -47,8 +47,14 @@ class Step(WimObject):
         self.boundary_conditions = WimList(BoundaryCondition)
         self.loads = WimList(Load)
 
+class Mesher(WimObject):
+    def __init__(self):
+        self.resolution = 0.05
+        self.layers_per_voxel = 0
+
 class Model(WimObject):
     def __init__(self):
         self.meshes = WimList(mesh.Mesh)
         self.steps = WimList(Step)
         self.slicer = slicer.Slicer()
+        self.mesher = Mesher()

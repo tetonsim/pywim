@@ -92,6 +92,13 @@ class Client(HttpClient):
 
         return client
 
+    def _handle_4XX_status_code(self, response, method, endpoint):
+        # Override the default 4XX status code handler so we don't
+        # raise an exception.
+        # The wim solver server passes all the same stuff pack on
+        # a 4XX error so let's process it as usual.
+        pass
+
     def _serialize_request(self, data, request_type):
         if data and isinstance(data, (WimObject, WimList)):
             return {

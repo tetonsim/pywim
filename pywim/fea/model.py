@@ -328,6 +328,7 @@ class Model(WimObject):
         self.meta = Meta()
         self.process = Process()
         self.mesh = Mesh()
+        self.voxel_mesh = dict() # keep this simple for now, since we're not using any of the internal data in pywim
         self.regions = Regions()
         self.materials = WimList(Material)
         self.csys = WimList(CoordinateSystem)
