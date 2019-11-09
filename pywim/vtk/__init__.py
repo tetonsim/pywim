@@ -47,7 +47,7 @@ def from_fea(mdl, inc):
     nels = 0
     for g in mdl.mesh.elements:
         for c in g.connectivity:
-            if g.type == 'HEXL8':
+            if g.type == 'HEXL8' or g.type == 'VOXL':
                 e = vtk.vtkHexahedron()
             elif g.type == 'TETL4':
                 e = vtk.vtkTetra()
