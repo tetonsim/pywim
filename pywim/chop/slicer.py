@@ -8,7 +8,7 @@ class Slicer(WimObject):
     def __init__(self, config : am.Config=None, printer : machine.Printer=None):
         self.type = None
         self.print_config = config if config else am.Config()
-        self.printer = machine.Printer()
+        self.printer = printer if printer else machine.Printer()
 
 class CuraEngine(Slicer):
     JSONTYPENAME = 'cura'
