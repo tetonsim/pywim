@@ -185,6 +185,8 @@ class ModelEncoder(json.JSONEncoder):
         elif isinstance(obj, enum.Enum):
             return obj.name
         elif isinstance(obj, dict):
+            if len(obj.keys()) == 0:
+                return None
             return obj
 
         d = {}
@@ -198,7 +200,11 @@ class ModelEncoder(json.JSONEncoder):
             if k.startswith('_'):
                 continue
 
-            v = ModelEncoder.object_to_dict(getattr(obj, k))
+            try:
+                v = ModelEncoder.object_to_dict(getattr(obj, k))
+            except Exception as exc:
+                error = 'Failed to cast to dict {} on {}'.format(k, type(obj))
+                raise WimException(error) from exc
 
             if v is not None:
                 d[k] = v
@@ -209,15 +215,20 @@ class ModelEncoder(json.JSONEncoder):
     def _set_object_attrs(obj, d):
         if d is not None:
             for k in obj.__dict__:
-                v = getattr(obj, k)
+                try:
+                    v = getattr(obj, k)
 
-                if k in d.keys():
-                    dv = d[k]
+                    if k in d.keys():
+                        dv = d[k]
 
-                    newv = ModelEncoder.dict_to_object(dv, v)
+                        newv = ModelEncoder.dict_to_object(dv, v)
 
-                    if newv is not None:
-                        obj.__dict__[k] = newv
+                        if newv is not None:
+                            obj.__dict__[k] = newv
+                except Exception as exc:
+                    error = 'Failed to set {} on {}'.format(k, type(obj))
+                    raise WimException(error) from exc
+
         return obj
 
     @staticmethod
