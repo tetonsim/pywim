@@ -2,7 +2,8 @@ from .. import WimObject, WimList
 from .. import am
 
 class Extruder(WimObject):
-    def __init__(self, diameter : float=0.4, config : am.Config=None):
+    def __init__(self, diameter : float=0.4, config : am.Config=None, id=0):
+        self.id = id
         self.diameter = 0.4
         self.print_config = config if config else am.Config()
 
