@@ -320,6 +320,11 @@ class Output(WimObject):
         self.name = name if name else 'displacement'
         self.locations = locations
 
+class Manufacturing(WimObject):
+    def __init__(self):
+        self.time = 0.0
+        self.mass = 0.0
+
 from .. import micro
 
 class Model(WimObject):
@@ -342,3 +347,4 @@ class Model(WimObject):
         self.steps = WimList(Step)
         self.outputs = WimList(Output)
         self.jobs = WimList(micro.Job)
+        self.manufacturing = Manufacturing()
