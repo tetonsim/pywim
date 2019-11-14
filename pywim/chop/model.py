@@ -49,7 +49,7 @@ class Step(WimObject):
 
 class Mesher(WimObject):
     def __init__(self):
-        self.resolution = 0.05
+        self.resolution = 0.1
         self.layers_per_voxel = 0
 
 class Model(WimObject):
