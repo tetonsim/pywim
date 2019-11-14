@@ -5,14 +5,14 @@ import enum
 from . import WimObject, WimList
 
 class InfillType(enum.Enum):
-    unknown = 0
+    unknown = -1
     grid = 1
     triangle = 2
     cubic = 3
 
 class Infill(WimObject):
     def __init__(self):
-        self.pattern = None
+        self.pattern = InfillType.unknown
         self.density = None
         self.orientation = None
 

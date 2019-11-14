@@ -183,6 +183,8 @@ class ModelEncoder(json.JSONEncoder):
         elif isinstance(obj, (list, tuple)):
             return [ ModelEncoder.object_to_dict(v) for v in obj ]
         elif isinstance(obj, enum.Enum):
+            if obj.value == -1:
+                return None
             return obj.name
         elif isinstance(obj, dict):
             if len(obj.keys()) == 0:
