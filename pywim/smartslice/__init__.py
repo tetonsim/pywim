@@ -73,5 +73,11 @@ class ThreeMFExtension(threemf.extension.Extension):
 
             mesh = chop.mesh.Mesh.cast_from_base(obj.mesh)
             mesh.transform = T
-            
+
+            if mesh.name and len(mesh.name) > 0:
+                mesh.materials = chop.mesh.MaterialNames(
+                    '%s-extrusion' % mesh.name,
+                    '%s-infill' % mesh.name
+                )
+
             j.content.chop.meshes.append(mesh)
