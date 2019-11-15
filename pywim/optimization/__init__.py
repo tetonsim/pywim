@@ -1,8 +1,13 @@
-import scipy
 import math
-from scipy.optimize import Bounds
 from .. import WimObject
 from .. import am, fea, http, micro
+
+try:
+    import scipy
+    from scipy.optimize import Bounds
+except:
+    from warnings import warn
+    warn('Failed to import scipy. pywim.optimization will not work')
 
 class ExtrusionTest(WimObject):
     '''
