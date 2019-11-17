@@ -24,7 +24,6 @@ class Optimization(WimObject):
         # default modifier mesh config
         self.modifier_meshes.extend(
             (
-                ModifierMesh(33.0),
-                ModifierMesh(67.0)
+                ModifierMesh(80.0),
             )
         )
