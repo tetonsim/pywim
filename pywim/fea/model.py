@@ -336,7 +336,7 @@ class Model(WimObject):
         self.voxel_mesh = dict() # keep this simple for now, since we're not using any of the internal data in pywim
         self.regions = Regions()
         self.materials = WimList(Material)
-        self.csys = WimList(CoordinateSystem)
+        self.coordinate_systems = WimList(CoordinateSystem)
         self.sections = WimList(Section)
         self.section_assignments = WimList(SectionAssignment)
         self.boundary_conditions = WimList(BoundaryCondition)

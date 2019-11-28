@@ -1,7 +1,7 @@
 import os
 import setuptools
 
-version = '19.1.41'
+version = '20.0.1'
 
 #with open('requirements.txt', 'r') as freq:
 #    requirements = freq.readlines()
