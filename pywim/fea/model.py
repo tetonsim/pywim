@@ -145,9 +145,16 @@ class Material(WimObject):
         self.fracture = Fracture()
 
 class CoordinateSystem(WimObject):
-    def __init__(self, name=None, xaxis=(1., 0., 0.), xyplane=(0., 1., 0.), origin=(0., 0., 0.)):
+    DEFAULTTYPENAME = 'three_points'
+    def __init__(self, name=None):
         self.name = name if name else 'csys'
-        self.type = 'three_points'
+        self.type = None
+
+class ThreePointsCSYS(CoordinateSystem):
+    JSONTYPENAME = 'three_points'
+    def __init__(self, name=None, xaxis=(1., 0., 0.), xyplane=(0., 1., 0.), origin=(0., 0., 0.)):
+        super().__init__(name)
+        self.type = ThreePointsCSYS.JSONTYPENAME
         self.origin = WimTuple(float, float, float)
         self.xaxis = WimTuple(float, float, float)
         self.xyplane = WimTuple(float, float, float)
@@ -156,12 +163,20 @@ class CoordinateSystem(WimObject):
         self.xaxis.set(xaxis)
         self.xyplane.set(xyplane)
 
+class SingleRotationCSYS(CoordinateSystem):
+    JSONTYPENAME = 'single_rotation'
+    def __init__(self, name=None, angle=0., axis=3):
+        super().__init__(name)
+        self.type = SingleRotationCSYS.JSONTYPENAME
+        self.angle = angle
+        self.axis = axis
+
 class Section(WimObject):
     DEFAULTTYPENAME = 'homogeneous'
-    def __init__(self, name=None, csys=None):
+    def __init__(self, name=None, coordinate_system=None):
         self.name = name if name else 'section'
         self.type = None
-        self.csys = csys
+        self.coordinate_system = coordinate_system
 
 class HomogeneousSection(Section):
     JSONTYPENAME = 'homogeneous'
