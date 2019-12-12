@@ -2,7 +2,7 @@ import copy
 import math
 import enum
 
-from . import WimObject, WimList
+from . import WimObject, WimList, WimException
 
 class InfillType(enum.Enum):
     unknown = -1
@@ -55,6 +55,29 @@ class Config(WimObject):
     def default_overlap(layer_height):
         return layer_height * (1.0 - math.pi / 4.0)
 
+    def from_cura_setting(self, name, value):#, set_auxiliary=True):
+
+        #if set_auxiliary:
+        #    self.auxiliary[name] = str(value)
+
+        if name == 'infill_pattern':
+            self.infill.pattern = InfillType[value]
+        elif name == 'infill_sparse_density':
+            self.infill.density = float(value)
+        elif name == 'infill_line_spacing':
+            pass
+            # I'm not sure of the best way to handle this because we would need to
+            # compute the infill.density from this, but the calculation depends on the
+            # infill pattern and we could be in the middle of processing multiple cura
+            # settings and the infill pattern could be "on deck" to be changed
+        elif name == 'infill_angles':
+            angles = value.strip('[]').split(',')
+            if len(angles) > 1:
+                raise WimException('Multiple infill angles are not supported: {}'.format(value))
+            self.infill.orientation = float(angles[0])
+        elif name == 'wall_line_count':
+            self.walls = int(value)
+
 from . import fea, micro
 
 class FDMModelFactory:
@@ -101,7 +124,7 @@ class FDMModelFactory:
 
         for elset_name, local_infill in element_sets.local_infills.items():
             local_infill_mat_name = 'infill-%f' % local_infill[1].density
-            
+
             local_config = copy.deepcopy(config)
             local_config.infill = local_infill[1]
 

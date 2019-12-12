@@ -26,11 +26,35 @@ class Mesh(WimObject, threemf.mesh.Mesh):
         self.materials = MaterialNames()
 
     @staticmethod
-    def cast_from_base(base_mesh):
-        m = Mesh()
-        m.vertices = base_mesh.vertices
-        m.triangles = base_mesh.triangles
-        return m
+    def cast_from_base(base_mesh : threemf.mesh.Mesh):
+        mesh = Mesh()
+        mesh.vertices = base_mesh.vertices
+        mesh.triangles = base_mesh.triangles
+        return mesh
+
+    @staticmethod
+    def from_threemf_object_model(obj : threemf.model.ObjectModel):
+        mesh = Mesh.cast_from_base(obj.mesh)
+
+        mesh.materials = MaterialNames(
+            '%s-extrusion' % mesh.name,
+            '%s-infill' % mesh.name
+        )
+
+        # Check for cura meta data
+        for md in obj.metadata:
+            if not md.name.startswith('cura:'):
+                continue
+
+            name = md.name[5:]
+
+            if name == 'infill_mesh':
+                if md.value.lower() == 'true':
+                    mesh.type = MeshType.infill
+            else:
+                mesh.print_config.from_cura_setting(name, md.value)
+
+        return mesh
 
     def __to_dict__(self):
         verts = [ (v.x, v.y, v.z) for v in self.vertices ]
