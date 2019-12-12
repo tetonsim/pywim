@@ -85,8 +85,11 @@ class SmartSlice3MFTest(unittest.TestCase):
         obj.add_meta_data_cura('infill_mesh', True)
         obj.add_meta_data_cura('infill_sparse_density', 50)
         obj.add_meta_data_cura('infill_pattern', pywim.am.InfillType.grid.name)
-        obj.add_meta_data_cura('infill_angles', '[10]')
+        obj.add_meta_data_cura('infill_angles', '[ 10 ]')
         obj.add_meta_data_cura('wall_line_count', 4)
+        obj.add_meta_data_cura('bottom_layers', 8)
+        obj.add_meta_data_cura('top_layers', 9)
+        obj.add_meta_data_cura('skin_angles', [-10, 10])
 
         T = np.identity(4)
         T[0,3] = 50.
@@ -109,6 +112,10 @@ class SmartSlice3MFTest(unittest.TestCase):
         self.assertEqual(m1.type, pywim.chop.mesh.MeshType.infill)
 
         self.assertEqual(m1.print_config.walls, 4)
+        self.assertEqual(m1.print_config.bottom_layers, 8)
+        self.assertEqual(m1.print_config.top_layers, 9)
+        self.assertEqual(m1.print_config.skin_orientations, [-10, 10])
         self.assertEqual(m1.print_config.infill.density, 50)
         self.assertEqual(m1.print_config.infill.pattern, pywim.am.InfillType.grid)
-        self.assertEqual(m1.print_config.infill.orientation, 10.)
+        self.assertEqual(m1.print_config.infill.orientation, 10)
+

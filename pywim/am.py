@@ -77,6 +77,12 @@ class Config(WimObject):
             self.infill.orientation = float(angles[0])
         elif name == 'wall_line_count':
             self.walls = int(value)
+        elif name == 'bottom_layers':
+            self.bottom_layers = int(value)
+        elif name == 'top_layers':
+            self.top_layers = int(value)
+        elif name == 'skin_angles':
+            self.skin_orientations = [int(a) for a in value.strip('[]').split(',')]
 
 from . import fea, micro
 
