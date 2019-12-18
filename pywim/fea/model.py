@@ -338,7 +338,7 @@ class Output(WimObject):
 class Manufacturing(WimObject):
     def __init__(self):
         self.time = 0.0
-        self.mass = 0.0
+        self.material_volume = 0.0
 
 from .. import micro
 
