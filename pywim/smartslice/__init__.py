@@ -39,13 +39,9 @@ class ThreeMFExtension(threemf.extension.Extension):
         if len(mdl.objects) == 0:
             raise WimException('No objects found in 3mf model: {}'.format(mdl.path))
 
-        if len(mdl.objects) > 1:
-            raise WimException('Multiple objects in 3mf model is not supported: {}'.format(mdl.path))
-
-        obj = mdl.objects[0]
-
-        if not isinstance(obj, threemf.model.ObjectModel):
-            raise WimException('Object of type {} in 3mf model is not supported: {}'.format(obj.type, mdl.path))
+        for obj in mdl.objects:
+            if not isinstance(obj, threemf.model.ObjectModel):
+                raise WimException('Object of type {} in 3mf model is not supported: {}'.format(obj.type, mdl.path))
 
         # We have the object, now let's look at the build items, verify they're
         # valid for our analysis, and get the transformation matrix for our model
@@ -55,30 +51,54 @@ class ThreeMFExtension(threemf.extension.Extension):
         if len(build.items) == 0:
             raise WimException('No build items found in: {}'.format(mdl.path))
 
-        if len(build.items) > 1:
-            raise WimException('Multiple build items in 3mf is not supported: {}'.format(mdl.path))
-
-        item = build.items[0]
-
-        if item.objectid != obj.id:
-            raise WimException('Build item objectid does not match model id: {}'.format(mdl.path))
-
-        T = item.transform
-
         # Now get the job asset
         job_assets = list(filter(lambda a: isinstance(a, JobThreeMFAsset), self.assets))
-            
-        if len(job_assets) == 1:
-            j = job_assets[0]
 
-            mesh = chop.mesh.Mesh.cast_from_base(obj.mesh)
-            mesh.transform = T
+        if len(job_assets) == 0:
+            raise WimException('No SmartSlice assets found in: {}'.format(mdl.path))
 
-            mesh.name = 'normal'
+        if len(job_assets) > 1:
+            raise WimException('Unexpectedly found more than one SmartSlice asset in: {}'.format(mdl.path))
 
-            mesh.materials = chop.mesh.MaterialNames(
-                '%s-extrusion' % mesh.name,
-                '%s-infill' % mesh.name
-            )
+        j = job_assets[0]
+
+        if not isinstance(j, JobThreeMFAsset):
+            raise WimException('Could not find SmartSlice job asset in: {}'.format(mdl.path))
+
+        iitem = 1
+        for item in build.items:
+            # Find the object model this build item references
+            objs = list(filter(lambda o: o.id == item.objectid, mdl.objects))
+
+            if len(objs) == 0:
+                raise WimException(
+                    'An object was not found for the build item referencing id {} in {}'.\
+                    format(item.objectid, mdl.path)
+                )
+
+            if len(objs) > 1:
+                raise WimException(
+                    'Multiple objects found for the build item referencing id {} in {}'.\
+                    format(item.objectid, mdl.path)
+                )
+
+            obj = objs[0]
+
+            mesh = chop.mesh.Mesh.from_threemf_object_model(obj)
+
+            mesh.name = 'mesh-%i' % iitem
+            mesh.transform = item.transform
 
             j.content.chop.meshes.append(mesh)
+
+            iitem += 1
+
+        # Now that we've processed all build items, let's validate everything
+        meshes = j.content.chop.meshes
+        normal_mesh_count = sum(1 for mesh in meshes if mesh.type == chop.mesh.MeshType.normal)
+
+        if normal_mesh_count == 0:
+            raise WimException('No normal meshes found in {}'.format(mdl.path))
+
+        if normal_mesh_count > 1:
+            raise WimException('More than one normal mesh found in {}'.format(mdl.path))
