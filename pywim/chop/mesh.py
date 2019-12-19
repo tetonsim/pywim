@@ -12,10 +12,10 @@ class MeshType(enum.Enum):
     cutting = 3
 
 class MaterialNames(WimObject):
-    def __init__(self, extrusion=None, infill=None, none=None):
+    def __init__(self, extrusion=None, infill=None, empty=None):
         self.extrusion = extrusion if extrusion else 'extrusion'
         self.infill = infill if infill else 'infill'
-        self.none = none if none else 'none'
+        self.empty = empty if empty else 'empty'
 
 class Mesh(WimObject, threemf.mesh.Mesh):
     def __init__(self, name=None):
