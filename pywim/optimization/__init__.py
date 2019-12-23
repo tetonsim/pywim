@@ -238,11 +238,6 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     bulk = fea.model.Material('bulk')
     bulk.density = test_data.density
 
-    if test_data.type == 'filled':
-        bulk.reinforcement = 'chopped'    
-    else:
-        bulk.reinforcement = 'none'
-
     Ea = test_data.axial_ratio() * EX
     Et = Ea
     nuat = 0.35
@@ -250,7 +245,6 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     Gat = 0.6 * Ea
 
     Sy = test_data.axial_ratio() * SX
-    Sxy = test_data.axial_ratio() * SXY
     KIc = 6.0
 
     if test_data.type == 'unfilled':
@@ -265,6 +259,7 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
         bulk.elastic = fea.model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et, 
                                          'nuat': nuat, 'nutt': nutt, 'Gat': Gat})
 
+        Sxy = test_data.axial_ratio() * SXY
         bulk.failure_yield = fea.model.Yield(type = 'isotropic', properties = {'T': Sy, 'C': Sy, 'S': Sxy})
     
     bulk.fracture = fea.model.Fracture(KIc)

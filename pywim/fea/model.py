@@ -139,7 +139,6 @@ class Material(WimObject):
     def __init__(self, name=None):
         self.name = name if name else 'material'
         self.density = 0.0
-        self.reinforcement = 'none'
         self.elastic = Elastic()
         self.expansion = Expansion()
         self.failure_yield = Yield()
