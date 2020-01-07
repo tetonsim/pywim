@@ -177,17 +177,17 @@ def from_fea(mdl, inc):
                 celldata.AddArray(array)
 
     def add_elem_results(r):
-        if not (r.size == 6 and r.name == 'orientation'):
-            print('Unrecognized element result {}'.format(r.name))
-            return
-
         array = vtk.vtkFloatArray()
         array.SetName(r.name)
         array.SetNumberOfComponents(r.size)
 
-        for e in r.values:    
-            if r.size == 6 and r.name == 'orientation':
-                array.InsertNextTuple6(e.data[0], e.data[1], e.data[2], e.data[3], e.data[4], e.data[5])
+        for e in r.values:
+            if r.size == 1:
+                array.InsertNextTuple1(e.data[0])
+            elif r.size == 3:
+                array.InsertNextTuple3(e.data[0], e.data[1], e.data[2])
+            elif r.size == 6:
+                array.InsertNextTuple6(e.data[0], e.data[1], e.data[2], e.data[3], e.data[5], e.data[4])
 
         celldata.AddArray(array)
 
