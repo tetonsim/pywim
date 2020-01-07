@@ -62,6 +62,8 @@ class WimObject:
         '''
         for k, v in self.__dict__.items():
             if v is not None:
+                if isinstance(v, (WimObject, WimList)) and v.is_empty():
+                    continue
                 return False
         return True
 
