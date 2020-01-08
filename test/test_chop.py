@@ -5,28 +5,28 @@ import threemf
 import pywim
 
 specific_reqs = {
-    "extruders_enabled_count": [1, "Number of Extruders That Are Enabled"],
-    "initial_layer_line_width_factor": [100, "Initial Layer Line Width"],
-    "top_bottom_pattern": ["lines", "Top/Bottom Pattern"],
-    "top_bottom_pattern_0": ["lines", "Bottom Pattern Initial Layer"],
-    "gradual_infill_steps": [0, "Gradual Infill Steps"],
-    "mold_enabled": ['false', "Mold"],
-    "magic_mesh_surface_mode": ["normal", "Surface Mode"],
-    "magic_spiralize": ['false', "Spiralize Outer Contour"],
-    "spaghetti_infill_enabled": ['false', "Spaghetti Infill"],
-    "magic_fuzzy_skin_enabled": ['false', "Fuzzy Skin"],
-    "wireframe_enabled": ['false', "Wire Printing"],
-    "adaptive_layer_height_enabled": ['false', "Use Adaptive Layers"]
+    'extruders_enabled_count': [1, 'Number of Extruders That Are Enabled'],
+    'initial_layer_line_width_factor': [100, 'Initial Layer Line Width'],
+    'top_bottom_pattern': ['lines', 'Top/Bottom Pattern'],
+    'top_bottom_pattern_0': ['lines', 'Bottom Pattern Initial Layer'],
+    'gradual_infill_steps': [0, 'Gradual Infill Steps'],
+    'mold_enabled': ['false', 'Mold'],
+    'magic_mesh_surface_mode': ['normal', 'Surface Mode'],
+    'magic_spiralize': ['false', 'Spiralize Outer Contour'],
+    'spaghetti_infill_enabled': ['false', 'Spaghetti Infill'],
+    'magic_fuzzy_skin_enabled': ['false', 'Fuzzy Skin'],
+    'wireframe_enabled': ['false', 'Wire Printing'],
+    'adaptive_layer_height_enabled': ['false', 'Use Adaptive Layers']
 }
 
 comparative_reqs = {
-    "layer_height_0": ['layer_height', "Initial Layer Height", "Layer Height"],
-    "infill_line_width": ['layer_width', "Infill Line Width", "Layer Width"],
-    "skin_line_width": ['layer_width', "Top/Bottom Line Width", "Layer Width"],
-    "wall_line_width_0": ['layer_width', "Outer Wall Line Width", "Layer Width"],
-    "wall_line_width_x": ['layer_width', "Inner Wall(s) Line Width", "Layer Width"],
-    "wall_line_width": ['layer_width', "Wall Line Width", "Layer Width"],
-    "infill_sparse_thickness": ['layer_height', "Infill Layer Thickness", "Layer Height"],
+    'layer_height_0': ['layer_height', 'Initial Layer Height', 'Layer Height'],
+    'infill_line_width': ['layer_width', 'Infill Line Width', 'Layer Width'],
+    'skin_line_width': ['layer_width', 'Top/Bottom Line Width', 'Layer Width'],
+    'wall_line_width_0': ['layer_width', 'Outer Wall Line Width', 'Layer Width'],
+    'wall_line_width_x': ['layer_width', 'Inner Wall(s) Line Width', 'Layer Width'],
+    'wall_line_width': ['layer_width', 'Wall Line Width', 'Layer Width'],
+    'infill_sparse_thickness': ['layer_height', 'Infill Layer Thickness', 'Layer Height'],
 }
 
 class MeshTest(unittest.TestCase):

@@ -34,6 +34,9 @@ class InvalidPrintSetting(PrevalidationError):
         self.mesh_value = mesh_value
         self.setting_value = setting_value
 
+    def __str__(self):
+        return 'Print Setting Is Invalid.'
+
 class OutOfBoundsPrintSetting(PrevalidationError):
     '''
     Error for when a print setting does not lie within the set bounds.
@@ -43,6 +46,9 @@ class OutOfBoundsPrintSetting(PrevalidationError):
         self.setting_name = setting_name
         self.min_value = min_value
         self.max_value = max_value
+
+    def __str__(self):
+        return 'Print Setting Is Out Of Bounds.'
 
 class ListLengthSetting(PrevalidationError):
     '''
@@ -54,6 +60,9 @@ class ListLengthSetting(PrevalidationError):
         self.min_value = min_value
         self.max_value = max_value
 
+    def __str__(self):
+        return 'Print Setting List Has Invalid Length.'
+
 class UnsupportedPrintOptionSetting(PrevalidationError):
     '''
     Error for when a print setting takes an unsupported value.
@@ -62,6 +71,9 @@ class UnsupportedPrintOptionSetting(PrevalidationError):
         self.mesh = mesh
         self.setting_name = setting_name
         self.allowable_values = allowable_values
+
+    def __str__(self):
+        return 'Print Setting Option Is Unsupported.'
 
 class IncompatiblePrintSetting(PrevalidationError):
     '''
@@ -73,6 +85,9 @@ class IncompatiblePrintSetting(PrevalidationError):
         self.mesh_value = mesh_value
         self.target_name = target_name
 
+    def __str__(self):
+        return 'Incompatible Print Settings In Same Mesh.'
+
 class MismatchedPrintSetting(PrevalidationError):
     '''
     Error for when a print setting should match across different meshes, but it does not.
@@ -81,6 +96,9 @@ class MismatchedPrintSetting(PrevalidationError):
         self.mesh1 = mesh1
         self.mesh2 = mesh2
         self.setting_name = setting_name
+
+    def __str__(self):
+        return 'Mismatched Print Settings Between Meshes.'
 
 class PrevalidationCheck:
     pass
@@ -183,36 +201,36 @@ class MatchedConfigsCheck(PrevalidationCheck):
             return None
 
 NECESSARY_PRINT_PARAMETERS = [
-            'layer_width',
-            'layer_height',
-            'walls',
-            'bottom_layers',
-            'top_layers',
-            'skin_orientations',
-            'infill.pattern',
-            'infill.density',
-            'infill.orientation',
-            'infill_angles',
-            'extruders_enabled_count',
-            'layer_height_0',
-            'infill_line_width',
-            'skin_line_width',
-            'wall_line_width_0',
-            'wall_line_width_x',
-            'wall_line_width',
-            'initial_layer_line_width_factor',
-            'top_bottom_pattern',
-            'top_bottom_pattern_0',
-            'infill_sparse_thickness',
-            'gradual_infill_steps',
-            'mold_enabled',
-            'magic_mesh_surface_mode',
-            'magic_spiralize',
-            'spaghetti_infill_enabled',
-            'magic_fuzzy_skin_enabled',
-            'wireframe_enabled',
-            'adaptive_layer_height_enabled'
-        ]
+    'layer_width',
+    'layer_height',
+    'walls',
+    'bottom_layers',
+    'top_layers',
+    'skin_orientations',
+    'infill.pattern',
+    'infill.density',
+    'infill.orientation',
+    'infill_angles',
+    'extruders_enabled_count',
+    'layer_height_0',
+    'infill_line_width',
+    'skin_line_width',
+    'wall_line_width_0',
+    'wall_line_width_x',
+    'wall_line_width',
+    'initial_layer_line_width_factor',
+    'top_bottom_pattern',
+    'top_bottom_pattern_0',
+    'infill_sparse_thickness',
+    'gradual_infill_steps',
+    'mold_enabled',
+    'magic_mesh_surface_mode',
+    'magic_spiralize',
+    'spaghetti_infill_enabled',
+    'magic_fuzzy_skin_enabled',
+    'wireframe_enabled',
+    'adaptive_layer_height_enabled'
+]
 
 REQUIREMENTS = {
     EqualityCheck('extruders_enabled_count', 'Number of Extruders That Are Enabled', 1),

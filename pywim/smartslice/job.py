@@ -94,16 +94,15 @@ class Job(WimObject):
     def top_config(self, mesh_config):
         global_config = self.chop.slicer.print_config
 
-        if len(self.chop.slicer.printer.extruders) > 0:
-            extruder_config = self.chop.slicer.printer.extruders[0].print_config
+        if len(self.chop.slicer.printer.extruders) == 0:
+            configs = (mesh_config, global_config)
 
         else:
-            extruder_config = global_config
+            extruder_config = self.chop.slicer.printer.extruders[0].print_config
+            configs = (mesh_config, extruder_config, global_config)
 
         top_config = am.Config()
 
-        configs = (mesh_config, extruder_config, global_config)
-        
         for p in val.NECESSARY_PRINT_PARAMETERS:
             top_config = set_config_attribute(top_config, configs, p)
 
