@@ -1,7 +1,7 @@
 import enum
 
 from .. import chop, fea
-from .. import Meta, WimObject, WimList, WimTuple, WimIgnore
+from .. import Meta, WimObject, WimList
 
 from . import  opt
 
@@ -14,5 +14,5 @@ class Job(WimObject):
         self.meta = Meta()
         self.type = JobType.validation
         self.chop = chop.model.Model()
-        self.bulk = fea.model.Material()
+        self.bulk = WimList(fea.model.Material)
         self.optimization = opt.Optimization()
