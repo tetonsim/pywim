@@ -4,6 +4,12 @@ from . import job
 from .. import am, chop
 from .. import Meta, WimObject, WimList, WimTuple
 
+class Extruder(WimObject):
+    def __init__(self, number=0):
+        self.number = number
+        self.material = ''
+        self.material_volume = 0.0
+
 class StructuralAnalysis(WimObject):
     def __init__(self, name=None):
         self.name = name if name else ''
@@ -13,7 +19,8 @@ class StructuralAnalysis(WimObject):
 class Analysis(WimObject):
     def __init__(self):
         self.print_config = am.Config()
-        self.material_volume = 0.0
+        #self.material_volume = 0.0
+        self.extruders = WimList(Extruder)
         self.print_time = 0
         self.structural = StructuralAnalysis()
         self.modifier_meshes = WimList(chop.mesh.Mesh)

@@ -3,7 +3,7 @@ import enum
 from itertools import combinations
 
 from .. import chop, fea, am
-from .. import Meta, WimObject, WimList, WimTuple, WimIgnore
+from .. import Meta, WimObject
 
 from . import  opt, val
 
@@ -69,13 +69,27 @@ class JobType(enum.Enum):
     validation = 1
     optimization = 2
 
+class Extruder(WimObject):
+    def __init__(self, number=0):
+        self.number = number
+
+        # list of names of materials that are available for use in this extruder
+        self.usable_materials = WimList(str)
+
 class Job(WimObject):
     def __init__(self):
         self.meta = Meta()
         self.type = JobType.validation
         self.chop = chop.model.Model()
-        self.bulk = fea.model.Material()
+        self.bulk = WimList(fea.model.Material)
+        self.extruders = WimList(Extruder)
         self.optimization = opt.Optimization()
+
+    @property
+    def materials(self):
+        '''Alias for bulk'''
+        return self.bulk
+
 
     def top_config(self, mesh_config):
         global_config = self.chop.slicer.print_config
@@ -141,3 +155,5 @@ class Job(WimObject):
         req_errors = self._validate_requirements()
 
         return comp_errors + req_errors
+
+    
