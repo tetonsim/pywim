@@ -4,6 +4,31 @@ import numpy as np
 import threemf
 import pywim
 
+specific_reqs = {
+    "extruders_enabled_count": [1, "Number of Extruders That Are Enabled"],
+    "initial_layer_line_width_factor": [100, "Initial Layer Line Width"],
+    "top_bottom_pattern": ["lines", "Top/Bottom Pattern"],
+    "top_bottom_pattern_0": ["lines", "Bottom Pattern Initial Layer"],
+    "gradual_infill_steps": [0, "Gradual Infill Steps"],
+    "mold_enabled": ['false', "Mold"],
+    "magic_mesh_surface_mode": ["normal", "Surface Mode"],
+    "magic_spiralize": ['false', "Spiralize Outer Contour"],
+    "spaghetti_infill_enabled": ['false', "Spaghetti Infill"],
+    "magic_fuzzy_skin_enabled": ['false', "Fuzzy Skin"],
+    "wireframe_enabled": ['false', "Wire Printing"],
+    "adaptive_layer_height_enabled": ['false', "Use Adaptive Layers"]
+}
+
+comparative_reqs = {
+    "layer_height_0": ['layer_height', "Initial Layer Height", "Layer Height"],
+    "infill_line_width": ['layer_width', "Infill Line Width", "Layer Width"],
+    "skin_line_width": ['layer_width', "Top/Bottom Line Width", "Layer Width"],
+    "wall_line_width_0": ['layer_width', "Outer Wall Line Width", "Layer Width"],
+    "wall_line_width_x": ['layer_width', "Inner Wall(s) Line Width", "Layer Width"],
+    "wall_line_width": ['layer_width', "Wall Line Width", "Layer Width"],
+    "infill_sparse_thickness": ['layer_height', "Infill Layer Thickness", "Layer Height"],
+}
+
 class MeshTest(unittest.TestCase):
     def test_mesh_transform(self):
         # The chop Mesh object has to use the __from_dict__ and __to_dict__
@@ -36,21 +61,24 @@ class MeshTest(unittest.TestCase):
         self.assertEqual(mesh2.materials.infill, 'mat-2')
 
 class JobValidateTest(unittest.TestCase):
-    def test_get_config_attribute(self):
+    def test_set_config_attribute(self):
         c1 = pywim.am.Config()
         c2 = pywim.am.Config().Defaults()
 
         c1.layer_width = 0.5
-        c1.auxiliary["mold_enabled"] = True
+        c1.infill.density = 57
+        c1.auxiliary['mold_enabled'] = True
 
-        self.assertEqual(pywim.smartslice.job.get_config_attribute( (c1, c2), 'layer_width'), 0.5 )
-        self.assertEqual(pywim.smartslice.job.get_config_attribute( (c1, c2), 'mold_enabled'), True )
-        self.assertEqual(pywim.smartslice.job.get_config_attribute( (c1, c2), 'extruders_enabled_count'), None )
+        top_config = pywim.am.Config()
+
+        self.assertEqual(pywim.smartslice.job.set_config_attribute( top_config, (c1, c2), 'layer_width').layer_width, 0.5 )
+        self.assertEqual(pywim.smartslice.job.set_config_attribute( top_config, (c1, c2), 'infill.density').infill.density, 57 )
+        self.assertEqual(pywim.smartslice.job.set_config_attribute( top_config, (c1, c2), 'mold_enabled').auxiliary['mold_enabled'], True )
 
     def test_top_config(self):
         c0 = pywim.am.Config()
         c0.layer_width = 0.6
-        c0.auxiliary["mold_enabled"] = True
+        c0.auxiliary['mold_enabled'] = True
         c0.infill.density = 87
 
         c1 = pywim.am.Config()
@@ -59,7 +87,7 @@ class JobValidateTest(unittest.TestCase):
         c1.infill.pattern = pywim.am.InfillType.triangle
 
         c2 = pywim.am.Config().Defaults()
-        c2.auxiliary["mold_enabled"] = False
+        c2.auxiliary['mold_enabled'] = False
         c2.auxiliary['extruders_enabled_count'] = 2
 
         job = pywim.smartslice.job.Job()
@@ -76,7 +104,7 @@ class JobValidateTest(unittest.TestCase):
         self.assertEqual(top_config.top_layers, 6)
         self.assertEqual(top_config.infill.density, 87)
         self.assertEqual(top_config.infill.pattern, pywim.am.InfillType.triangle)
-        self.assertEqual(top_config.auxiliary["mold_enabled"], True)
+        self.assertEqual(top_config.auxiliary['mold_enabled'], True)
         self.assertEqual(top_config.auxiliary['extruders_enabled_count'], 2)
 
     def test_validate_compatability_1(self):
@@ -134,11 +162,11 @@ class JobValidateTest(unittest.TestCase):
         c1.infill.orientation = 0.0
         c1.auxiliary['infill_angles'] = []
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c1.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
         
@@ -154,11 +182,11 @@ class JobValidateTest(unittest.TestCase):
         c2.infill.orientation = 0.0
         c2.auxiliary['infill_angles'] = []
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c2.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c2.auxiliary[key] = getattr(c1, value[0])
         
@@ -183,11 +211,11 @@ class JobValidateTest(unittest.TestCase):
         c1.infill.orientation = 0.0
         c1.auxiliary['infill_angles'] = [0, 1]
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c1.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
         
@@ -203,11 +231,11 @@ class JobValidateTest(unittest.TestCase):
         c2.infill.orientation = 0.0
         c2.auxiliary['infill_angles'] = []
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c2.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c2.auxiliary[key] = getattr(c1, value[0])
         
@@ -222,7 +250,7 @@ class JobValidateTest(unittest.TestCase):
         self.assertEqual( len(errors), 3)
         self.assertEqual(errors[0].setting_name, 'Infill Density')
         self.assertEqual(errors[2].setting_name, 'Infill Pattern')
-        self.assertEqual(errors[1].setting_name, 'Infill Line Directions')
+        self.assertEqual(errors[1].setting_name, 'Number of Infill Line Directions')
 
     def test_validate_reqs_3(self):
         mesh1 = pywim.chop.mesh.Mesh()
@@ -235,16 +263,16 @@ class JobValidateTest(unittest.TestCase):
         c1.infill.orientation = 0.0
         c1.auxiliary['infill_angles'] = []
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c1.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
         
-        c1.auxiliary["extruders_enabled_count"] = 0
-        c1.auxiliary["skin_line_width"] = 0.8
+        c1.auxiliary['extruders_enabled_count'] = 0
+        c1.auxiliary['skin_line_width'] = 0.8
 
         mesh1.print_config = c1
 
@@ -254,8 +282,8 @@ class JobValidateTest(unittest.TestCase):
         errors = job._validate_requirements()
 
         self.assertEqual( len(errors), 2)
-        self.assertEqual(errors[0].setting_name, "Number of Extruders That Are Enabled")
-        self.assertEqual(errors[1].setting_name, "Top/Bottom Line Width")
+        self.assertEqual(errors[1].setting_name, 'Number of Extruders That Are Enabled')
+        self.assertEqual(errors[0].setting_name, 'Top/Bottom Line Width')
 
     def test_validate(self):
         mesh1 = pywim.chop.mesh.Mesh()
@@ -268,16 +296,16 @@ class JobValidateTest(unittest.TestCase):
         c1.infill.orientation = 0.0
         c1.auxiliary['infill_angles'] = [0, 1]
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c1.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
 
-        c1.auxiliary["extruders_enabled_count"] = 0
-        c1.auxiliary["skin_line_width"] = 0.8
+        c1.auxiliary['extruders_enabled_count'] = 0
+        c1.auxiliary['skin_line_width'] = 0.8
         
         mesh1.print_config = c1
 
@@ -293,11 +321,11 @@ class JobValidateTest(unittest.TestCase):
         c2.infill.orientation = 0.0
         c2.auxiliary['infill_angles'] = []
 
-        for key,value in pywim.smartslice.job.val.specific_reqs.items():
+        for key,value in specific_reqs.items():
 
             c2.auxiliary[key] = value[0]
 
-        for key,value in pywim.smartslice.job.val.comparative_reqs.items():
+        for key,value in comparative_reqs.items():
 
             c2.auxiliary[key] = getattr(c1, value[0])
         
@@ -313,8 +341,8 @@ class JobValidateTest(unittest.TestCase):
         errors = job.validate()
 
         self.assertEqual( len(errors), 5)
-        self.assertEqual(errors[0].setting_name, "Number of Extruders That Are Enabled")
-        self.assertEqual(errors[1].setting_name, "Top/Bottom Line Width")
-        self.assertEqual(errors[2].setting_name, 'Infill Density')
+        self.assertEqual(errors[3].setting_name, 'Number of Extruders That Are Enabled')
+        self.assertEqual(errors[0].setting_name, 'Top/Bottom Line Width')
+        self.assertEqual(errors[1].setting_name, 'Infill Density')
         self.assertEqual(errors[4].setting_name, 'Infill Pattern')
-        self.assertEqual(errors[3].setting_name, 'Infill Line Directions')
+        self.assertEqual(errors[2].setting_name, 'Number of Infill Line Directions')

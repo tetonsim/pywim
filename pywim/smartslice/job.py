@@ -7,27 +7,63 @@ from .. import Meta, WimObject, WimList, WimTuple, WimIgnore
 
 from . import  opt, val
 
-def get_config_attribute(configs, attr_name):
+def set_config_attribute(top_config, configs, attr_name):
+    lev_names = []
+    sub_lev_names = []
+    sub_levs = []
+
+    # Determine if attr_name is part of a sub-attribute.
+    if '.' in attr_name:
+        lev_names = attr_name.split('.')
+        attr_name = lev_names[-1]
+        sub_lev_names = lev_names[0:len(lev_names) - 1]
+
+        # Descend each config to the correct level for the new attr_name.
+        new_configs = []
+
+        for c in configs:
+            for l in sub_lev_names:
+                c = getattr(c, l)
+
+            new_configs.append(c)
+
+        configs = new_configs
+
+        cur_lev = top_config
+
+        for l in sub_lev_names:
+            cur_lev = getattr(top_config, l)
+            sub_levs.append( cur_lev )
+
     is_aux = not hasattr(configs[0], attr_name)
 
     if is_aux:
         for c in configs:
             if attr_name in c.auxiliary:
-                return c.auxiliary[attr_name]
+                top_config.auxiliary[attr_name] = c.auxiliary[attr_name]
+
+                return top_config
     else:
         for c in configs:
             attr_val = getattr(c, attr_name)
 
-            if attr_val is am.InfillType.unknown:
+            if attr_val == am.InfillType.unknown:
                 attr_val = None
 
-            elif (attr_name is "skin_orientations") and (len(attr_val) == 0):
+            elif isinstance(attr_val, list) and (len(attr_val) == 0):
                 attr_val = None
 
             if attr_val:
-                return attr_val
+                for i in range(1, len(sub_levs) + 1):
+                    setattr(sub_levs[-i], lev_names[-i], attr_val)
+                    attr_name = lev_names[-(i+1)]
+                    attr_val = sub_levs[-i]
 
-    return None
+                setattr(top_config, attr_name, attr_val)
+
+                return top_config
+
+    return top_config
 
 class JobType(enum.Enum):
     validation = 1
@@ -54,20 +90,8 @@ class Job(WimObject):
 
         configs = (mesh_config, extruder_config, global_config)
         
-        for p in val.checked_print_parameters:
-            is_aux = not hasattr(top_config, p) and (p not in ['infill.pattern', 'infill.density', 'infill.orientation'])
-
-            if is_aux:
-                top_config.auxiliary[p] = get_config_attribute(configs, p)
-
-            else:
-                if p in ['infill.pattern', 'infill.density', 'infill.orientation']:
-                    s = p.split(".")
-                    infill_configs = (mesh_config.infill, extruder_config.infill, global_config.infill)
-                    setattr(top_config.infill, s[1], get_config_attribute(infill_configs, s[1]))
-
-                else:
-                    setattr(top_config, p, get_config_attribute(configs, p))
+        for p in val.NECESSARY_PRINT_PARAMETERS:
+            top_config = set_config_attribute(top_config, configs, p)
 
         return top_config
 
@@ -78,29 +102,12 @@ class Job(WimObject):
         errors = []
 
         for mesh in self.chop.meshes:
-        
-            for key,value in val.specific_reqs.items():
 
-                if mesh.print_config.auxiliary[key] is not value[0]:
-                    errors.append( val.InvalidPrintSetting(mesh, value[1], mesh.print_config.auxiliary[key], value[0]) )
+            for req in val.REQUIREMENTS:
+                req_error = req.check_error(mesh)
 
-            for key,value in val.comparative_reqs.items():
-
-                if mesh.print_config.auxiliary[key] is not getattr(mesh.print_config, value[0]):
-                    errors.append( val.IncompatiblePrintSetting(mesh, value[1], mesh.print_config.auxiliary[key], 
-                                                                value[2], getattr(mesh.print_config, value[0])) )
-
-            # Infill Density Bounds
-            if not ( val.infill_reqs[0][1] <= getattr(mesh.print_config.infill, val.infill_reqs[0][0]) <= val.infill_reqs[0][2] ):
-                errors.append( val.OutOfBoundsPrintSetting(mesh, val.infill_reqs[0][3], val.infill_reqs[0][1], val.infill_reqs[0][2]) )
-
-            # Infill Pattern
-            if getattr(mesh.print_config.infill, val.infill_reqs[1][0]) not in val.infill_reqs[1][1]:
-                errors.append( val.UnsupportedPrintOptionSetting(mesh, val.infill_reqs[1][2], val.infill_reqs[1][1]) )
-
-            # Infill Line Directions
-            if not (val.infill_reqs[2][1] <= len(mesh.print_config.auxiliary[val.infill_reqs[2][0]]) <= val.infill_reqs[2][2]):
-                errors.append( val.OutOfBoundsPrintSetting(mesh, val.infill_reqs[2][3], val.infill_reqs[2][1], val.infill_reqs[2][2]) )
+                if req_error:
+                    errors.append(req_error)
 
         return errors
 
@@ -110,13 +117,14 @@ class Job(WimObject):
         '''
         errors = []
 
-        for key,value in val.compatibility_parameters.items():
+        for req in val.CONFIG_MATCHING:
 
             for pair in list(combinations(self.chop.meshes, 2)):
 
-                if getattr(pair[0].print_config, key) != getattr(pair[1].print_config, key):
-                    
-                    errors.append( val.MismatchedPrintSetting(pair[0], pair[1], value) )
+                req_error = req.check_error(pair[0], pair[1])
+
+                if req_error:
+                    errors.append(req_error)
 
         return errors
 
