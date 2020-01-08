@@ -5,7 +5,7 @@ from .. import am, chop
 from .. import Meta, WimObject, WimList, WimTuple
 
 class Extruder(WimObject):
-    def __init__(self, number=1):
+    def __init__(self, number=0):
         self.number = number
         self.material = ''
         self.material_volume = 0.0
