@@ -8,10 +8,9 @@ class Extruder(WimObject):
         self.print_config = config if config else am.Config()
 
 class Printer(WimObject):
-    def __init__(self, name=None, extruders=None, config : am.Config=None):
+    def __init__(self, name=None, extruders=None):
         self.name = name if name else 'generic'
         self.extruders = WimList(Extruder)
-        self.print_config = config if config else am.Config()
 
         if extruders:
             self.extruders.extend(extruders)
