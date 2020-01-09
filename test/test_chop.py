@@ -248,9 +248,12 @@ class JobValidateTest(unittest.TestCase):
         errors = job._validate_requirements()
 
         self.assertEqual( len(errors), 3)
-        self.assertEqual(errors[0].setting_name, 'Infill Density')
-        self.assertEqual(errors[2].setting_name, 'Infill Pattern')
-        self.assertEqual(errors[1].setting_name, 'Number of Infill Line Directions')
+
+        error_names = set([errors[0].setting_name, errors[1].setting_name, errors[2].setting_name])
+
+        results_names = set(['Infill Density', 'Infill Pattern', 'Number of Infill Line Directions'])
+
+        self.assertEqual(error_names, results_names)
 
     def test_validate_reqs_3(self):
         mesh1 = pywim.chop.mesh.Mesh()
@@ -282,11 +285,15 @@ class JobValidateTest(unittest.TestCase):
         errors = job._validate_requirements()
 
         self.assertEqual( len(errors), 2)
-        self.assertEqual(errors[1].setting_name, 'Number of Extruders That Are Enabled')
-        self.assertEqual(errors[0].setting_name, 'Top/Bottom Line Width')
+
+        error_names = set([errors[0].setting_name, errors[1].setting_name])
+
+        results_names = set(['Number of Extruders That Are Enabled', 'Top/Bottom Line Width'])
+
+        self.assertEqual(error_names, results_names)
 
     def test_validate(self):
-        mesh1 = pywim.chop.mesh.Mesh()
+        mesh1 = pywim.chop.mesh.Mesh('mesh1')
         c1 = pywim.am.Config()
         c1.layer_height = 0.4
         c1.layer_width = 0.6
@@ -309,7 +316,7 @@ class JobValidateTest(unittest.TestCase):
         
         mesh1.print_config = c1
 
-        mesh2 = pywim.chop.mesh.Mesh()
+        mesh2 = pywim.chop.mesh.Mesh('mesh2')
         c2 = pywim.am.Config()
         c2.layer_height = 0.4
         c2.layer_width = 0.6
@@ -341,8 +348,9 @@ class JobValidateTest(unittest.TestCase):
         errors = job.validate()
 
         self.assertEqual( len(errors), 5)
-        self.assertEqual(errors[3].setting_name, 'Number of Extruders That Are Enabled')
-        self.assertEqual(errors[0].setting_name, 'Top/Bottom Line Width')
-        self.assertEqual(errors[1].setting_name, 'Infill Density')
-        self.assertEqual(errors[4].setting_name, 'Infill Pattern')
-        self.assertEqual(errors[2].setting_name, 'Number of Infill Line Directions')
+
+        error_names = set([errors[0].setting_name, errors[1].setting_name, errors[2].setting_name, errors[3].setting_name, errors[4].setting_name])
+
+        results_names = set(['Number of Extruders That Are Enabled', 'Top/Bottom Line Width', 'Infill Density', 'Infill Pattern', 'Number of Infill Line Directions'])
+
+        self.assertEqual(error_names, results_names)

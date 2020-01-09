@@ -1,4 +1,5 @@
 from .. import am
+import enum
 
 def get_config_value(config, attr_name, level_modifier=None):
     if not level_modifier:
@@ -28,14 +29,13 @@ class InvalidPrintSetting(PrevalidationError):
     '''
     Error for when a print setting does not take a required value.
     '''
-    def __init__(self, mesh, setting_name, mesh_value, setting_value):
+    def __init__(self, mesh, setting_name, setting_value):
         self.mesh = mesh
         self.setting_name = setting_name
-        self.mesh_value = mesh_value
         self.setting_value = setting_value
 
     def __str__(self):
-        return 'Print Setting Is Invalid.'
+        return '{} print setting is invalid on mesh {}. It must be {}.'.format(self.setting_name, self.mesh.name, self.setting_value)
 
 class OutOfBoundsPrintSetting(PrevalidationError):
     '''
@@ -48,7 +48,7 @@ class OutOfBoundsPrintSetting(PrevalidationError):
         self.max_value = max_value
 
     def __str__(self):
-        return 'Print Setting Is Out Of Bounds.'
+        return '{} print setting is invalid on mesh {}. It must be between {} and {}.'.format(self.setting_name, self.mesh.name, self.min_value, self.max_value)
 
 class ListLengthSetting(PrevalidationError):
     '''
@@ -61,7 +61,7 @@ class ListLengthSetting(PrevalidationError):
         self.max_value = max_value
 
     def __str__(self):
-        return 'Print Setting List Has Invalid Length.'
+        return '{} print setting is invalid for mesh {}. The number of values must be betwee {} and {}.'.format(self.setting_name, self.mesh.name, self.min_value, self.max_value)
 
 class UnsupportedPrintOptionSetting(PrevalidationError):
     '''
@@ -73,20 +73,24 @@ class UnsupportedPrintOptionSetting(PrevalidationError):
         self.allowable_values = allowable_values
 
     def __str__(self):
-        return 'Print Setting Option Is Unsupported.'
+        if len(self.allowable_values) > 0 and isinstance(self.allowable_values[0], enum.Enum):
+            allowable_names = ', '.join([ v.name for v in self.allowable_values])
+        else:
+            allowable_names = ', '.join(self.allowable_values)
+
+        return '{} print setting is unsupported on mesh {}. It must be one of [{}].'.format(self.setting_name, self.mesh.name, allowable_names)
 
 class IncompatiblePrintSetting(PrevalidationError):
     '''
     Error for when a print setting should equal another print setting, but it does not.
     '''
-    def __init__(self, mesh, setting_name, mesh_value, target_name):
+    def __init__(self, mesh, setting_name, target_name):
         self.mesh = mesh
         self.setting_name = setting_name
-        self.mesh_value = mesh_value
         self.target_name = target_name
 
     def __str__(self):
-        return 'Incompatible Print Settings In Same Mesh.'
+        return '{} print setting is invalid on mesh {}. It must be equal to {}.'.format(self.setting_name, self.mesh.name, self.target_name)
 
 class MismatchedPrintSetting(PrevalidationError):
     '''
@@ -98,14 +102,14 @@ class MismatchedPrintSetting(PrevalidationError):
         self.setting_name = setting_name
 
     def __str__(self):
-        return 'Mismatched Print Settings Between Meshes.'
+        return '{} print setting is incompatible between meshes {} and {}. The corresponding values must be the same.'.format(self.setting_name, self.mesh1.name, self.mesh2.name)
 
 class PrevalidationCheck:
     pass
 
 class EqualityCheck(PrevalidationCheck):
     '''
-    Class used to check
+    Class used to check if a certain print paramter is equal to the required value.
     '''
     def __init__(self, attr_name, setting_name, setting_value, level_modifier=None):
         self.attr_name = attr_name
@@ -117,11 +121,14 @@ class EqualityCheck(PrevalidationCheck):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
         if mesh_value != self.setting_value:
-            return InvalidPrintSetting(mesh, self.setting_name, mesh_value, self.setting_value)
+            return InvalidPrintSetting(mesh, self.setting_name, self.setting_value)
         else:
             return None
 
 class BoundsCheck(PrevalidationCheck):
+    '''
+    Class used to check if a certain print paramter lies within the required bounds.
+    '''
     def __init__(self, attr_name, setting_name, min_value, max_value, level_modifier=None):
         self.attr_name = attr_name
         self.setting_name = setting_name
@@ -138,6 +145,9 @@ class BoundsCheck(PrevalidationCheck):
             return None
 
 class ListLengthCheck(PrevalidationCheck):
+    '''
+    Class used to check if a certain print paramter, given as a list, is an acceptable length.
+    '''
     def __init__(self, attr_name, setting_name, min_value, max_value, level_modifier=None):
         self.attr_name = attr_name
         self.setting_name = setting_name
@@ -154,6 +164,9 @@ class ListLengthCheck(PrevalidationCheck):
             return None
 
 class SupportedPrintOptionCheck(PrevalidationCheck):
+    '''
+    Class used to check if a certain print paramter lies within the set of allowable options.
+    '''
     def __init__(self, attr_name, setting_name, allowable_values, level_modifier=None):
         self.attr_name = attr_name
         self.setting_name = setting_name
@@ -169,6 +182,9 @@ class SupportedPrintOptionCheck(PrevalidationCheck):
             return None
 
 class CompatibilityCheck(PrevalidationCheck):
+    '''
+    Class used to check if a certain print paramter is equal to another print parameter (as required).
+    '''
     def __init__(self, attr_name, setting_name, target_name, target_attr_name, level_modifier=None):
         self.attr_name = attr_name
         self.setting_name = setting_name
@@ -181,11 +197,14 @@ class CompatibilityCheck(PrevalidationCheck):
         target_value = get_config_value(mesh.print_config, self.target_attr_name, self.level_modifier)
 
         if mesh_value != target_value:
-            return IncompatiblePrintSetting(mesh, self.setting_name, mesh_value, self.target_name)
+            return IncompatiblePrintSetting(mesh, self.setting_name, self.target_name)
         else:
             return None
 
 class MatchedConfigsCheck(PrevalidationCheck):
+    '''
+    Class used to check if a certain print paramter is equal across different meshes.
+    '''
     def __init__(self, attr_name, setting_name, level_modifier=None):
         self.attr_name = attr_name
         self.setting_name = setting_name

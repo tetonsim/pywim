@@ -3,7 +3,7 @@ import enum
 from itertools import combinations
 
 from .. import chop, fea, am
-from .. import Meta, WimObject
+from .. import Meta, WimObject, WimList
 
 from . import  opt, val
 
