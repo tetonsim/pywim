@@ -7,6 +7,6 @@ A Python library for working with finite element and micromechanics models. Vari
 * pywim.fea -Data structures to interface with wim FEA 
 * pywim.http - Submitting wim jobs via HTTP 
 * pywim.micro - Data structures to interface with wim micro 
-* pywim.smartslice - Data structures to interface with smartslice repo 
 * pywim.optimization - Material characterization
-* pywim.vtk - Translation of wim JSON results files to VTU files that can be read into Paraview  
+* pywim.smartslice - Data structures to interface with smartslice repo 
+* pywim.vtk - Translation of wim JSON results files to VTU files that can be read into ParaView  
