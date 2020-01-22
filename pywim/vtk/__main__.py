@@ -16,16 +16,16 @@ def main():
             dmdl = json.load(fjmdl)
         grid_to_vtu(jmdl, dmdl)
     elif jmdl.endswith('.json'):
-        mdl = pywim.fea.model.Model.from_json(jmdl)
+        mdl = pywim.fea.model.Model.model_from_file(jmdl)
 
         jrst = f'{jmdl}.rst'
 
         if os.path.exists(jrst):
-            db = pywim.fea.result.Database.from_json(jrst)
+            db = pywim.fea.result.Database.model_from_file(jrst)
 
         wim_result_to_vtu(mdl, db)
     elif jmdl.endswith('.json.rst'):
-        db = pywim.fea.result.Database.from_json(jmdl)
+        db = pywim.fea.result.Database.model_from_file(jmdl)
         mdl = pywim.fea.model.Model()
         mdl.mesh = db.mesh
 
