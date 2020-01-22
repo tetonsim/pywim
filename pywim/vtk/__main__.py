@@ -11,25 +11,21 @@ def main():
 
     jmdl = sys.argv[1]
 
-    with open(jmdl, 'r') as fjmdl:
-        dmdl = json.load(fjmdl)
-
     if jmdl.endswith('.grid'):
+        with open(jmdl, 'r') as fjmdl:
+            dmdl = json.load(fjmdl)
         grid_to_vtu(jmdl, dmdl)
     elif jmdl.endswith('.json'):
+        mdl = pywim.fea.model.Model.from_json(jmdl)
+
         jrst = f'{jmdl}.rst'
 
-        mdl = pywim.fea.model.Model.from_dict(dmdl)
-
         if os.path.exists(jrst):
-            with open(jrst, 'r') as fjrst:
-                drdb = json.load(fjrst)
-        
-            db = pywim.fea.result.Database.from_dict(drdb)
+            db = pywim.fea.result.Database.from_json(jrst)
 
         wim_result_to_vtu(mdl, db)
     elif jmdl.endswith('.json.rst'):
-        db = pywim.fea.result.Database.from_dict(dmdl)
+        db = pywim.fea.result.Database.from_json(jmdl)
         mdl = pywim.fea.model.Model()
         mdl.mesh = db.mesh
 
