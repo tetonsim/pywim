@@ -54,13 +54,15 @@ class ThreeMFExtension(threemf.extension.Extension):
         # Now get the job asset
         job_assets = list(filter(lambda a: isinstance(a, JobThreeMFAsset), self.assets))
 
-        if len(job_assets) == 0:
-            raise WimException('No SmartSlice assets found in: {}'.format(mdl.path))
-
         if len(job_assets) > 1:
             raise WimException('Unexpectedly found more than one SmartSlice asset in: {}'.format(mdl.path))
 
-        j = job_assets[0]
+        if len(job_assets) == 0:
+            j = self.make_asset('job.json')
+            self.assets.append(j)
+            #raise WimException('No SmartSlice assets found in: {}'.format(mdl.path))
+        else:
+            j = job_assets[0]
 
         if not isinstance(j, JobThreeMFAsset):
             raise WimException('Could not find SmartSlice job asset in: {}'.format(mdl.path))

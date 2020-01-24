@@ -27,15 +27,15 @@ class Mesh(WimObject, threemf.mesh.Mesh):
         self.materials = MaterialNames()
 
     @staticmethod
-    def cast_from_base(base_mesh : threemf.mesh.Mesh):
-        mesh = Mesh()
+    def cast_from_base(base_mesh : threemf.mesh.Mesh, name=None):
+        mesh = Mesh(name=name)
         mesh.vertices = base_mesh.vertices
         mesh.triangles = base_mesh.triangles
         return mesh
 
     @staticmethod
     def from_threemf_object_model(obj : threemf.model.ObjectModel):
-        mesh = Mesh.cast_from_base(obj.mesh)
+        mesh = Mesh.cast_from_base(obj.mesh, 'mesh-%i' % obj.id)
 
         mesh.materials = MaterialNames(
             '%s-extrusion' % mesh.name,
