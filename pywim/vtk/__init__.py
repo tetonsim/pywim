@@ -31,11 +31,11 @@ class ElemGPEntry:
     def data_to_scalar(self, result_name : str):
         if len(self.data) == 1:
             return self.data
-            
-        elif len(self.data) == 6:
+
+        elif len(self.data) == 6 and result_name == 'strain':
             # only dealing with strain for now
-            if result_name == 'strain':
-                return compute_max_principal_strain(self.data)
+            return compute_max_principal_strain(self.data)
+                
         else:
             raise Exception('Unsupported data type for region results at gauss point.')
 
@@ -62,14 +62,14 @@ class RegionStats:
             # self.quart25 = np.percentile(data, 25)
             # self.quart75 = np.percentile(data, 75)
 
-class ElementStatsHandler:
+class ElementStats:
     '''
     Class that stores the stats for each region by element in a list. Used to populate the array for the vtk grid.
     '''
-    def __init__(self):
-        self.elem_reg_list = [] # List[ElementRegionHandler] = []
+    def __init__(self, elem_reg_list):
+        self.elem_reg_list = elem_reg_list
 
-class ElementRegionHandler:
+class ElementRegionResult:
     '''
     For a given element, this class stores the corresponding region stats.
     '''
@@ -80,7 +80,7 @@ class ElementRegionHandler:
         self.skin = RegionStats(skin, result_name)
         self.infill = RegionStats(infill, result_name)
 
-class RegionHandler:
+class RegionResult:
     '''
     Class that stores list of the gp data by region type. Calling element_stats then returns an ElementStatsHandler object containing the stats
     for each region by element.
@@ -97,14 +97,14 @@ class RegionHandler:
         '''
         Return the region statistics by element.
         '''
-        elem_stats = ElementStatsHandler()
+        elem_reg_list = []
 
         for eid in range(1, self.nels + 1):
 
             id_match = lambda p: p.elid == eid
             matching_items = lambda a: list(filter(id_match, a))
         
-            elem_reg = ElementRegionHandler(
+            elem_reg = ElementRegionResult(
                 eid=eid,
                 result_name=self.name,
                 walls=matching_items(self.walls),
@@ -112,29 +112,27 @@ class RegionHandler:
                 infill=matching_items(self.infill)
             )
 
-            elem_stats.elem_reg_list.append(elem_reg)
+            elem_reg_list.append(elem_reg)
 
-        return elem_stats
+        return ElementStats(elem_reg_list)
 
-def region_filter(mat_type : pywim.WimList(pywim.fea.result.ResultMult), res : pywim.WimList(pywim.fea.result.ResultMult)):
+def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim.fea.result.ResultMult]):
     '''
     Given the material_type gauss point results, sort the given generic gauss point results (res) by region using the Region Handler.
     '''
     # Build two dictionaries of element Id to index for quicker searching
     eid2index = {}
     mat_eid2index = {}
-    index = 0
 
     for i in range(len(res.values)):
-        eid2index[res.values[i].id] = index
-        mat_eid2index[mat_type.values[i].id] = index
-        index += 1
+        eid2index[res.values[i].id] = i
+        mat_eid2index[mat_type.values[i].id] = i
 
     nels = len(mat_type.values)
 
-    reg_handler = RegionHandler(res.name, res.size, nels)
+    reg_handler = RegionResult(res.name, res.size, nels)
 
-    for eid in range(1, nels + 1):
+    for eid in eid2index.keys():
         # Get gp results using element eid
         elv = res.values[ eid2index[eid] ]
 
@@ -151,17 +149,20 @@ def region_filter(mat_type : pywim.WimList(pywim.fea.result.ResultMult), res : p
 
         for i in range(ngps):
 
-            if mat_elv.values[i].id != elv.values[i].id:
-                print('Gauss Point id mismatch in element {}: {} != {}'.format(eid, mat_elv.values[i].id, elv.values[i].id))
+            material_type_at_gp = mat_elv.values[i]
+            result_at_gp = elv.values[i]
 
-            if MaterialType( int(mat_elv.values[i].data[0]) ) == MaterialType.Wall:
-                reg_handler.walls.append( ElemGPEntry( eid, elv.values[i].id, elv.values[i].data ) )
+            if material_type_at_gp.id != result_at_gp.id:
+                print('Gauss Point id mismatch in element {}: {} != {}'.format(eid, material_type_at_gp.id, result_at_gp.id))
 
-            elif MaterialType( int(mat_elv.values[i].data[0]) ) == MaterialType.Skin:
-                reg_handler.skin.append( ElemGPEntry( eid, elv.values[i].id, elv.values[i].data ) )
+            if MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Wall:
+                reg_handler.walls.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
 
-            elif MaterialType( int(mat_elv.values[i].data[0]) ) == MaterialType.Infill:
-                reg_handler.infill.append( ElemGPEntry( eid, elv.values[i].id, elv.values[i].data ) )
+            elif MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Skin:
+                reg_handler.skin.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
+
+            elif MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Infill:
+                reg_handler.infill.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
 
     print(f'Region info by GP: {len(reg_handler.walls)} wall gp, {len(reg_handler.skin)} skin gp, {len(reg_handler.infill)} infill gp,')
 
@@ -235,7 +236,7 @@ def from_fea(mesh, inc, outputs):
     celldata = grid.GetCellData()
     pointdata = grid.GetPointData()
 
-    def add_node_results(res : pywim.WimList(pywim.fea.result.Result)):
+    def add_node_results(res : List[pywim.fea.result.Result]):
         array = vtk.vtkFloatArray()
         array.SetName(res.name)
         array.SetNumberOfComponents(res.size)
@@ -250,7 +251,7 @@ def from_fea(mesh, inc, outputs):
 
         pointdata.AddArray(array)
 
-    def add_gp_results(res : pywim.WimList(pywim.fea.result.ResultMult)):
+    def add_gp_results(res : List[pywim.fea.result.ResultMult]):
 
         ngps = 1
         for v in res.values:
@@ -334,7 +335,7 @@ def from_fea(mesh, inc, outputs):
 
                 celldata.AddArray(array)
 
-    def add_elem_results(res : pywim.WimList(pywim.fea.result.Result)):
+    def add_elem_results(res : List[pywim.fea.result.Result]):
         array = vtk.vtkFloatArray()
         array.SetName(res.name)
         array.SetNumberOfComponents(res.size)
@@ -349,7 +350,7 @@ def from_fea(mesh, inc, outputs):
 
         celldata.AddArray(array)
 
-    def add_region_results_by_element(reg_handler : RegionHandler):
+    def add_region_results_by_element(reg_handler : RegionResult):
 
         elem_stats = reg_handler.element_stats()
 
