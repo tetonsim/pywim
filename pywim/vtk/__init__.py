@@ -85,13 +85,13 @@ class RegionResult:
     Class that stores list of the gp data by region type. Calling element_stats then returns an ElementStatsHandler object containing the stats
     for each region by element.
     '''
-    def __init__(self, result_name, size, nels):
+    def __init__(self, result_name, size, nels, walls, skin, infill):
         self.name = result_name
         self.size = size
         self.nels = nels
-        self.walls = [] # List[ElemGPEntry] 
-        self.skin = [] # List[ElemGPEntry]
-        self.infill = [] # List[ElemGPEntry]
+        self.walls = walls
+        self.skin = skin
+        self.infill = infill
 
     def element_stats(self):
         '''
@@ -128,9 +128,9 @@ def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim
         eid2index[res.values[i].id] = i
         mat_eid2index[mat_type.values[i].id] = i
 
-    nels = len(mat_type.values)
-
-    reg_handler = RegionResult(res.name, res.size, nels)
+    walls = []
+    skin = []
+    infill = []
 
     for eid in eid2index.keys():
         # Get gp results using element eid
@@ -156,17 +156,22 @@ def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim
                 print('Gauss Point id mismatch in element {}: {} != {}'.format(eid, material_type_at_gp.id, result_at_gp.id))
 
             if MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Wall:
-                reg_handler.walls.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
+                walls.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
 
             elif MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Skin:
-                reg_handler.skin.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
+                skin.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
 
             elif MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Infill:
-                reg_handler.infill.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
+                infill.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
 
-    print(f'Region info by GP: {len(reg_handler.walls)} wall gp, {len(reg_handler.skin)} skin gp, {len(reg_handler.infill)} infill gp,')
-
-    return reg_handler
+    return RegionResult(
+            result_name=res.name,
+            size=res.size,
+            nels=len(mat_type.values),
+            walls=walls,
+            skin=skin,
+            infill=infill
+        )
 
 def from_grid(dgrid):
     nodes = dgrid['nodes']
@@ -350,20 +355,20 @@ def from_fea(mesh, inc, outputs):
 
         celldata.AddArray(array)
 
-    def add_region_results_by_element(reg_handler : RegionResult):
+    def add_region_results_by_element(reg_result : RegionResult):
 
-        elem_stats = reg_handler.element_stats()
+        elem_stats = reg_result.element_stats()
 
         wall_array = vtk.vtkFloatArray()
-        wall_array.SetName('{}_wall'.format(reg_handler.name))
+        wall_array.SetName('{}_wall'.format(reg_result.name))
         wall_array.SetNumberOfComponents(3)
 
         skin_array = vtk.vtkFloatArray()
-        skin_array.SetName('{}_skin'.format(reg_handler.name))
+        skin_array.SetName('{}_skin'.format(reg_result.name))
         skin_array.SetNumberOfComponents(3)
 
         infill_array = vtk.vtkFloatArray()
-        infill_array.SetName('{}_infill'.format(reg_handler.name))
+        infill_array.SetName('{}_infill'.format(reg_result.name))
         infill_array.SetNumberOfComponents(3)
 
         for e in elem_stats.elem_reg_list:
@@ -410,10 +415,10 @@ def from_fea(mesh, inc, outputs):
             if res.name == 'material_type':
                 continue
             else:
-                reg_handler = region_filter(mat_type, res)
+                reg_result = region_filter(mat_type, res)
 
                 print('\tTranslating {} Region Result By Element'.format(res.name))
-                add_region_results_by_element(reg_handler)
+                add_region_results_by_element(reg_result)
     
     if 'gauss_point' in outputs:
         for res in inc.gauss_point_results:
