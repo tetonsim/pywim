@@ -35,17 +35,17 @@ def from_grid(dgrid):
 
     return grid
 
-def from_fea(mdl, inc):
+def from_fea(db, inc):
     points = vtk.vtkPoints()
-    points.SetNumberOfPoints(len(mdl.mesh.nodes))
-    for n in mdl.mesh.nodes:
+    points.SetNumberOfPoints(len(db.model.mesh.nodes))
+    for n in db.model.mesh.nodes:
         points.SetPoint(n.id-1, n.x, n.y, n.z)
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
 
     nels = 0
-    for g in mdl.mesh.elements:
+    for g in db.model.mesh.elements:
         for c in g.connectivity:
             if g.type == 'HEXL8' or g.type == 'VOXL':
                 e = vtk.vtkHexahedron()
@@ -222,7 +222,7 @@ def wim_result_to_vtu(mdl, db):
         gridw.SetFileName('{}-{}.vtu'.format(mdl.name.replace(".json", ""), step.name))
 
         inc = step.increments[-1]
-        grid = from_fea(mdl, inc)
+        grid = from_fea(db, inc)
 
         gridw.SetInputData(grid)
         gridw.Write()

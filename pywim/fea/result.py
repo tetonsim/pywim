@@ -64,9 +64,14 @@ class Step(WimObject):
         self.name = name if name else 'step'
         self.increments = WimList(Increment)
 
+class MeshResult(WimObject):
+    def __init__(self, name=None):
+        self.name = name if name else 'model'
+        self.mesh = Mesh()
+
 class Database(WimObject):
     def __init__(self):
         self.meta = Meta()
         self.steps = WimList(Step)
-        self.mesh = Mesh()
+        self.model = MeshResult()
 
