@@ -196,8 +196,8 @@ class SimpleTask(WimObject):
         self.status = TaskStatus.new
         self.result = smartslice.result.Result()
 
-class Client2019POC(HttpClient):
-    def __init__(self, hostname='api-19.fea.cloud', port=443, protocol='https'):
+class ClientPOC(HttpClient):
+    def __init__(self, hostname, port=443, protocol='https'):
         super().__init__(hostname=hostname, port=port, protocol=protocol)
 
     def _serialize_request(self, data, request_type):
@@ -254,3 +254,13 @@ class Client2019POC(HttpClient):
         )
 
         return result_r
+
+class Client2019POC(ClientPOC):
+    def __init__(self, hostname='api-19.fea.cloud', port=443, protocol='https'):
+        from warnings import warn
+        warn('2019 POC API is deprecated', category=DeprecationWarning)
+        super().__init__(hostname=hostname, port=port, protocol=protocol)
+
+class Client2020POC(ClientPOC):
+    def __init__(self, hostname='api-20.fea.cloud', port=443, protocol='https'):
+        super().__init__(hostname=hostname, port=port, protocol=protocol)
