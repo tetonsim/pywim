@@ -23,21 +23,19 @@ def compute_max_principal_strain(strain_vector):
     return np.max( [ np.abs(e) for e in e_vals ] )
 
 class ElemGPEntry:
-    def __init__(self, elid, gpid, data):
-        self.elid = elid
-        self.gpid = gpid
-        self.data = data
+    def __init__(self, element_id : int, gauss_point_value : pywim.fea.result.ResultValue):
+        self.element_id = element_id
+        self.gauss_point_value = gauss_point_value
 
-    def data_to_scalar(self, result_name : str):
-        if len(self.data) == 1:
-            return self.data
+    def data_to_scalar(self, result_name : str) -> float:
+        if len(self.gauss_point_value.data) == 1:
+            return self.gauss_point_value.data
 
-        elif len(self.data) == 6 and result_name == 'strain':
+        elif len(self.gauss_point_value.data) == 6 and result_name == 'strain':
             # only dealing with strain for now
-            return compute_max_principal_strain(self.data)
-                
-        else:
-            raise Exception('Unsupported data type for region results at gauss point.')
+            return compute_max_principal_strain(self.gauss_point_value.data)
+
+        raise Exception('Unsupported data type for region results at gauss point.')
 
 class RegionStats:
     '''
@@ -66,7 +64,7 @@ class ElementStats:
     '''
     Stores the stats for each region by element in a list. Used to populate the array for the vtk grid.
     '''
-    def __init__(self, element_regions : List[ElementRegionResult]):
+    def __init__(self, element_regions : 'List[ElementRegionResult]'):
         self.element_regions = element_regions
 
 class ElementRegionResult:
@@ -101,7 +99,7 @@ class RegionResult:
 
         for eid in range(1, self.nels + 1):
 
-            id_match = lambda p: p.elid == eid
+            id_match = lambda p: p.element_id == eid
             matching_items = lambda a: list(filter(id_match, a))
         
             elem_reg = ElementRegionResult(
@@ -116,25 +114,33 @@ class RegionResult:
 
         return ElementStats(element_regions)
 
-def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim.fea.result.ResultMult]):
+def region_filter(mat_type : List[pywim.fea.result.ResultMult], result : List[pywim.fea.result.ResultMult]):
     '''
     Given the material_type gauss point results, sort the given generic gauss point results (res) by region using the Region Handler.
     '''
+
+    if result.name not in ('strain', 'safety_factor'):
+        return None
+
     # Build two dictionaries of element Id to index for quicker searching
     eid2index = {}
     mat_eid2index = {}
 
-    for i in range(len(res.values)):
-        eid2index[res.values[i].id] = i
+    for i in range(len(result.values)):
+        eid2index[result.values[i].id] = i
         mat_eid2index[mat_type.values[i].id] = i
 
-    walls = []
-    skin = []
-    infill = []
+    region_gauss_points = {
+        MaterialType.Wall: [],
+        MaterialType.Skin: [],
+        MaterialType.Infill: [],
+        MaterialType.Empty: [],
+        MaterialType.Unknown: []
+    }
 
     for eid in eid2index.keys():
         # Get gp results using element eid
-        elv = res.values[ eid2index[eid] ]
+        elv = result.values[ eid2index[eid] ]
 
         # Get gp material type using element eid
         mat_elv = mat_type.values[ mat_eid2index[eid] ]
@@ -149,28 +155,27 @@ def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim
 
         for i in range(ngps):
 
-            material_type_at_gp = mat_elv.values[i]
+            material_type_at_gp_value = mat_elv.values[i]
             result_at_gp = elv.values[i]
 
-            if material_type_at_gp.id != result_at_gp.id:
+            if material_type_at_gp_value.id != result_at_gp.id:
                 print('Gauss Point id mismatch in element {}: {} != {}'.format(eid, material_type_at_gp.id, result_at_gp.id))
 
-            if MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Wall:
-                walls.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
+            material_type_at_gp = MaterialType(
+                int(material_type_at_gp_value.data[0])
+            )
 
-            elif MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Skin:
-                skin.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
-
-            elif MaterialType( int(material_type_at_gp.data[0]) ) == MaterialType.Infill:
-                infill.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
+            region_gauss_points[material_type_at_gp].append(
+                ElemGPEntry(eid, result_at_gp)
+            )
 
     return RegionResult(
-        result_name=res.name,
-        size=res.size,
+        result_name=result.name,
+        size=result.size,
         nels=len(mat_type.values),
-        walls=walls,
-        skin=skin,
-        infill=infill
+        walls=region_gauss_points[MaterialType.Wall],
+        skin=region_gauss_points[MaterialType.Skin],
+        infill=region_gauss_points[MaterialType.Infill]
     )
 
 def from_grid(dgrid):
@@ -414,20 +419,24 @@ def from_fea(mesh, inc, outputs):
 
             if res.name == 'material_type':
                 continue
-            else:
-                reg_result = region_filter(mat_type, res)
 
-                print('\tTranslating {} Region Result By Element'.format(res.name))
-                add_region_results_by_element(reg_result)
+            reg_result = region_filter(mat_type, res)
+
+            if reg_result is None:
+                print('\tRegion filter on {} gauss point result not supported, skipping this result'.format(res.name))
+                continue
+
+            print('\tTranslating {} Region Result By Element'.format(res.name))
+            add_region_results_by_element(reg_result)
     
     if 'gauss_point' in outputs:
         for res in inc.gauss_point_results:
 
             if res.name == 'material_type':
                 continue
-            else:
-                print('\tTranslating {} Gauss Point Result'.format(res.name))
-                add_gp_results(res)
+
+            print('\tTranslating {} Gauss Point Result'.format(res.name))
+            add_gp_results(res)
 
     return grid
 
