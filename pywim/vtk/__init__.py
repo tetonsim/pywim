@@ -43,14 +43,14 @@ class RegionStats:
     '''
     Given a list of gp info by element, compute and store the requested stats.
     '''
-    def __init__(self, elem_gp_list : List[ElemGPEntry], result_name : str):
-        self.elem_gp_list = elem_gp_list
+    def __init__(self, gauss_point_data : List[ElemGPEntry], result_name : str):
+        self.gauss_point_data = gauss_point_data
 
-        if len(elem_gp_list) > 0:
-            data = np.zeros((len(elem_gp_list), 1))
+        if len(gauss_point_data) > 0:
+            data = np.zeros((len(gauss_point_data), 1))
 
-            for i in range(len(elem_gp_list)):
-                data[i] = self.elem_gp_list[i].data_to_scalar(result_name)
+            for i in range(len(gauss_point_data)):
+                data[i] = self.gauss_point_data[i].data_to_scalar(result_name)
 
             self.min = np.min(data)
             self.max = np.max(data)
@@ -64,10 +64,10 @@ class RegionStats:
 
 class ElementStats:
     '''
-    Class that stores the stats for each region by element in a list. Used to populate the array for the vtk grid.
+    Stores the stats for each region by element in a list. Used to populate the array for the vtk grid.
     '''
-    def __init__(self, elem_reg_list):
-        self.elem_reg_list = elem_reg_list
+    def __init__(self, element_regions : List[ElementRegionResult]):
+        self.element_regions = element_regions
 
 class ElementRegionResult:
     '''
@@ -93,11 +93,11 @@ class RegionResult:
         self.skin = skin
         self.infill = infill
 
-    def element_stats(self):
+    def element_stats(self) -> ElementStats:
         '''
         Return the region statistics by element.
         '''
-        elem_reg_list = []
+        element_regions = []
 
         for eid in range(1, self.nels + 1):
 
@@ -112,9 +112,9 @@ class RegionResult:
                 infill=matching_items(self.infill)
             )
 
-            elem_reg_list.append(elem_reg)
+            element_regions.append(elem_reg)
 
-        return ElementStats(elem_reg_list)
+        return ElementStats(element_regions)
 
 def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim.fea.result.ResultMult]):
     '''
@@ -371,18 +371,18 @@ def from_fea(mesh, inc, outputs):
         infill_array.SetName('{}_infill'.format(reg_result.name))
         infill_array.SetNumberOfComponents(3)
 
-        for e in elem_stats.elem_reg_list:
-            if e.walls.elem_gp_list != []:
+        for e in elem_stats.element_regions:
+            if len(e.walls.gauss_point_data) > 0:
                 wall_array.InsertNextTuple3(e.walls.min, e.walls.mean, e.walls.max)
             else:
                 wall_array.InsertNextTuple3(float('NaN'), float('NaN'), float('NaN'))
 
-            if e.skin.elem_gp_list != []:
+            if len(e.skin.gauss_point_data) > 0:
                 skin_array.InsertNextTuple3(e.skin.min, e.skin.mean, e.skin.max)
             else:
                 skin_array.InsertNextTuple3(float('NaN'), float('NaN'), float('NaN'))
 
-            if e.infill.elem_gp_list != []:
+            if len(e.infill.gauss_point_data) > 0:
                 infill_array.InsertNextTuple3(e.infill.min, e.infill.mean, e.infill.max)
             else:
                 infill_array.InsertNextTuple3(float('NaN'), float('NaN'), float('NaN'))
