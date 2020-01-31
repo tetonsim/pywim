@@ -35,17 +35,17 @@ def from_grid(dgrid):
 
     return grid
 
-def from_fea(mdl, inc):
+def from_fea(db : pywim.fea.result.Database, mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment):
     points = vtk.vtkPoints()
-    points.SetNumberOfPoints(len(mdl.mesh.nodes))
-    for n in mdl.mesh.nodes:
+    points.SetNumberOfPoints(len(mesh.nodes))
+    for n in mesh.nodes:
         points.SetPoint(n.id-1, n.x, n.y, n.z)
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
 
     nels = 0
-    for g in mdl.mesh.elements:
+    for g in mesh.elements:
         for c in g.connectivity:
             if g.type == 'HEXL8' or g.type == 'VOXL':
                 e = vtk.vtkHexahedron()
@@ -214,15 +214,19 @@ def grid_to_vtu(name, dmdl):
     gridw.SetInputData(grid)
     gridw.Write()
 
-def wim_result_to_vtu(mdl, db):
+def wim_result_to_vtu(db, mesh, dbname):
     for step in db.steps:
         print(step.name)
 
         gridw = vtk.vtkXMLUnstructuredGridWriter()
-        gridw.SetFileName('{}-{}.vtu'.format(mdl.name.replace(".json", ""), step.name))
+
+        if dbname.endswith('.json'):
+            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json", ""), step.name))
+        elif dbname.endswith('.json.rst'):
+            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json.rst", ""), step.name))
 
         inc = step.increments[-1]
-        grid = from_fea(mdl, inc)
+        grid = from_fea(db, mesh, inc)
 
         gridw.SetInputData(grid)
         gridw.Write()
