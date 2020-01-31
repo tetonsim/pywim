@@ -213,7 +213,7 @@ def from_grid(dgrid):
 
     return grid
 
-def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outputs : List):
+def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outputs : List[str]):
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(len(mesh.nodes))
     for n in mesh.nodes:
@@ -460,10 +460,7 @@ def wim_result_to_vtu(db, mesh, dbname, outputs=None):
 
         gridw = vtk.vtkXMLUnstructuredGridWriter()
 
-        if dbname.endswith('.json'):
-            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json", ""), step.name))
-        elif dbname.endswith('.json.rst'):
-            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json.rst", ""), step.name))
+        gridw.SetFileName('{}-{}.vtu'.format(dbname, step.name))
 
         inc = step.increments[-1]
         grid = from_fea(mesh=mesh, inc=inc, ouputs=outputs)
