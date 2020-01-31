@@ -159,7 +159,9 @@ def region_filter(mat_type : List[pywim.fea.result.ResultMult], result : List[py
             result_at_gp = elv.values[i]
 
             if material_type_at_gp_value.id != result_at_gp.id:
-                print('Gauss Point id mismatch in element {}: {} != {}'.format(eid, material_type_at_gp.id, result_at_gp.id))
+                print('Gauss Point id mismatch in element {}: {} != {}'.format(
+                    eid, material_type_at_gp_value.id, result_at_gp.id)
+                )
 
             material_type_at_gp = MaterialType(
                 int(material_type_at_gp_value.data[0])
