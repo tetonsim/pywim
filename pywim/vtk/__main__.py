@@ -26,8 +26,6 @@ def main():
         wim_result_to_vtu(db, mdl.mesh)
     elif jmdl.endswith('.json.rst'):
         db = pywim.fea.result.Database.model_from_file(jmdl)
-        mdl = pywim.fea.model.Model()
-        mdl.mesh = db.model.mesh
 
         wim_result_to_vtu(db, db.model.mesh)
 
