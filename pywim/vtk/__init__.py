@@ -165,13 +165,13 @@ def region_filter(mat_type : List[pywim.fea.result.ResultMult], res : List[pywim
                 infill.append( ElemGPEntry( eid, result_at_gp.id, result_at_gp.data ) )
 
     return RegionResult(
-            result_name=res.name,
-            size=res.size,
-            nels=len(mat_type.values),
-            walls=walls,
-            skin=skin,
-            infill=infill
-        )
+        result_name=res.name,
+        size=res.size,
+        nels=len(mat_type.values),
+        walls=walls,
+        skin=skin,
+        infill=infill
+    )
 
 def from_grid(dgrid):
     nodes = dgrid['nodes']
@@ -423,7 +423,7 @@ def from_fea(mesh, inc, outputs):
     if 'gauss_point' in outputs:
         for res in inc.gauss_point_results:
 
-            if res.name == 'MaterialType':
+            if res.name == 'material_type':
                 continue
             else:
                 print('\tTranslating {} Gauss Point Result'.format(res.name))
