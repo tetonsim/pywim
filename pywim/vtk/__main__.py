@@ -23,13 +23,11 @@ def main():
         if os.path.exists(jrst):
             db = pywim.fea.result.Database.model_from_file(jrst)
 
-        wim_result_to_vtu(db)
+        wim_result_to_vtu(db, mdl.mesh, jmdl)
     elif jmdl.endswith('.json.rst'):
         db = pywim.fea.result.Database.model_from_file(jmdl)
-        mdl = pywim.fea.model.Model()
-        mdl.mesh = db.mesh
 
-        wim_result_to_vtu(db)
+        wim_result_to_vtu(db, db.model.mesh, jmdl)
 
 def usage():
     print('Usage:')

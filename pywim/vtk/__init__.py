@@ -213,7 +213,7 @@ def from_grid(dgrid):
 
     return grid
 
-def from_fea(mesh, inc, outputs):
+def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outputs : List):
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(len(mesh.nodes))
     for n in mesh.nodes:
@@ -451,12 +451,7 @@ def grid_to_vtu(name, dmdl):
     gridw.SetInputData(grid)
     gridw.Write()
 
-def wim_result_to_vtu(db, name='temp', outputs=None):
-    '''
-    db is the fea result database object. outputs is a list of result outputs that will be included in the vtu file.
-    '''
-    mesh = db.mesh
-
+def wim_result_to_vtu(db, mesh, dbname, outputs=None):
     if outputs == None:
         outputs = ['node', 'element'] # Default to node and element results
 
@@ -464,10 +459,14 @@ def wim_result_to_vtu(db, name='temp', outputs=None):
         print(step.name)
 
         gridw = vtk.vtkXMLUnstructuredGridWriter()
-        gridw.SetFileName('{}-{}.vtu'.format(name, step.name))
+
+        if dbname.endswith('.json'):
+            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json", ""), step.name))
+        elif dbname.endswith('.json.rst'):
+            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json.rst", ""), step.name))
 
         inc = step.increments[-1]
-        grid = from_fea(mesh, inc, outputs)
+        grid = from_fea(mesh=mesh, inc=inc, ouputs=outputs)
 
         gridw.SetInputData(grid)
         gridw.Write()
