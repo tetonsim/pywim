@@ -214,12 +214,16 @@ def grid_to_vtu(name, dmdl):
     gridw.SetInputData(grid)
     gridw.Write()
 
-def wim_result_to_vtu(db, mesh):
+def wim_result_to_vtu(db, mesh, dbname):
     for step in db.steps:
         print(step.name)
 
         gridw = vtk.vtkXMLUnstructuredGridWriter()
-        gridw.SetFileName('{}-{}.vtu'.format(db.name.replace(".json", ""), step.name))
+
+        if dbname.endswith('.json'):
+            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json", ""), step.name))
+        elif dbname.endswith('.json.rst'):
+            gridw.SetFileName('{}-{}.vtu'.format(dbname.replace(".json.rst", ""), step.name))
 
         inc = step.increments[-1]
         grid = from_fea(db, mesh, inc)

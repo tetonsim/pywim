@@ -69,8 +69,7 @@ class MeshResult(WimObject):
         self.mesh = Mesh()
 
 class Database(WimObject):
-    def __init__(self, name=None):
-        self.name = name if name else 'db'
+    def __init__(self):
         self.meta = Meta()
         self.steps = WimList(Step)
         self.model = MeshResult()
