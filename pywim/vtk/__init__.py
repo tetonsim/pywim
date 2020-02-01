@@ -463,7 +463,7 @@ def wim_result_to_vtu(db, mesh, dbname, outputs=None):
         gridw.SetFileName('{}-{}.vtu'.format(dbname, step.name))
 
         inc = step.increments[-1]
-        grid = from_fea(mesh=mesh, inc=inc, ouputs=outputs)
+        grid = from_fea(mesh=mesh, inc=inc, outputs=outputs)
 
         gridw.SetInputData(grid)
         gridw.Write()
