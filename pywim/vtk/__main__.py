@@ -11,23 +11,26 @@ def main():
 
     jmdl = sys.argv[1]
 
+    name = jmdl.split('.')[0]
+    outputs = ['node', 'element', 'gauss_point']
+
     if jmdl.endswith('.grid'):
         with open(jmdl, 'r') as fjmdl:
             dmdl = json.load(fjmdl)
         grid_to_vtu(jmdl, dmdl)
     elif jmdl.endswith('.json'):
         mdl = pywim.fea.model.Model.model_from_file(jmdl)
+        mesh = mdl.mesh
 
         jrst = f'{jmdl}.rst'
 
         if os.path.exists(jrst):
             db = pywim.fea.result.Database.model_from_file(jrst)
-
-        wim_result_to_vtu(db, mdl.mesh, jmdl[0:jmdl.rfind('.json')])
     elif jmdl.endswith('.json.rst'):
         db = pywim.fea.result.Database.model_from_file(jmdl)
+        mesh = db.model.mesh
 
-        wim_result_to_vtu(db, db.model.mesh, jmdl[0:jmdl.rfind('.json.rst')])
+    wim_result_to_vtu(db, mesh, name, outputs)
 
 def usage():
     print('Usage:')

@@ -14,12 +14,12 @@ class MaterialType(enum.Enum):
     Infill = 3
 
 def compute_max_principal_strain(strain_vector):
-    
+
     strain_matrix = np.array( [ [strain_vector[0], 0.5 * strain_vector[3], 0.5 * strain_vector[4]],
                                 [0.5 * strain_vector[3], strain_vector[1], 0.5 * strain_vector[5]],
                                 [0.5 * strain_vector[4], 0.5 * strain_vector[5], strain_vector[2]] ] )
     e_vals, e_vecs = linalg.eig(strain_matrix)
-    
+
     return np.max( [ np.abs(e) for e in e_vals ] )
 
 class ElemGPEntry:
@@ -54,7 +54,7 @@ class RegionStats:
             self.max = np.max(data)
             self.mean = np.mean(data)
 
-            # Other stats could be computed as needed. 
+            # Other stats could be computed as needed.
             # For example, if we want to measure skewness.
             # self.median = np.median(data)
             # self.quart25 = np.percentile(data, 25)
@@ -101,7 +101,7 @@ class RegionResult:
 
             id_match = lambda p: p.element_id == eid
             matching_items = lambda a: list(filter(id_match, a))
-        
+
             elem_reg = ElementRegionResult(
                 eid=eid,
                 result_name=self.name,
@@ -268,7 +268,7 @@ def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outp
         ngps = 1
         for v in res.values:
             ngps = max(ngps, len(v.values))
-        
+
         # Build a dictionary of element Id to index for quicker searching
         eid2index = {}
         index = 0
@@ -320,14 +320,14 @@ def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outp
             for gp in gp_iter:
                 if type(gp) is int:
                     layered_output = False
-                    out_name = '{}_G{}'.format(r.name, gp + 1)
+                    out_name = '{}_G{}'.format(res.name, gp + 1)
                 else:
                     layered_output = True
                     out_name = '{}_L{}_K{}_G{}'.format(res.name, gp[0] + 1, gp[1] + 1, gp[2] + 1)
 
                 array = vtk.vtkFloatArray()
                 array.SetName(out_name)
-                array.SetNumberOfComponents(r.size)
+                array.SetNumberOfComponents(res.size)
 
                 for eid in range(1, nels + 1):
                     elv = res.values[ eid2index[eid] ]
@@ -430,7 +430,7 @@ def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outp
 
             print('\tTranslating {} Region Result By Element'.format(res.name))
             add_region_results_by_element(reg_result)
-    
+
     if 'gauss_point' in outputs:
         for res in inc.gauss_point_results:
 
