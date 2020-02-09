@@ -305,7 +305,7 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
-from . import abaqus, am, chop, fea, http, micro, smartslice
+from . import abaqus, am, chop, fea, geom, http, micro, smartslice
 
 # vtk and optimization are purposely not imported here to allow pywim
 # to work in environments without vtk or scipy if those sub-modules are
