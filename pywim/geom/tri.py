@@ -117,22 +117,31 @@ class Mesh:
 
             for i in range(3):
                 j = 3 * i
-                mesh.vertices.append(Vertex(vlen + i, p[j], p[j + 1], p[j + 2]))
+                mesh.add_vertex(vlen + i, p[j], p[j + 1], p[j + 2])
 
             v1 = mesh.vertices[vlen]
             v2 = mesh.vertices[vlen+1]
             v3 = mesh.vertices[vlen+2]
-            t = Triangle(vlen // 3, v1, v2, v3)
             
-            mesh.triangles.append(t)
-
-            for v in (v1, v2, v3):
-                mesh._vertex_to_triangle[v] = { t }
+            mesh.add_triangle(vlen // 3, v1, v2, v3)
 
         if analyze_mesh:
             mesh.analyze_mesh()
 
         return mesh
+
+    def add_vertex(self, id, x, y, z):
+        self.vertices.append(Vertex(id, x, y, z))
+        return self.vertices[-1]
+
+    def add_triangle(self, id, v1, v2, v3):
+        t = Triangle(id, v1, v2, v3)
+        self.triangles.append(t)
+        for v in (v1, v2, v3):
+            if v not in self._vertex_to_triangle:
+                self._vertex_to_triangle[v] = set()
+            self._vertex_to_triangle[v].add(t)
+        return t
 
     def analyze_mesh(self):
         self._combine_vertices()
