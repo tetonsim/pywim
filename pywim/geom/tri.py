@@ -49,6 +49,10 @@ class Triangle(_MeshEntity):
 
         return va.cross(vb).unit()
 
+    @property
+    def points(self):
+        return (self.v1, self.v2, self.v3)
+
     def angle(self, other : 'Triangle') -> float:
         return self.normal.unit_angle(other.normal)
 
