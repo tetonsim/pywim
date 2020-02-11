@@ -210,7 +210,7 @@ class Mesh:
             self.edges.append(edge)
 
             if len(tris) == 1:
-                print(f'Only one triangle found on edge:\n{edge}')
+                # Only one triangle found on edge - should we do anything?
                 continue
 
             for t1, t2 in itertools.combinations(tris, 2):
