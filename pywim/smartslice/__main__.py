@@ -5,7 +5,7 @@ import json
 import pywim
 import threemf
 
-def get_smart_slice_job(tmf_path):
+def read_threemf(tmf_path) -> threemf.ThreeMF:
     tmf = threemf.ThreeMF()
 
     tmf_reader = threemf.io.Reader()
@@ -13,6 +13,11 @@ def get_smart_slice_job(tmf_path):
 
     with open(tmf_path, 'rb') as tmf_bytes:
         tmf_reader.read(tmf, tmf_bytes)
+
+    return tmf
+
+def get_smart_slice_job(tmf_path):
+    tmf = read_threemf(tmf_path)
 
     if len(tmf.extensions) != 1:
         raise Exception('3MF extension count is not 1')
@@ -44,17 +49,42 @@ def extract_chop_model(tmf_path):
     with open(name + '.chp', 'w') as f:
         json.dump(job.chop.to_dict(), f, indent=1)
 
+def create_chop_model(tmf_path):
+    tmf = read_threemf(tmf_path)
+
+    chop = pywim.chop.model.Model()
+
+    chop.slicer = pywim.chop.slicer.CuraEngine()
+
+    mdl = tmf.default_model
+
+    for item in mdl.build.items:
+        obj = next(o for o in mdl.objects if o.id == item.objectid)
+
+        mesh = pywim.chop.mesh.Mesh.from_threemf_object_model(obj)
+        mesh.transform = item.transform
+
+        chop.meshes.append(mesh)
+
+    name, ext = os.path.splitext(tmf_path)
+
+    with open(name + '.chp', 'w') as f:
+        json.dump(chop.to_dict(), f, indent=1)
+
 def main():
     if len(sys.argv) >= 3:
         if sys.argv[1] == 'extract-smartslice-job':
             return extract_smartslice_job(sys.argv[2])
-        if sys.argv[1] == 'extract-chop-model':
+        elif sys.argv[1] == 'extract-chop-model':
             return extract_chop_model(sys.argv[2])
+        elif sys.argv[1] == 'create-chop-model':
+            return create_chop_model(sys.argv[2])
     return usage()
 
 def usage():
     print('{} extract-smartslice-job 3MF'.format(sys.argv[0]))
     print('{} extract-chop-model 3MF'.format(sys.argv[0]))
+    print('{} create-chop-model 3MF'.format(sys.argv[0]))
 
 if __name__ == '__main__':
     main()
