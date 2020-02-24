@@ -1,9 +1,14 @@
 import os
 import setuptools
 
-from pywim import __version__
+from distutils.util import convert_path
 
-version = __version__
+version_ns = {}
+version_path = convert_path('pywim/_version.py')
+with open(version_path) as version_file:
+    exec(version_file.read(), version_ns)
+
+version = version_ns['__version__']
 
 build_num = os.getenv('BUILD_NUMBER')
 

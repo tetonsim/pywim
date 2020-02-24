@@ -3,8 +3,6 @@ import enum
 import datetime
 from warnings import warn
 
-__version__ = '20.0.18'
-
 def _all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in _all_subclasses(c)])
@@ -307,6 +305,7 @@ class ModelEncoder(json.JSONEncoder):
 
 #del json
 
+from ._version import __version__
 from . import abaqus, am, chop, fea, geom, http, micro, smartslice
 
 # vtk and optimization are purposely not imported here to allow pywim
