@@ -3,6 +3,8 @@ import enum
 import datetime
 from warnings import warn
 
+__version__ = '20.0.18'
+
 def _all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in _all_subclasses(c)])
@@ -28,7 +30,7 @@ class WimObject:
             fp = open(f, 'r')
         else:
             fp = f
-        
+
         dmodel = json.load(fp)
 
         if close_fp:
@@ -125,7 +127,7 @@ class WimIgnore:
     @staticmethod
     def make(object_type):
         def __init__(self, *args, **kwargs):
-            WimIgnore.__init__(self, object_type)            
+            WimIgnore.__init__(self, object_type)
             object_type.__init__(self, *args, **kwargs)
         return type('_WimIgnore_{}'.format(object_type.__name__), (WimIgnore, object_type), { '__init__': __init__ })
 
@@ -199,7 +201,7 @@ class ModelEncoder(json.JSONEncoder):
 
         if len(keys) == 0:
             return None
-        
+
         for k in keys:
             if k.startswith('_'):
                 continue
@@ -244,12 +246,12 @@ class ModelEncoder(json.JSONEncoder):
 
         if dtype is None:
             dtype = getattr(t, 'DEFAULTTYPENAME', None)
-        
+
         if dtype:
             subclasses = _all_subclasses(t)
             for c in subclasses:
                 jtype = getattr(c, 'JSONTYPENAME', None)
-                
+
                 if jtype and jtype == dtype:
                     return c()
 
@@ -272,7 +274,7 @@ class ModelEncoder(json.JSONEncoder):
                 elif issubclass(obj.list_type, WimTuple):
                     new_t = obj.list_type()
                     new_t.set(o)
-                    new_obj.append(new_t) 
+                    new_obj.append(new_t)
                 elif issubclass(obj.list_type, WimObject):
                     if hasattr(obj.list_type, '__from_dict__'):
                         new_obj.append(obj.list_type.__from_dict__(o))
