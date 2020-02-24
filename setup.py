@@ -3,6 +3,8 @@ import setuptools
 
 from pywim import __version__
 
+version = __version__
+
 build_num = os.getenv('BUILD_NUMBER')
 
 if build_num:
@@ -10,7 +12,7 @@ if build_num:
 
 setuptools.setup(
     name='teton-pywim',
-    version=__version__,
+    version=version,
     author='Teton Simulation',
     author_email='info@tetonsim.com',
     packages=setuptools.find_packages(exclude=['test']),
