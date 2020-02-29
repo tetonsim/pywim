@@ -24,13 +24,18 @@ def main():
 
         jrst = f'{jmdl}.rst'
 
-        if os.path.exists(jrst):
-            db = pywim.fea.result.Database.model_from_file(jrst)
+        if not os.path.exists(jrst):
+            raise Exception('Result file missing: %s' % jrst)
+
+        db = pywim.fea.result.Database.model_from_file(jrst)
+
+        wim_result_to_vtu(db, mesh, name, outputs)
+
     elif jmdl.endswith('.json.rst'):
         db = pywim.fea.result.Database.model_from_file(jmdl)
         mesh = db.model.mesh
 
-    wim_result_to_vtu(db, mesh, name, outputs)
+        wim_result_to_vtu(db, mesh, name, outputs)
 
 def usage():
     print('Usage:')
