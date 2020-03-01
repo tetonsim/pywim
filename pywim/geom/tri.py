@@ -192,12 +192,10 @@ class Mesh:
         degenerate_tris = []
         tindex = 0
         for t in self.triangles:
-            tvert_ids = [t.v1.id, t.v2.id, t.v3.id]
             # Look for duplicate vertex ids in the triangle
             # and if any exist, mark this triangle as degenerate
-            for i in range(3):
-                if tvert_ids[i] == tvert_ids[(i + 1) % 3]:
-                    degenerate_tris.append(tindex)
+            if len({t.v1.id, t.v2.id, t.v3.id}) != 3:
+                degenerate_tris.append(tindex)
             tindex += 1
 
         if len(degenerate_tris) == 0:

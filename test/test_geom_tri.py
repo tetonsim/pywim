@@ -37,3 +37,20 @@ class Cube(unittest.TestCase):
 
         self._select_face(10, (10, 11))
         self._select_face(11, (10, 11))
+
+class IllFormedSTL(unittest.TestCase):
+    def test_remove_degenerate_tris(self):
+        stl_mesh = stl_loader.load_from_file('shelf_bracket.stl')
+
+        mesh = geom.tri.Mesh.FromSTL(stl_mesh, False)
+        mesh.analyze_mesh(remove_degenerate_triangles=True)
+
+        self.assertEqual(len(mesh.triangles), 276)
+
+    def test_leave_degenerate_tris(self):
+        stl_mesh = stl_loader.load_from_file('shelf_bracket.stl')
+
+        mesh = geom.tri.Mesh.FromSTL(stl_mesh, False)
+        mesh.analyze_mesh(remove_degenerate_triangles=False)
+
+        self.assertEqual(len(mesh.triangles), 284)
