@@ -147,8 +147,10 @@ class Mesh:
             self._vertex_to_triangle[v].add(t)
         return t
 
-    def analyze_mesh(self):
-        self._combine_vertices()
+    def analyze_mesh(self, remove_degenerate_triangles=True, renumber_vertices=False, renumber_triangles=True):
+        self._combine_vertices(renumber_vertices)
+        if remove_degenerate_triangles:
+            self._remove_degenerate_triangles(renumber_triangles)
         self._compute_edges()
 
     def _combine_vertices(self, renumber=False):
@@ -186,15 +188,46 @@ class Mesh:
                 v.id = i
                 i += 1
 
+    def _remove_degenerate_triangles(self, renumber=True):
+        degenerate_tris = []
+        tindex = 0
+        for t in self.triangles:
+            tvert_ids = [t.v1.id, t.v2.id, t.v3.id]
+            # Look for duplicate vertex ids in the triangle
+            # and if any exist, mark this triangle as degenerate
+            for i in range(3):
+                if tvert_ids[i] == tvert_ids[(i + 1) % 3]:
+                    degenerate_tris.append(tindex)
+            tindex += 1
+
+        if len(degenerate_tris) == 0:
+            return
+
+        degenerate_tris.reverse()
+
+        for tid in degenerate_tris:
+            self.triangles.pop(tid)
+
+        # Renumber the triangle indices to remove any gaps
+        if renumber:
+            tid = 0
+            for t in self.triangles:
+                t.id = tid
+                tid += 1
+
     def _compute_edges(self):
         self.edges.clear()
 
         edge_tris = {}
 
         for t in self.triangles:
-            e1 = SimpleEdge(t.v1, t.v2)
-            e2 = SimpleEdge(t.v2, t.v3)
-            e3 = SimpleEdge(t.v3, t.v1)
+            try:
+                e1 = SimpleEdge(t.v1, t.v2)
+                e2 = SimpleEdge(t.v2, t.v3)
+                e3 = SimpleEdge(t.v3, t.v1)
+            except:
+                # Triangle has an invalid edge - skip it
+                continue
 
             for e in (e1, e2, e3):
                 if e in edge_tris:
