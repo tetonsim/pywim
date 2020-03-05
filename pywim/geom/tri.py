@@ -7,11 +7,12 @@ try:
 except:
     NUMPY_STL = False
 
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Set, Union, Callable
 
 from . import Vertex as _Vertex
 from . import Vector
 from . import Edge as _Edge
+from . import Plane
 
 class _MeshEntity:
     def __init__(self, id):
@@ -90,7 +91,9 @@ class Edge(_MeshEntity, _Edge):
         self.angles = []
 
 class Mesh:
-    _COPLANAR_ANGLE = 0.002 # radians
+     # all angles in radians
+    _COPLANAR_ANGLE = 0.002
+    _MAX_EDGE_CYLINDER_ANGLE = math.pi / 6.
 
     def __init__(self):
         self.vertices = []
@@ -126,7 +129,7 @@ class Mesh:
             v1 = mesh.vertices[vlen]
             v2 = mesh.vertices[vlen+1]
             v3 = mesh.vertices[vlen+2]
-            
+
             mesh.add_triangle(vlen // 3, v1, v2, v3)
 
         if analyze_mesh:
@@ -251,6 +254,49 @@ class Mesh:
 
             eid += 1
 
+    def _select_connected_triangles_edge_condition(self, tri : Triangle, edge_condition : Callable[[EdgeAngle], bool]) -> List[Triangle]:
+        '''
+        Finds connected triangles who are connected via an edge that satisfies the given edge_condition
+        '''
+
+        face = { tri }
+        tris_to_check = { tri }
+
+        # The initial set of Triangles to check is the given Triangle.
+        #
+        # For each Triangle that is checked the Edges that make up the Triangle
+        # are checked through the edge_condition.If the condition is met any Triangles
+        # also attached to the Edge are added to the face and also added to
+        # the set of Triangles to check.
+
+        while len(tris_to_check) > 0:
+            t = tris_to_check.pop()
+            for e in self._triangle_to_edge[t]:
+                for edge_angle in e.angles:
+                    if edge_condition(edge_angle):
+                        edge_tris = { edge_angle.t1, edge_angle.t2 }
+
+                        # Add triangles to tris_to_check that are not in the face
+                        # If a triangle is in face it has already been checked
+                        tri_added = edge_tris.difference(face)
+
+                        # Note, with this logic, it is possible for a triangle
+                        # to be checked more than once. If on the first check,
+                        # the edge in question exceeds max_angle, the triangle
+                        # will not be added to face. But there could be another
+                        # path of edges that brings the previously discarded Triangle
+                        # back into the check.
+
+                        assert len(tri_added) <= 1
+
+                        if len(tri_added) > 0:
+                            tri_added = tri_added.pop()
+
+                            tris_to_check.add(tri_added)
+                            face.add(tri_added)
+
+        return face
+
     def triangles_in_parallel_plane(self, tri : Union[Triangle, int], max_angle : float = _COPLANAR_ANGLE) -> List[Triangle]:
         '''
         Returns a list of Triangles that are in any plane that is co-planar to the plane
@@ -277,7 +323,7 @@ class Mesh:
 
     def select_face_by_edge_angle(self, tri : Union[Triangle, int], max_angle : float) -> List[Triangle]:
         '''
-        Returns a list of Triangles that are connected with the given Triangle and connected 
+        Returns a list of Triangles that are connected with the given Triangle and connected
         through an Edge that is below the given max_angle. In other words Triangle normal
         vectors are compared to their neighbors and not the original Triangle to determine
         their inclusion status.
@@ -285,41 +331,81 @@ class Mesh:
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
 
-        face = { tri }
-        tris_to_check = { tri }
+        edge_condition = lambda edge_angle: edge_angle.angle < max_angle
 
-        # The initial set of Triangles to check is the given Triangle.
-        #
-        # For each Triangle that is checked the Edges that make up the Triangle
-        # are checked for their angle. If the angle is below max_angle and Triangles
-        # also attached to the Edge are added to the face and also added to
-        # the set of Triangles to check.
+        return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
-        while len(tris_to_check) > 0:
-            t = tris_to_check.pop()
-            for e in self._triangle_to_edge[t]:
-                for edge_angle in e.angles:
-                    if edge_angle.angle < max_angle:
-                        edge_tris = { edge_angle.t1, edge_angle.t2 }
+    def select_face_by_normals_in_plane(self, tri : Union[Triangle, int], plane : Plane,
+        max_angle : float = _COPLANAR_ANGLE, max_edge_angle : float = _MAX_EDGE_CYLINDER_ANGLE) -> List[Triangle]:
+        '''
+        '''
+        if isinstance(tri, int):
+            tri = next(t for t in self.triangles if t.id == tri)
 
-                        # Add triangles to tris_to_check that are not in the face
-                        # If a triangle is in face it has already been checked
-                        tri_added = edge_tris.difference(face)
+        # TODO we're checking some triangles twice with the following logic
+        # how can we filter out the already checked triangle?
+        edge_condition = lambda edge_angle: \
+            edge_angle.angle < max_edge_angle and \
+            plane.vector_angle(edge_angle.t1.normal) < max_angle and \
+            plane.vector_angle(edge_angle.t2.normal) < max_angle
 
-                        # Note, with this logic, it is possible for a triangle
-                        # to be checked more than once. If on the first check,
-                        # the edge in question exceeds max_angle, the triangle
-                        # will not be added to face. But there could be another
-                        # path of edges that brings the previously discarded Triangle
-                        # back into the check.
+        return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
-                        assert len(tri_added) <= 1
+    def try_select_cylinder_face(self, tri : Union[Triangle, int],
+        max_angle : float = _COPLANAR_ANGLE, max_edge_angle : float = _MAX_EDGE_CYLINDER_ANGLE) -> List[Triangle]:
+        '''
+        '''
 
-                        if len(tri_added) > 0:
-                            tri_added = tri_added.pop()
+        if isinstance(tri, int):
+            tri = next(t for t in self.triangles if t.id == tri)
 
-                            tris_to_check.add(tri_added)
-                            face.add(tri_added)
+        # First let's check that this face is connected to another face that is co-planar
+        # If it is not, it's unlikely this face is part of a cylinder, so return None
+        edges = self._triangle_to_edge[tri]
+
+        connected_coplanar_tris = 0
+        other_tri = None
+        mating_edge = None
+
+        for edge in edges:
+            for edge_angle in edge.angles:
+                if edge_angle.angle < max_angle:
+                    connected_coplanar_tris += 1
+                    other_tri = edge_angle.t2 if tri == edge_angle.t1 else edge_angle.t1
+                    mating_edge = edge
+                    break
+
+        face = None
+
+        if connected_coplanar_tris == 1:
+            # Use the original triangle and the connected co-planar triangle
+            # to compute the Plane that would be perpendicular to the
+            # potential cylinder axis
+
+            # Temporary? Use the two non-mating edges and the triangle normal vector
+            # to compute an orthogonal vector that will be the plane normal
+
+            faces = []
+
+            for edge in edges:
+                if edge == mating_edge:
+                    continue
+
+                cylinder_axis = tri.normal.cross(edge.vector)
+                plane = Plane(cylinder_axis.unit())
+
+                face = self.select_face_by_normals_in_plane(tri, plane, max_angle, max_edge_angle)
+
+                if len(face) <= 2:
+                    # Only the original triangle and the one co-planar triangle were
+                    # found so this is probably not a cylinder
+                    face = None
+                else:
+                    faces.append(face)
+
+            for f in faces:
+                if face is None or len(f) > len(face):
+                    face = f
 
         return face
 

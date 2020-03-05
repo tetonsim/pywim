@@ -208,6 +208,15 @@ class PlaneTest(unittest.TestCase):
         self.assertEqual(l2.v1, geom.Vertex(-2.0, 0.0, 0.0))
         self.assertEqual(l2.v2, geom.Vertex(3.0, 0.0, 0.5))
 
+    def test_vector_angle(self):
+        xy_angle = lambda v: geom.Plane.XY.vector_angle(v)
+
+        self.assertAlmostEqual(0.5 * math.pi, xy_angle(geom.Vector(0., 0., 1.)))
+        self.assertAlmostEqual(0., xy_angle(geom.Vector(1., 0., 0.)))
+        self.assertAlmostEqual(0., xy_angle(geom.Vector(1., 1., 0.)))
+        self.assertAlmostEqual(0.25 * math.pi, xy_angle(geom.Vector(1., 0., 1.)))
+        self.assertAlmostEqual(0.25 * math.pi, xy_angle(geom.Vector(0., -1., 1.)))
+
 class CylinderTest(unittest.TestCase):
     def setUp(self):
         self.cyl1 = geom.Cylinder(geom.Vertex(0.0, 0.0, 0.0), 1.0, 10.0,
