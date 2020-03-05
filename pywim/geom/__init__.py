@@ -504,6 +504,10 @@ class Plane(object):
         v2 = self.closest_point(edge.v2)
         return Edge(v1, v2)
 
+    def vector_angle(self, vector : Vector) -> float:
+        u = vector.unit()
+        return math.asin(abs(self.normal.r * u.r + self.normal.s * u.s + self.normal.t * u.t))
+
 Plane.XY = Plane(Vector(0.0, 0.0, 1.0))
 Plane.XZ = Plane(Vector(0.0, 1.0, 0.0))
 Plane.YZ = Plane(Vector(1.0, 0.0, 0.0))
