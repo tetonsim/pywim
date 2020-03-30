@@ -1,4 +1,4 @@
-from .. import WimObject, WimList, WimTuple, Meta
+from .. import WimObject, WimList, WimTuple, WimNone, Meta
 
 class Process(WimObject):
     def __init__(self, xaxis=None, zaxis=None):
@@ -14,7 +14,7 @@ class Node(WimObject):
         self.x = x
         self.y = y
         self.z = z
-    
+
     @classmethod
     def __from_dict__(cls, d):
         return cls(d[0], d[1], d[2], d[3] if len(d) >= 4 else 0.)
@@ -105,6 +105,18 @@ class Elastic(WimObject):
         iso_plane = d.get('iso_plane', None)
         return cls(elas_type, d, iso_plane)
 
+class ConditionalElastic(WimObject):
+    DEFAULTTYPENAME = 'boundary_condition'
+    def __init__(self):
+        self.type = ConditionalElastic.DEFAULTTYPENAME
+        self.elastics = WimList(Elastic)
+
+class BoundaryConditionSwitchElastic(ConditionalElastic):
+    JSONTYPENAME = 'boundary_condition'
+    def __init__(self):
+        super().__init__()
+        self.type = BoundaryConditionSwitchElastic.JSONTYPENAME
+
 class Expansion(WimObject):
     def __init__(self, type=None, properties=None):
         self.type = type
@@ -140,10 +152,11 @@ class Material(WimObject):
         self.name = name if name else 'material'
         self.density = 0.0
         self.cost = 0.0
-        self.elastic = Elastic()
-        self.expansion = Expansion()
-        self.failure_yield = Yield()
-        self.fracture = Fracture()
+        self.elastic = WimNone(Elastic)
+        self.elastic_conditional = WimNone(ConditionalElastic)
+        self.expansion = WimNone(Expansion)
+        self.failure_yield = WimNone(Yield)
+        self.fracture = WimNone(Fracture)
 
 class CoordinateSystem(WimObject):
     DEFAULTTYPENAME = 'three_points'
@@ -191,7 +204,7 @@ class Layer(WimObject):
         self.material = material if material else ''
         self.angle = angle if angle else 0.0
         self.thickness = thickness if thickness else 1.0
-    
+
     @classmethod
     def __from_dict__(cls, d):
         return cls(d[0], d[1], d[2])

@@ -67,6 +67,27 @@ class WimObject:
                 return False
         return True
 
+class WimNone:
+    def __init__(self, type):
+        self.type = type
+
+    @classmethod
+    def from_dict(cls, d):
+        return ModelEncoder.dict_to_object(d, self.type())
+
+    @classmethod
+    def from_json(cls, j):
+        return self.type.from_dict(json.loads(j))
+
+    def to_dict(self):
+        return None
+
+    def to_json(self):
+        return json.dumps(None)
+
+    def is_empty(self):
+        return True
+
 class WimList(list):
     def __init__(self, list_type):
         self.list_type = list_type
@@ -173,7 +194,7 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def object_to_dict(obj):
-        if obj is None or (isinstance(obj, (WimObject, WimList)) and obj.is_empty()) or isinstance(obj, WimIgnore):
+        if obj is None or (isinstance(obj, (WimObject, WimList)) and obj.is_empty()) or isinstance(obj, (WimNone, WimIgnore)):
             return None
         elif getattr(obj, '__to_dict__', None):
             return obj.__to_dict__()
@@ -257,6 +278,9 @@ class ModelEncoder(json.JSONEncoder):
 
     @staticmethod
     def dict_to_object(d, obj):
+        if isinstance(obj, WimNone):
+            obj = obj.type
+
         if isinstance(obj, type):
             obj = obj()
 
