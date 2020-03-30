@@ -225,7 +225,7 @@ def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outp
     nels = 0
     for g in mesh.elements:
         for c in g.connectivity:
-            if g.type == 'HEXL8' or g.type == 'VOXL':
+            if g.type == 'HEXL8' or g.type == 'VOXL' or g.type == 'VOXLA':
                 e = vtk.vtkHexahedron()
             elif g.type == 'TETL4':
                 e = vtk.vtkTetra()
@@ -237,6 +237,8 @@ def from_fea(mesh : pywim.fea.model.Mesh, inc : pywim.fea.result.Increment, outp
                 e = vtk.vtkTriangle()
             elif g.type == 'PSQ6':
                 e = vtk.vtkQuadraticTriangle()
+            else:
+                raise Exception('Unsupported element type: %s' % g.type)
             ids = e.GetPointIds()
             i = 0
             for nid in c.nodes:
