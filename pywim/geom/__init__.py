@@ -372,9 +372,10 @@ class Vector(object):
 
         magn = v.magnitude()
 
-        v.r = v.r / magn
-        v.s = v.s / magn
-        v.t = v.t / magn
+        if magn > 0.0:
+            v.r = v.r / magn
+            v.s = v.s / magn
+            v.t = v.t / magn
 
         return v
 

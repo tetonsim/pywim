@@ -1,15 +1,15 @@
 import sys
 import json
 import pywim.abaqus
-from pywim.model import *
+from pywim.fea.model import *
 
 def abaqus_to_wim(inpname):
     inp = pywim.abaqus.Input.Parse(inpname)
-        
+
     name = inpname
     name = name[name.rfind('\\')+1:]
     name = name.rstrip('.inp')
-    
+
     model = Model(name)
 
     for kw in ('PART', 'INSTANCE', 'ASSEMBLY'):
@@ -26,7 +26,7 @@ def abaqus_to_wim(inpname):
             else:
                 nid, x, y, z = n.cast(int, float)
             model.mesh.nodes.append([nid, x, y, z])
-            
+
     for elems in inp.keywords_by_name('ELEMENT'):
         elem_type = elems.param_by_name('TYPE').value
         elem_group = None
@@ -67,10 +67,10 @@ def abaqus_to_wim(inpname):
                 elem_group.connectivity.append([eid, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10])
         else:
             print('Skipping unknown element type %s' % elem_type)
-            
+
         if elem_group:
             model.mesh.elements.append(elem_group)
-            
+
     for nset in inp.keywords_by_name('NSET'):
         name = nset.param_value('NSET')
         if nset.has_param('GENERATE'):
@@ -79,7 +79,7 @@ def abaqus_to_wim(inpname):
         else:
             nodes = nset.cast_all_data(int)
         model.regions.node_sets.append(NodeSet(name, nodes))
-        
+
     for elset in inp.keywords_by_name('ELSET'):
         name = elset.param_value('ELSET')
         if elset.has_param('GENERATE'):
@@ -88,14 +88,14 @@ def abaqus_to_wim(inpname):
         else:
             elements = elset.cast_all_data(int)
         model.regions.element_sets.append(ElementSet(name, elements))
-       
+
     for sset in inp.keywords_by_name('SURFACE'):
         name = sset.param_value('NAME')
 
         stype = sset.param_value('TYPE', 'ELEMENT')
         if stype != 'ELEMENT':
             print('Skipping unknown surface type %s' % stype)
-        
+
         surface_set = SurfaceSet(name)
 
         for dl in sset.datalines:
@@ -112,7 +112,7 @@ def abaqus_to_wim(inpname):
             surface_set.faces.append(ElementFaces(face, elset.elements))
 
         model.regions.surface_sets.append(surface_set)
-        
+
     for mat in inp.keywords_by_name('MATERIAL'):
         name = mat.param_value('NAME')
         material = Material(name)
@@ -124,7 +124,7 @@ def abaqus_to_wim(inpname):
             if elas_type == 'ISOTROPIC':
                 material.elastic = Elastic('isotropic', {'E': elas_props[0], 'nu': elas_props[1]})
             elif elas_type in ('LAMINA', 'ENGINEERINGCONSTANTS'):
-                
+
                 if elas_type == 'LAMINA':
                     E11 = elas_props[0]
                     E22 = elas_props[1]
@@ -145,12 +145,12 @@ def abaqus_to_wim(inpname):
                     G12 = elas_props[6]
                     G13 = elas_props[7]
                     G23 = elas_props[8]
-                    
+
                 material.elastic = Elastic('orthotropic', {
                     'E11':E11, 'E22':E22, 'E33':E33,
                     'nu12':nu12, 'nu13':nu13, 'nu23':nu23,
                     'G12':G12, 'G13':G13, 'G23':G23})
-        
+
         if expan:
             expan_type = expan.param_value('TYPE', 'ISOTROPIC')
             expan_props = expan.cast_all_data(float)
@@ -161,7 +161,7 @@ def abaqus_to_wim(inpname):
 
 
         model.materials.append(material)
-        
+
     for ori in inp.keywords_by_name('ORIENTATION'):
         name = ori.param_value('NAME')
         coords = ori.datalines[0].cast(float)
@@ -170,19 +170,19 @@ def abaqus_to_wim(inpname):
         origin = (0., 0., 0.)
         if len(coords) > 6:
             origin = coords[6:9]
-        
+
         if len(ori.datalines) > 1:
             axis, angle = ori.datalines[1].cast(int, float)
             if angle != 0.:
-                raise ValueError('Additional orientation rotation not supported') 
-        
+                raise ValueError('Additional orientation rotation not supported')
+
         model.csys.append(CoordinateSystem(name, xaxis, xyplane, origin))
 
     isect = 0
     for sect in inp.keywords_by_name('SOLIDSECTION'):
         isect += 1
         name = 'SECTION-%i' % isect
-        
+
         elset = sect.param_value('ELSET')
         material = sect.param_value('MATERIAL')
         ori = sect.param_value('ORIENTATION')
@@ -196,7 +196,7 @@ def abaqus_to_wim(inpname):
             new_section.stack_direction = sect.param_value('STACKDIRECTION', new_section.stack_direction)
             min_nspt = None
             max_nspt = None
-            
+
             for layer in sect.datalines:
                 thickness, nspt, material, angle, layer_name = layer.cast(float, int, str, float, str)
 
@@ -216,10 +216,10 @@ def abaqus_to_wim(inpname):
 
         else:
             new_section = HomogeneousSection(name, material, ori)
-        
+
         model.sections.append(new_section)
         model.section_assignments.append(SectionAssignment(name + '-' + elset, name, elset))
-    
+
     for step in inp.keywords_by_name('STEP'):
         name = step.param_value('NAME')
 
@@ -228,7 +228,7 @@ def abaqus_to_wim(inpname):
         model.steps.append(Step(name))
 
     for eq in inp.keywords_by_name('EQUATION'):
-        
+
 
         # First data line is just an integer defining the number of terms - we can ignore that
 
@@ -263,11 +263,11 @@ def abaqus_to_wim(inpname):
                 nset, dof1, dof2, val = dl.cast(str, int, int, float)
             else:
                 nset, dof1, dof2 = dl.cast(str, int, int)
-            
+
             displacements = []
             for i in range(dof1, dof2+1):
                 displacements.append([i, val])
-                
+
             wbc = BoundaryCondition(name, nset, displacements)
 
             model.boundary_conditions.append(BoundaryCondition(name, nset, displacements))
@@ -278,24 +278,24 @@ def abaqus_to_wim(inpname):
     for cload in inp.keywords_by_name('CLOAD'):
         for dl in cload.datalines:
             nset, dof, val = dl.cast(str, int, float)
-            
+
             make_new_cf = True
             for cf in model.concentrated_forces:
                 if cf.node_set == nset:
                     make_new_cf = False
                     cf.force[dof - 1] += val
-                    
+
             if make_new_cf:
                 icload += 1
                 name = 'CLOAD-%i' % icload
-                
+
                 force = [0., 0., 0.]
                 force[dof - 1] = val
 
                 wcload = ConcentratedForce(name, nset, force)
-                
+
                 model.concentrated_forces.append(wcload)
-            
+
                 add_bcs_to_steps(inp, model, cload, wcload, 'concentrated_forces')
 
     idsload = 0
@@ -320,7 +320,7 @@ def abaqus_to_wim(inpname):
                 wdsload = Shear(name, sset, val, vec)
             else:
                 print('Skipping unknown distributed force type %s' % dstype)
-            
+
             if wdsload:
                 model.distributed_forces.append(wdsload)
                 add_bcs_to_steps(inp, model, dsload, wdsload, 'distributed_forces')
@@ -331,7 +331,7 @@ def abaqus_to_wim(inpname):
 
         itemp += 1
         name = 'TEMP-%i' % itemp
-        
+
         wtemp = NodeTemperature(name, nset, tempval)
         model.node_temperatures.append(wtemp)
         add_bcs_to_steps(inp, model, temp, wtemp, 'node_temperatures')
@@ -369,7 +369,7 @@ def add_bcs_to_steps(inp, model, bc, wbc, bc_list_name):
             bc_list = getattr(step, bc_list_name)
             bc_list.append(wbc.name)
 
-def write_model(model):    
+def write_model(model):
     with open(model.name + '.json', 'w') as jsonf:
         jsonf.write(json.dumps(model, cls=ModelEncoder, indent=1))
 

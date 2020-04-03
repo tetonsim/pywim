@@ -26,9 +26,9 @@ class WimSolverResponse(Generic[T]):
         r.success = dresp.get('success', False)
         r.errors = dresp.get('errors', [])
         r.log = dresp.get('log')
-        
+
         dresult = dresp.get('result', {})
-        
+
         if response_type:
             if WimObject in response_type.__bases__:
                 r.result = response_type.from_dict(dresult)
@@ -40,7 +40,7 @@ class WimSolverResponse(Generic[T]):
         if http_response.status_code >= 400:
             r.success = False
             r.errors.append('Server returned error code %i' % http_response.status_code)
-        
+
         return r
 
 class ServerInfo(WimObject):
@@ -149,7 +149,7 @@ class Client(HttpClient):
     @property
     def micro(self):
         micro_r = Route(self, '/micro')
-        
+
         micro_r += RouteAdd(
             'run',
             apis = {
@@ -163,7 +163,7 @@ class Client(HttpClient):
     @property
     def chop(self):
         chop_r = Route(self, '/chop')
-        
+
         chop_r += RouteAdd(
             'slice',
             apis = {

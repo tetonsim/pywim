@@ -263,4 +263,6 @@ class Client2019POC(ClientPOC):
 
 class Client2020POC(ClientPOC):
     def __init__(self, hostname='api-20.fea.cloud', port=443, protocol='https'):
+        from warnings import warn
+        warn('2020 POC API is deprecated', category=DeprecationWarning)
         super().__init__(hostname=hostname, port=port, protocol=protocol)

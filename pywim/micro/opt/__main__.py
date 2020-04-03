@@ -1,8 +1,7 @@
 import os
 import sys
 import json
-from . import BulkOptimization, ExtrusionTest, Config, optimize_bulk
-from .. import ModelEncoder
+from . import ExtrusionTest, Config, optimize_bulk
 
 def main():
     if len(sys.argv) < 2:
@@ -10,9 +9,7 @@ def main():
         return
 
     # Grab the configuration file if it exists
-    pconfig = os.path.isfile('opt.config')
-
-    if (pconfig):
+    if os.path.exists('opt.config'):
         oconfig = Config.model_from_file('opt.config')
     else:
         oconfig = Config()
@@ -24,10 +21,7 @@ def main():
     bulk_mat = optimize_bulk(extrusion_test, oconfig)
     bulk_mat.name = extrusion_test.name + '_bulk'
 
-    jrst = f'{jopt}.bulk'
-
-    with open(jrst, 'w') as f:
-        json.dump(ModelEncoder.object_to_dict(bulk_mat), f)
+    bulk_mat.to_json_file(f'{jopt}.bulk', indent=1)
 
 def usage():
     print('Usage:')
