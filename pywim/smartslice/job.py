@@ -155,4 +155,3 @@ class Job(WimObject):
 
         return comp_errors + req_errors
 
-    
