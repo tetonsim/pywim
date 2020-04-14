@@ -7,13 +7,17 @@ class NumOptParam(WimObject):
     '''
     Numerical optimization parmater class. Treated as a discrete variable with given min, max, and increment.
     '''
-    def __init__(self, name='num_name', minimum=1., maximum=1., increment=1., active=False, mesh_type=chop.mesh.MeshType.normal):
+    def __init__(self, name='num_name', minimum=1., maximum=1., number_of_steps=0, active=False, mesh_type=chop.mesh.MeshType.normal):
         self.name = name
         self.min = minimum
         self.max = maximum
-        self.inc = increment
+        self.num_steps = number_of_steps
         self.active = active
         self.mesh_type = mesh_type
+
+    @property
+    def inc(self):
+        return (self.max - self.min) / self.num_steps
 
     @property
     def interval(self):
@@ -21,16 +25,6 @@ class NumOptParam(WimObject):
             return [self.min]
         else:
             return [self.min, self.max]
-
-    @property
-    def num_steps(self):
-        quo = (self.max - self.min) / self.inc
-        rem = quo - int(quo)
-
-        if rem > 1e-6: # Not sure if this should raise an exception or it we should just adjust things to work.
-            raise WimException('Given bounds, min=%.1f and max=%.1f, are incommensurate with given increment=%.1f.' %  (self.min, self.max, self.inc) )
-
-        return int(quo)
 
     @property
     def range(self):
@@ -85,28 +79,28 @@ class Optimization(WimObject):
                     name='infill.density',
                     minimum=20.,
                     maximum=95.,
-                    increment=5.,
+                    number_of_steps=15,
                     active=True
                 ),
                 NumOptParam(
                     name='walls',
                     minimum=2,
                     maximum=6,
-                    increment=1,
+                    number_of_steps=4,
                     active=True
                 ),
                 NumOptParam(
                     name='skins',
                     minimum=2,
                     maximum=6,
-                    increment=1,
+                    number_of_steps=4,
                     active=True
                 ),
                 NumOptParam(
                     name='infill.density',
                     minimum=20.,
                     maximum=95.,
-                    increment=5.,
+                    number_of_steps=15,
                     mesh_type=chop.mesh.MeshType.infill,
                     active=True
                 ),
@@ -114,7 +108,7 @@ class Optimization(WimObject):
                     name='walls',
                     minimum=2.,
                     maximum=6,
-                    increment=1,
+                    number_of_steps=4,
                     mesh_type=chop.mesh.MeshType.infill,
                     active=False
                 ),
@@ -122,7 +116,7 @@ class Optimization(WimObject):
                     name='skins',
                     minimum=2,
                     maximum=6,
-                    increment=1,
+                    number_of_steps=4,
                     mesh_type=chop.mesh.MeshType.infill,
                     active=False
                 )
@@ -136,6 +130,11 @@ class Optimization(WimObject):
     @property
     def active_categorical_parameters(self):
         return [p for p in self.categorical_parameters if p.active]
+
+    def adjust_numerical_parameter_setting(self, name, mesh_type, setting_name, new_value):
+        for p in self.numerical_parameters:
+            if p.name == name and p.mesh_type == mesh_type:
+                setattr(p, setting_name, new_value)
 
     def set_activity_numerical_parameter(self, name, mesh_type, active):
         for p in self.numerical_parameters:
