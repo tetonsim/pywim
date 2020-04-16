@@ -5,38 +5,38 @@ from .. import WimObject, WimList, WimTuple, WimIgnore
 
 class NumOptParam(WimObject):
     '''
-    Numerical optimization parmater class. Treated as a discrete variable with given min, max, and increment.
+    Numerical optimization parmater class. Treated as a discrete variable with given min, max, and step_sizerement.
     '''
     def __init__(self, name='num_name', minimum=1., maximum=1., number_of_steps=0, active=False, mesh_type=chop.mesh.MeshType.normal):
         self.name = name
-        self.min = minimum
-        self.max = maximum
-        self.num_steps = number_of_steps
+        self.minimum = minimum
+        self.maximum = maximum
+        self.number_of_steps = number_of_steps
         self.active = active
         self.mesh_type = mesh_type
 
     @property
-    def inc(self):
-        return (self.max - self.min) / self.num_steps
+    def step_size(self):
+        return (self.maximum - self.minimum) / self.number_of_steps
 
     @property
     def interval(self):
-        if self.min == self.max:
-            return [self.min]
+        if self.minimum == self.maximum:
+            return [self.minimum]
         else:
-            return [self.min, self.max]
+            return [self.minimum, self.maximum]
 
     @property
     def range(self):
-        return self.max - self.min
+        return self.maximum - self.minimum
 
 class CatOptParam(WimObject):
     '''
     Categorical optimization parameter class.
     '''
-    def __init__(self, name='cat_name', cats=None, active=False, mesh_type=chop.mesh.MeshType.normal):
+    def __init__(self, name='cat_name', categories=None, active=False, mesh_type=chop.mesh.MeshType.normal):
         self.name = name
-        self.cats = cats if cats else []
+        self.categories = categories if categories else []
         self.active = active
         self.mesh_type = mesh_type
 
@@ -44,9 +44,9 @@ class ModifierMeshCriteria(enum.Enum):
     selden = 1
 
 class ModifierMesh(WimObject):
-    def __init__(self, min_score=50.0):
+    def __init__(self, minimum_score=50.0):
         self.criterion = ModifierMeshCriteria.selden
-        self.min_score = min_score
+        self.minimum_score = minimum_score
 
 class OptimizimationTarget(enum.Enum):
     cura_print_time = 1
@@ -55,20 +55,20 @@ class OptimizimationTarget(enum.Enum):
 class Optimization(WimObject):
     def __init__(self):
         self.number_of_results_requested = 5
-        self.min_safety_factor = 2.0
-        self.max_displacement = 1.0
+        self.minimum_safety_factor = 2.0
+        self.maximum_displacement = 1.0
         self.optimization_target = OptimizimationTarget.cura_print_time
         self.numerical_parameters = WimList(NumOptParam)
         self.categorical_parameters = WimList(CatOptParam)
         self.modifier_meshes = WimList(ModifierMesh)
-        self.min_element_in_mod_mesh = 10
-        self.min_percentile_mod_mesh = 1.
-        self.max_percentile_mod_mesh = 99.
+        self.minimum_element_count_in_mod_mesh_component = 10
+        self.minimum_percentile_for_mod_mesh = 1.
+        self.maximum_percentile_for_mod_mesh = 99.
 
         # default modifier mesh config
         self.modifier_meshes.extend(
             (
-                ModifierMesh(min_score=80.0),
+                ModifierMesh(minimum_score=80.0),
             )
         )
 
