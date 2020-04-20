@@ -40,6 +40,10 @@ class CatOptParam(WimObject):
         self.active = active
         self.mesh_type = mesh_type
 
+    @property
+    def number_of_categories(self):
+        return len(self.categories)
+
 class ModifierMeshCriteria(enum.Enum):
     selden = 1
 
@@ -64,6 +68,7 @@ class Optimization(WimObject):
         self.minimum_element_count_in_mod_mesh_component = 10
         self.minimum_percentile_for_mod_mesh = 1.
         self.maximum_percentile_for_mod_mesh = 99.
+        self.estimated_number_of_solves_per_model = 6
 
         # default modifier mesh config
         self.modifier_meshes.extend(
