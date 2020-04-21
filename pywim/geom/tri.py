@@ -401,12 +401,16 @@ class Mesh:
         connected_tris = []
 
         for edge in edges:
+            # Not interested in edges with more than 2 tris connected
             if len(edge.angles) > 1:
-                # Not interested in edges with more than 2 tris connected
                 continue
+
             edge_angle = edge.angles[0]
             if coplanar_angle < edge_angle.angle < max_edge_angle:
-                other_tri = edge_angle.t2 if tri == edge_angle.t1 else edge_angle.t1
+                if tri == edge_angle.t1:
+                    other_tri = edge_angle.t2
+                else:
+                    other_tri = edge_angle.t1
                 mating_edge = edge
                 connected_tris.append((other_tri, edge_angle))
                 break
@@ -415,13 +419,13 @@ class Mesh:
             return None
 
         # Get the connected triangle with the largest angle
-        other_tri = connected_tris[0]
+        connected_tri = connected_tris[0]
         for i in range(1, len(connected_tris)):
-            if connected_tris[i][1] > other_tri[1]:
-                other_tri = connected_tris[i]
+            if connected_tris[i][1] > connected_tri[1]:
+                connected_tri = connected_tris[i]
 
         # decouple into the triangle and the edge angle value
-        other_tri, mating_edge = other_tri
+        other_tri, mating_edge = connected_tri
 
         # Check the areas of the two triangles. If they are very different this is not a cylinder
         area_min = min(tri.area, other_tri.area)
