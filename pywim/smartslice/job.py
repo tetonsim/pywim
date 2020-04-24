@@ -84,7 +84,6 @@ class Job(WimObject):
         self.bulk = WimList(fea.model.Material)
         self.extruders = WimList(Extruder)
         self.optimization = opt.Optimization()
-        self.request_chop_model = False
 
     @property
     def materials(self):
