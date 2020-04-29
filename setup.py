@@ -21,5 +21,5 @@ setuptools.setup(
     author='Teton Simulation',
     author_email='info@tetonsim.com',
     packages=setuptools.find_packages(exclude=['test']),
-    install_requires=['requests', 'scipy', 'vtk', 'teton-3mf']
+    install_requires=['requests', 'scipy', 'teton-3mf']
 )
