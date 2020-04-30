@@ -1,6 +1,8 @@
 import itertools
 import math
 
+import numpy
+
 try:
     import stl
     NUMPY_STL = True
@@ -386,18 +388,19 @@ class Mesh:
 
         return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
-    def try_select_cylinder_face(self, tri : Union[Triangle, int], coplanar_angle : float = _COPLANAR_ANGLE,
-        max_edge_angle : float = _MAX_EDGE_CYLINDER_ANGLE, radius_tol : float = _CYLINDER_RADIUS_TOLERANCE) -> List[Triangle]:
+    def get_neighbored_triangles(
+            self,
+            tri: Union[Triangle, int],
+            coplanar_angle: float = _COPLANAR_ANGLE,
+            max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE
+            ):
 
+        # Convert an intenger into an Triangle if needed..
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
 
-        # First let's find a triangle connected to tri at an angle that is
-        # not coplanar with the input triangle, but the angle is less than max_edge_angle
-        # We need two connected triangles that are not coplanar to predict
-        # the geometric parameters of the potential cylinder.
+        # Getting all neighbored triangles
         edges = self._triangle_to_edge[tri]
-
         connected_tris = []
 
         for edge in edges:
@@ -406,95 +409,367 @@ class Mesh:
                 continue
 
             edge_angle = edge.angles[0]
-            if coplanar_angle < edge_angle.angle < max_edge_angle:
-                if tri == edge_angle.t1:
-                    other_tri = edge_angle.t2
-                else:
-                    other_tri = edge_angle.t1
-                mating_edge = edge
-                connected_tris.append((other_tri, edge_angle))
-                break
 
+            if tri == edge_angle.t1:
+                other_tri = edge_angle.t2
+            else:
+                other_tri = edge_angle.t1
+            connected_tris.append((other_tri, edge_angle))
+
+        # List with tuples of triangles and angles
+        # (relative to the provided triangle)
+        return connected_tris
+
+    def general_cylinder_check(self, this_triangle):
+        # Simply checks for all known cases as known and
+        # listed below
+        return self.simple_cylindric_surface_check(this_triangle)  # or self.extended_cylindric_surface_check_no1(this_triangle)
+
+    def simple_cylindric_surface_check(self, face_id):
+        # Simple check, which savely detects
+        # non-stacked tessellated cylinders.
+        planar_selected_faces = self.select_planar_face(face_id)
+
+        # If we found a planar face using two or less faces, it is likely,
+        # that this face is a cylinder. Normally a plane consists of more
+        # than two faces. However, it doesn't need to be always the case.
+
+        return len(planar_selected_faces) <= 2
+
+    def find_neighbored_surface_for_extended_check(
+            self,
+            this_triangle,
+            coplanar_angle: float = _COPLANAR_ANGLE,
+            max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+            radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
+            ):
+        # # Extended check, which detects stacked tessellated cylinders.
+        # # That one happens e.g. if an cylindric hole is deeper
+        # # than the max edge length in Autodesk Inventors STL export settings.
+
+        # # Checking case no. 1 here. It will decide whether we need a fallback or not.
+
+        # Convert the face_id into a Triangle object if it is an integer
+        if isinstance(this_triangle, int):
+            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
+
+        connected_tris = self.get_neighbored_triangles(this_triangle)
+        connected_coplanar_tris = []
+        connected_tris_filtered = connected_tris.copy()
+
+        # We need to get three neighbored triangles here.
+        # A valid mesh should provide this!
+        if not len(connected_tris) == 3:
+            return None
+
+        # .. and filtering it as we did before.
+        for entry in connected_tris:
+            other_tri, edge_angle = entry
+            if not coplanar_angle < edge_angle.angle:
+                connected_tris_filtered.remove(entry)
+                connected_coplanar_tris.append(entry)
+        connected_tris = connected_tris_filtered
+
+        # As one coplanar face should have been found before,
+        # we need to get two triangles here.
+        if not len(connected_tris) == 2:
+            return None
+
+        # One of the connected triangles is the top plane,
+        # the other the one, which belongs to the cylinder.
+        tri1_angle = connected_tris[0][1]
+        tri2_angle = connected_tris[1][1]
+        tri_angle_delta = abs(tri1_angle.angle - tri2_angle.angle)
+        if tri_angle_delta < numpy.radians(80.0):
+            print("DEBUG: tri_angle_delta < {}: {}".format(
+                numpy.radians(80.0),
+                tri_angle_delta)
+            )
+            # TODO: Adding a per layer check here: XY, XZ, YZ
+            return None
+
+        # Check the areas of the two triangles. If they are very different
+        # this is not a cylinder
+        print("DEBUG: this_triangle: {}".format(this_triangle))
+        print("DEBUG: connected_coplanar_tris[0]: {}".format(
+            connected_coplanar_tris[0]
+            )
+        )
+        area_min = min(this_triangle.area, connected_coplanar_tris[0][0].area)
+        area_max = max(this_triangle.area, connected_coplanar_tris[0][0].area)
+
+        if area_min / area_max < 0.90:
+            print("DEBUG: amin / amax < 0.90: {}".format(area_min / area_max))
+            return None
+
+        return connected_coplanar_tris[0]
+
+    def extended_cylindric_surface_check_no1(self, this_triangle):
+        # Convert the face_id into a Triangle object if it is an integer
+        if isinstance(this_triangle, int):
+            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
+
+        result_no1 = self.find_neighbored_surface_for_extended_check(
+            this_triangle
+        )
+        if not result_no1:
+            return False
+        else:
+            # If something has been found via result_no1, we need
+            # to double check extended_cylindric_surface_check_no2
+            return self.extended_cylindric_surface_check_no2(result_no1)
+
+    def extended_cylindric_surface_check_no2(
+            self,
+            this_triangle,
+            coplanar_angle: float = _COPLANAR_ANGLE,
+            ):
+        # # Extended check, which detects stacked tessellated cylinders.
+        # # That one happens e.g. if an cylindric hole is deeper
+        # # than the max edge length in Autodesk Inventors STL export settings.
+
+        # # Checking case no. 2 here. It will decide whether we need a fallback or not.
+
+        # Convert the face_id into a Triangle object if it is an integer
+        if isinstance(this_triangle, int):
+            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
+
+        connected_tris = self.get_neighbored_triangles(this_triangle)
+        connected_tris_coplanar = []
+        connected_tris_non_coplanar = []
+
+        # We need to get three neighbored triangles here.
+        # A valid mesh should provide this!
+        if not len(connected_tris) == 3:
+            return None
+
+        # .. and filtering it as we did before.
+        for entry in connected_tris:
+            other_tri, edge_angle = entry
+            if not coplanar_angle < edge_angle.angle:
+                connected_tris_non_coplanar.append(entry)
+            else:
+                connected_tris_coplanar.append(entry)
+
+
+        # As one coplanar face should have been found before,
+        # we need to get two triangles here.
+        if not len(connected_tris_non_coplanar) == 1:
+            return None
+
+        # Compared to the found triangle, one of the other triangles
+        # should have a very similar triangle.
+        # The area might be different, but since the cylinders are stacked
+        # it should represent generally the same geometry.
+        other_triangle = connected_tris_non_coplanar[0]
+
+        neighbored_triangle_with_similar_normal_found = False
+        for triangle in connected_tris_coplanar:
+            neighbored_triangles = self.get_neighbored_triangles(triangle)
+            for neighbored_triangle in neighbored_triangles:
+                neighbored_triangle_normal = neighbored_triangle.normal
+                if other_triangle.normal.dot(neighbored_triangle_normal) < math.radians(2):
+                    neighbored_triangle_with_similar_normal_found = True
+                    break
+
+        if not neighbored_triangle_with_similar_normal_found:
+            return False
+
+        # Renaming some variables here, it will improve the readability below.
+        this_triangle_1 = this_triangle
+        other_triangle_1 = other_triangle
+        this_triangle_2 = triangle
+        other_triangle_2 = neighbored_triangle
+
+        # TODO: Adding the final check whether both triangles share the same axis..
+        #       1. The the difference of cylinder_axis(1)'s and cylinder_axis(2)'s radius is minimal
+        #       2. Both need to be concave or not.
+        #       3. Center(2) is close to the cylinder_axis(1)
+
+        # 1. check: Simply comparing both values...
+        t1_tangent_1, parallel_edge_1, vec_pointing_away_1 = self.calculate_t1_tangent_and_others(this_triangle_1, other_triangle_1)
+        t1_tangent_2, parallel_edge_2, vec_pointing_away_2 = self.calculate_t1_tangent_and_others(this_triangle_2, other_triangle_2)
+
+        radius_1 = parallel_edge_1.length / (2 * math.sin(0.5 * this_triangle_1[1].angle))
+        radius_2 = parallel_edge_2.length / (2 * math.sin(0.5 * this_triangle_2[1].angle))
+
+        radius_min = min(radius_1, radius_2)
+        radius_max = max(radius_1, radius_2)
+
+        radius_share = radius_min / radius_max
+        if radius_share < 0.95:
+            return False
+
+        # 2. check: Just comparing our results on both
+        is_concave_1 = vec_pointing_away_1.dot(normal_average_1) > 0.0
+        is_concave_2 = vec_pointing_away_2.dot(normal_average_2) > 0.0
+
+        # 3. check: cylinder(2)'s midpoint is close to cylinder(1)'s axis
+        center_1, radius_1 = self.get_center_and_radius_of_cylinder(
+            this_triangle_1,
+            this_mating_edge_1,
+            other_triangle_1,
+            parallel_edge_1,
+            vec_pointing_away_1
+        )
+
+        if is_concave_1:
+            # Offset in the direction of the normal vector
+            center_1 = mid_point_1 + this_triangle_1.normal * mid_edge_to_center_1
+        else:
+            # Offset in the opposite direction of the normal vector
+            center_1 = mid_point_1 - this_triangle_1.normal * mid_edge_to_center_1
+        
+        if is_concave_2:
+            # Offset in the direction of the normal vector
+            center_2 = mid_point_2 + this_triangle_2.normal * mid_edge_to_center_2
+        else:
+            # Offset in the opposite direction of the normal vector
+            center_2 = mid_point_2 - this_triangle_2.normal * mid_edge_to_center_2
+
+
+        return True
+
+    def calculate_t1_tangent_and_others(
+            self,
+            this_triangle,
+            other_triangle,
+            ):
+        # Compute the axis direction of the potential cylinder
+        # and a corresponding plane.
+        cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
+        t1_tangent = this_triangle.normal.cross(cylinder_axis).unit()
+
+        # Find the edge that is closest to parallel with t1_tangent
+        edges = self._triangle_to_edge[this_triangle]
+
+        max_dot = 0.0
+        parallel_edge = None
+        vec_pointing_away = None
+        for edge in edges:
+            e_t_dot = abs(edge.vector.dot(t1_tangent))
+            if e_t_dot > max_dot:
+                max_dot = e_t_dot
+                parallel_edge = edge
+
+                v1_tris = self._vertex_to_triangle[edge.v1]
+                v2_tris = self._vertex_to_triangle[edge.v2]
+
+                if this_triangle in v1_tris and other_triangle in v1_tris:
+                    vec_pointing_away = Vector.FromTwoPoints(edge.v1, edge.v2)
+                elif this_triangle in v2_tris and other_triangle in v2_tris:
+                    vec_pointing_away = Vector.FromTwoPoints(edge.v2, edge.v1)
+
+        assert(vec_pointing_away is not None)
+
+        return t1_tangent, parallel_edge, vec_pointing_away
+
+    def get_center_and_radius_of_cylinder(
+            self,
+            this_triangle,
+            this_mating_edge,
+            other_triangle,
+            parallel_edge,
+            vec_pointing_away
+            ):
+
+        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
+            print("DEBUG: this_triangle.normal.dot(other_triangle.normal) > 0.999: {}".format(this_triangle.normal.dot(other_triangle.normal)))
+            return None
+
+        normal_average = (this_triangle.normal + other_triangle.normal).unit()
+
+        is_concave = vec_pointing_away.dot(normal_average) > 0.0
+
+        # Assume the parallel edge is an edge of a regular polygon
+        # https://en.wikipedia.org/wiki/Regular_polygon
+
+        # Use the edge length and the mating angle of the two triangles
+        # to roughly predict the radius of the cylinder
+        radius = parallel_edge.length / (2 * math.sin(0.5 * this_mating_edge.angle))
+
+        # Similarily, compute the distance from the middle of the edge to the
+        # center of the potential cylinder
+        mid_edge_to_center = radius * math.cos(0.5 * this_mating_edge.angle)
+
+        mid_point = parallel_edge.point_on_edge(0.5)
+
+        if is_concave:
+            # Offset in the direction of the normal vector
+            center = mid_point + other_triangle.normal * mid_edge_to_center
+        else:
+            # Offset in the opposite direction of the normal vector
+            center = mid_point - other_triangle.normal * mid_edge_to_center
+
+        return center, radius
+
+    def try_select_cylinder_face(
+            self,
+            this_triangle: Union[Triangle, int],
+            coplanar_angle: float = _COPLANAR_ANGLE,
+            max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+            radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
+            ) -> List[Triangle]:
+
+        # Convert an intenger into an Triangle if needed..
+        if isinstance(this_triangle, int):
+            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
+
+        # Getting all neighbored triangles via commonized function
+        connected_tris = self.get_neighbored_triangles(this_triangle)
+        connected_tris_filtered = connected_tris.copy()
+
+        # .. and filtering them against min&max angle.
+        for entry in connected_tris_filtered:
+            edge_angle = entry[1]
+            if not coplanar_angle < edge_angle.angle < max_edge_angle:
+                connected_tris_filtered.remove(entry)
+        connected_tris = connected_tris_filtered
+
+        # Check whether there are filtered ones..
         if len(connected_tris) == 0:
+            print("DEBUG: len(connected_tris) == 0: {}".format(connected_tris))
             return None
 
         # Get the connected triangle with the largest angle
         connected_tri = connected_tris[0]
         for i in range(1, len(connected_tris)):
-            if connected_tris[i][1] > connected_tri[1]:
+            if connected_tris[i][1].angle > connected_tri[1].angle:
                 connected_tri = connected_tris[i]
 
-        # decouple into the triangle and the edge angle value
-        other_tri, mating_edge = connected_tri
+        # Decouple into the triangle and the edge angle value
+        other_triangle, mating_edge = connected_tri
 
-        # Check the areas of the two triangles. If they are very different this is not a cylinder
-        area_min = min(tri.area, other_tri.area)
-        area_max = max(tri.area, other_tri.area)
+        # Check the areas of the two triangles. If they are very different
+        # this is not a cylinder.
+        area_min = min(this_triangle.area, other_triangle.area)
+        area_max = max(this_triangle.area, other_triangle.area)
 
-        if area_min / area_max < 0.75:
-            return None 
-
-        # Double check that the normals of the two triangles are not too similar
-        # If they are, this algorithm will not work
-        n1 = tri.normal
-        n2 = other_tri.normal
-
-        if n1.dot(n2) > 0.999:
+        area_share = area_min / area_max
+        if area_share < 0.75:
+            print("DEBUG: area_min / area_max < 0.75: {}".format(area_share))
             return None
 
-        # Compute the axis direction of the potential cylinder and a corresponding plane
-        cylinder_axis = n1.cross(n2).unit()
+        # Double check that the normals of the two triangles are
+        # not too similar. If they are, this algorithm will not work.
+        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
+            print("DEBUG: this_triangle.dot(other_triangle.normal) > 0.999: {}".format(this_triangle.normal.dot(other_triangle.normal)))
+            return None
+
+        # Compute the axis direction of the potential cylinder
+        # and a corresponding plane.
+        cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
         plane = Plane(cylinder_axis)
 
-        t1_tangent = n1.cross(cylinder_axis).unit()
+        t1_tangent, parallel_edge, vec_pointing_away = self.calculate_t1_tangent_and_others(this_triangle, other_triangle)
 
-        # Find the edge that is closest to parallel with t1_tangent
-        edges = self._triangle_to_edge[tri]
-        #edges = edges.union(self._triangle_to_edge[other_tri])
-
-        max_dot = 0.0
-        parallel_edge = None
-        vec_pointing_away = None
-        for e in edges:
-            e_t_dot = abs(e.vector.dot(t1_tangent))
-            if e_t_dot > max_dot:
-                max_dot = e_t_dot
-                parallel_edge = e
-
-                v1_tris = self._vertex_to_triangle[e.v1]
-                v2_tris = self._vertex_to_triangle[e.v2]
-
-                if tri in v1_tris and other_tri in v1_tris:
-                    vec_pointing_away = Vector.FromTwoPoints(e.v1, e.v2)
-                elif tri in v2_tris and other_tri in v2_tris:
-                    vec_pointing_away = Vector.FromTwoPoints(e.v2, e.v1)
-
-        assert(vec_pointing_away is not None)
-
-        n_avg = (n1 + n2).unit()
-
-        is_concave = vec_pointing_away.dot(n_avg) > 0.0
-
-        # Assume the parallel edge is an edge of a regular polygon
-        # https://en.wikipedia.org/wiki/Regular_polygon
-
-        # Use the edge length and the mating angle of the two triangles to roughly
-        # predict the radius of the cylinder
-        radius = parallel_edge.length / (2 * math.sin(0.5 * mating_edge.angle))
-
-        # Similarily, compute the distance from the middle of the edge to the
-        # center of the potential cylinder
-        mid_edge_to_center = radius * math.cos(0.5 * mating_edge.angle)
-
-        # Now using the mid point of the edge and the distance to the center we can
-        # find a point that is at the center of the potential cylinder
-        mid_point = parallel_edge.point_on_edge(0.5)
-        if is_concave:
-            # Offset in the direction of the normal vector
-            center = mid_point + tri.normal * mid_edge_to_center
-        else:
-            # Offset in the opposite direction of the normal vector
-            center = mid_point - tri.normal * mid_edge_to_center
+        center, radius = self.get_center_and_radius_of_cylinder(
+            this_triangle,
+            mating_edge,
+            other_triangle,
+            parallel_edge,
+            vec_pointing_away
+        )
 
         # Create inner and outer cylinders to check that vertices fall between the
         # two cylinders. If they don't we assume that triangle is NOT part of the
@@ -507,11 +782,13 @@ class Mesh:
             plane.vector_angle(triangle.normal) <= coplanar_angle and \
             all([ outer_cyl.inside(v) and not inner_cyl.inside(v) for v in triangle.points ])
 
-        face = self._select_connected_triangles(tri, triangle_filter)
+        face = self._select_connected_triangles(this_triangle, triangle_filter)
 
         if len(face) <= 2:
             # Only the original triangle and the one co-planar triangle were
             # found so this is probably not a cylinder
+            print("DEBUG: len(face) <= 2: {}".format(repr(face)))
+
             return None
 
         return face
