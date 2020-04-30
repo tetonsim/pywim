@@ -720,7 +720,7 @@ class Mesh:
         connected_tris_filtered = connected_tris.copy()
 
         # .. and filtering them against min&max angle.
-        for entry in connected_tris_filtered:
+        for entry in connected_tris:
             edge_angle = entry[1]
             if not coplanar_angle < edge_angle.angle < max_edge_angle:
                 connected_tris_filtered.remove(entry)
