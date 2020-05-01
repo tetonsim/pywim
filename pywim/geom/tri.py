@@ -673,10 +673,6 @@ class Mesh:
             vec_pointing_away
             ):
 
-        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
-            print("DEBUG: this_triangle.normal.dot(other_triangle.normal) > 0.999: {}".format(this_triangle.normal.dot(other_triangle.normal)))
-            return None
-
         normal_average = (this_triangle.normal + other_triangle.normal).unit()
 
         is_concave = vec_pointing_away.dot(normal_average) > 0.0
