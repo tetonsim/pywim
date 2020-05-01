@@ -692,10 +692,10 @@ class Mesh:
 
         if is_concave:
             # Offset in the direction of the normal vector
-            center = mid_point + other_triangle.normal * mid_edge_to_center
+            center = mid_point + this_triangle.normal * mid_edge_to_center
         else:
             # Offset in the opposite direction of the normal vector
-            center = mid_point - other_triangle.normal * mid_edge_to_center
+            center = mid_point - this_triangle.normal * mid_edge_to_center
 
         return center, radius
 
