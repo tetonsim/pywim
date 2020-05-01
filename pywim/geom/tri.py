@@ -757,7 +757,9 @@ class Mesh:
         cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
         plane = Plane(cylinder_axis)
 
-        t1_tangent, parallel_edge, vec_pointing_away = self.calculate_t1_tangent_and_others(this_triangle, other_triangle)
+        t1_tangent, \
+            parallel_edge, \
+            vec_pointing_away = self.calculate_t1_tangent_and_others(this_triangle, other_triangle)
 
         center, radius = self.get_center_and_radius_of_cylinder(
             this_triangle,
