@@ -485,7 +485,7 @@ class Mesh:
                 numpy.radians(80.0),
                 tri_angle_delta)
             )
-            # TODO: Adding a per layer check here: XY, XZ, YZ
+            # NOTE: Adding a per layer check here: XY, XZ, YZ
             return None
 
         # Check the areas of the two triangles. If they are very different
