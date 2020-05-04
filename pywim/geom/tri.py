@@ -571,7 +571,6 @@ class Mesh:
         # it should represent generally the same geometry.
         other_triangle, this_mating_edge = connected_tris_non_coplanar[0]
 
-        # TODO: Got a logical mistake here.. There must be a solution for the given test...
         neighbored_triangle_with_similar_normal_found = False
         targetted_angle = this_triangle.normal.dot(other_triangle.normal)
         print("DEBUG: c2: targetted_angle:{}".format(targetted_angle))
@@ -580,8 +579,11 @@ class Mesh:
             neighbors = self.get_neighbored_triangles(connected_triangle)
             for neighbor in neighbors:
                 neighbored_triangle, neighbored_mating_edge = neighbor
-                current_angle = connected_triangle.normal.dot(neighbored_triangle.normal)
+                current_angle = connected_triangle.normal.dot(
+                    neighbored_triangle.normal
+                )
                 print("DEBUG: c2: current_angle:{}".format(current_angle))
+                # The maximum difference between both angles is 0.001deg
                 if abs(abs(targetted_angle) - abs(current_angle)) < math.radians(0.001):
                     neighbored_triangle_with_similar_normal_found = True
                     break
@@ -594,13 +596,32 @@ class Mesh:
         this_triangle_1 = this_triangle
         this_mating_edge_1 = this_mating_edge
         other_triangle_1 = other_triangle
+
         this_triangle_2 = connected_triangle
+        this_mating_edge_2 = neighbored_mating_edge
         other_triangle_2 = neighbored_triangle
 
         # TODO: Adding the final check whether both triangles share the same axis..
         #       1. The the difference of cylinder_axis(1)'s and cylinder_axis(2)'s radius is minimal
-        #       2. Both need to be concave or not.
-        #       3. Center(2) is close to the cylinder_axis(1)
+        #       2. Center(2) is close to the cylinder_axis(1)
+
+        # Double check that the normals of the two triangles are
+        # not too similar. If they are, this algorithm will not work.
+        print("DEBUG: c2: this_triangle_1: {}".format(this_triangle_1))
+        print("DEBUG: c2: other_triangle_1: {}".format(other_triangle_1))
+
+        if this_triangle_1.normal.dot(other_triangle_1.normal) > 0.999:
+            result = this_triangle_1.normal.dot(other_triangle_1.normal)
+            print("DEBUG: c2: [1] too similar: {}".format(result))
+            print("DEBUG: c2: [1] rad: {}".format(result))
+            print("DEBUG: c2: [1] deg: {}".format(math.degrees(result)))
+            return False
+        if this_triangle_2.normal.dot(other_triangle_2.normal) > 0.999:
+            result = this_triangle_2.normal.dot(other_triangle_2.normal)
+            print("DEBUG: c2: [2] too similar: {}".format(this_triangle_2.normal.dot(other_triangle_2.normal)))
+            print("DEBUG: c2: [2] rad: {}".format(result))
+            print("DEBUG: c2: [2] deg: {}".format(math.degrees(result)))
+            return False
 
         # 0. preparation: Precalculating some values we need later...
         t1_tangent_1, \
@@ -644,17 +665,20 @@ class Mesh:
         )
 
         # 1. check: Doing some quick comparisons...
+        if not (is_concave_1 and is_concave_2):
+            # We have different contours..
+            print("DEBUG: c2: is_concave_1 and is_concave_2: {}".format(
+                is_concave_1 and is_concave_2
+                )
+            )
+            return False
+
         radius_min = min(radius_1, radius_2)
         radius_max = max(radius_1, radius_2)
 
         radius_share = radius_min / radius_max
         if radius_share < 0.995:
             print("DEBUG: c2: neighbored_triangle_with_similar_normal_found: {}".format(neighbored_triangle_with_similar_normal_found))
-            return False
-
-        if not (is_concave_1 and is_concave_2):
-            # We have different contours..
-            print("DEBUG: c2: is_concave_1 and is_concave_2: {}".format(is_concave_1 and is_concave_2))
             return False
 
         # 2. check: cylinder(2)'s midpoint is close to cylinder(1)'s axis
@@ -679,7 +703,9 @@ class Mesh:
         # Compute the axis direction of the potential cylinder
         # and a corresponding plane.
         cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
+        print("DEBUG: cylinder_axis: {}".format(cylinder_axis))
         t1_tangent = this_triangle.normal.cross(cylinder_axis).unit()
+        print("DEBUG: t1_tangent: {}".format(t1_tangent))
 
         # Find the edge that is closest to parallel with t1_tangent
         edges = self._triangle_to_edge[this_triangle]
@@ -687,8 +713,11 @@ class Mesh:
         max_dot = 0.0
         parallel_edge = None
         vec_pointing_away = None
+        print("DEBUG: edges: {}".format(edges))
         for edge in edges:
             e_t_dot = abs(edge.vector.dot(t1_tangent))
+            print("DEBUG: e_t_dot: {}".format(e_t_dot))
+
             if e_t_dot > max_dot:
                 max_dot = e_t_dot
                 parallel_edge = edge
@@ -731,7 +760,10 @@ class Mesh:
 
         mid_point = parallel_edge.point_on_edge(0.5)
 
-        if self.is_concave(vec_pointing_away, this_triangle.normal + other_triangle.normal ):
+        if self.is_concave(vec_pointing_away,
+                           this_triangle.normal,
+                           other_triangle.normal
+                           ):
             # Offset in the direction of the normal vector
             center = mid_point + this_triangle.normal * mid_edge_to_center
         else:
@@ -797,7 +829,10 @@ class Mesh:
         t1_tangent, \
             parallel_edge, \
             vec_pointing_away, \
-            cylinder_axis = self.calculate_t1_tangent_and_others(this_triangle, other_triangle)
+            cylinder_axis = self.calculate_t1_tangent_and_others(
+                this_triangle,
+                other_triangle
+                )
 
         plane = Plane(cylinder_axis)
 
