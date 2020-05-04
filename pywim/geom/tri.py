@@ -440,7 +440,7 @@ class Mesh:
 
     def find_neighbored_surface_for_extended_check(
             self,
-            this_triangle,
+            this_triangle: Union[Triangle, int],
             coplanar_angle: float = _COPLANAR_ANGLE,
             max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
             radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
@@ -462,6 +462,7 @@ class Mesh:
         # We need to get three neighbored triangles here.
         # A valid mesh should provide this!
         if not len(connected_tris) == 3:
+            print("DEBUG: c1: len(connected_tris) == 2: {}".format(len(connected_tris)))
             return None
 
         # .. and filtering it as we did before.
@@ -475,6 +476,7 @@ class Mesh:
         # As one coplanar face should have been found before,
         # we need to get two triangles here.
         if not len(connected_tris) == 2:
+            print("DEBUG: c1: len(connected_tris_filtered) == 2: {}".format(len(connected_tris_filtered)))
             return None
 
         # One of the connected triangles is the top plane,
@@ -483,7 +485,7 @@ class Mesh:
         tri2_angle = connected_tris[1][1]
         tri_angle_delta = abs(tri1_angle.angle - tri2_angle.angle)
         if tri_angle_delta < numpy.radians(80.0):
-            print("DEBUG: tri_angle_delta < {}: {}".format(
+            print("DEBUG: c1: tri_angle_delta < {}: {}".format(
                 numpy.radians(80.0),
                 tri_angle_delta)
             )
@@ -492,8 +494,8 @@ class Mesh:
 
         # Check the areas of the two triangles. If they are very different
         # this is not a cylinder
-        print("DEBUG: this_triangle: {}".format(this_triangle))
-        print("DEBUG: connected_coplanar_tris[0]: {}".format(
+        print("DEBUG: c1: this_triangle: {}".format(this_triangle))
+        print("DEBUG: c1: connected_coplanar_tris[0]: {}".format(
             connected_coplanar_tris[0]
             )
         )
@@ -501,7 +503,7 @@ class Mesh:
         area_max = max(this_triangle.area, connected_coplanar_tris[0][0].area)
 
         if area_min / area_max < 0.90:
-            print("DEBUG: amin / amax < 0.90: {}".format(area_min / area_max))
+            print("DEBUG: c1: amin / amax < 0.90: {}".format(area_min / area_max))
             return None
 
         return connected_coplanar_tris[0]
@@ -511,19 +513,22 @@ class Mesh:
         if isinstance(this_triangle, int):
             this_triangle = next(t for t in self.triangles if t.id == this_triangle)
 
-        result_no1 = self.find_neighbored_surface_for_extended_check(
+        result_set = self.find_neighbored_surface_for_extended_check(
             this_triangle
         )
-        if not result_no1:
+
+        # If we didn't end up with results, it doesn't make sense to follow up
+        # with check number 2..
+        if not result_set:
             return False
         else:
             # If something has been found via result_no1, we need
             # to double check extended_cylindric_surface_check_no2
-            return self.extended_cylindric_surface_check_no2(result_no1)
+            return self.extended_cylindric_surface_check_no2(result_set[0])
 
     def extended_cylindric_surface_check_no2(
             self,
-            this_triangle,
+            this_triangle: Union[Triangle, int],
             coplanar_angle: float = _COPLANAR_ANGLE,
             ):
         # # Extended check, which detects stacked tessellated cylinders.
@@ -549,8 +554,10 @@ class Mesh:
         for entry in connected_tris:
             other_tri, edge_angle = entry
             if not coplanar_angle < edge_angle.angle:
+                # We found a non-flat face
                 connected_tris_non_coplanar.append(entry)
             else:
+                # We found a flat face
                 connected_tris_coplanar.append(entry)
 
         # As one coplanar face should have been found before,
@@ -566,17 +573,21 @@ class Mesh:
 
         # TODO: Got a logical mistake here.. There must be a solution for the given test...
         neighbored_triangle_with_similar_normal_found = False
-        for connected_tri_coplanar in connected_tris_coplanar:
-            connected_triangle, connected_mating_edge = connected_tri_coplanar
+        targetted_angle = this_triangle.normal.dot(other_triangle.normal)
+        print("DEBUG: c2: targetted_angle:{}".format(targetted_angle))
+        for connected_tri in connected_tris_non_coplanar:
+            connected_triangle, connected_mating_edge = connected_tri
             neighbors = self.get_neighbored_triangles(connected_triangle)
             for neighbor in neighbors:
                 neighbored_triangle, neighbored_mating_edge = neighbor
-                if other_triangle.normal.dot(neighbored_triangle.normal) < math.radians(2):
+                current_angle = connected_triangle.normal.dot(neighbored_triangle.normal)
+                print("DEBUG: c2: current_angle:{}".format(current_angle))
+                if abs(abs(targetted_angle) - abs(current_angle)) < math.radians(0.001):
                     neighbored_triangle_with_similar_normal_found = True
                     break
 
         if not neighbored_triangle_with_similar_normal_found:
-            print("DEBUG: neighbored_triangle_with_similar_normal_found: {}".format(neighbored_triangle_with_similar_normal_found))
+            print("DEBUG: c2: neighbored_triangle_with_similar_normal_found: {}".format(neighbored_triangle_with_similar_normal_found))
             return False
 
         # Renaming some variables here, it will improve the readability below.
@@ -638,12 +649,12 @@ class Mesh:
 
         radius_share = radius_min / radius_max
         if radius_share < 0.995:
-            print("DEBUG: neighbored_triangle_with_similar_normal_found: {}".format(neighbored_triangle_with_similar_normal_found))
+            print("DEBUG: c2: neighbored_triangle_with_similar_normal_found: {}".format(neighbored_triangle_with_similar_normal_found))
             return False
 
         if not (is_concave_1 and is_concave_2):
             # We have different contours..
-            print("DEBUG: is_concave_1 and is_concave_2: {}".format(is_concave_1 and is_concave_2))
+            print("DEBUG: c2: is_concave_1 and is_concave_2: {}".format(is_concave_1 and is_concave_2))
             return False
 
         # 2. check: cylinder(2)'s midpoint is close to cylinder(1)'s axis
