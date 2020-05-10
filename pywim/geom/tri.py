@@ -423,9 +423,21 @@ class Mesh:
     def general_cylinder_check(self, this_triangle):
         # Simply checks for all known cases as known and
         # listed below
-        return self.simple_cylindric_surface_check(this_triangle) or \
-            self.extended_cylindric_surface_check_no1(this_triangle) or \
-            self.extended_cylindric_surface_check_no2(this_triangle)
+
+        print("DEBUG: Running simple check")
+        result_simple_test = self.simple_cylindric_surface_check(this_triangle)
+        print("DEBUG: Result of simple check: {}".format(result_simple_test))
+
+        print("DEBUG: Running check no. 1")
+        result_extended_1 = self.extended_cylindric_surface_check_no1(this_triangle)
+        print("DEBUG: Result of check no. 1: {}".format(result_extended_1))
+        print("DEBUG: Running check no. 2")
+        result_extended_2 = self.extended_cylindric_surface_check_no2(this_triangle)
+        print("DEBUG: Result of check no. 2: {}".format(result_extended_2))
+
+        return result_simple_test or \
+            result_extended_1 or \
+            result_extended_2
 
     def simple_cylindric_surface_check(self, face_id):
         # Simple check, which savely detects
@@ -553,12 +565,22 @@ class Mesh:
         # .. and filtering it as we did before.
         for entry in connected_tris:
             other_tri, edge_angle = entry
-            if not coplanar_angle < edge_angle.angle:
-                # We found a non-flat face
-                connected_tris_non_coplanar.append(entry)
+            if coplanar_angle >= edge_angle.angle:
+                # We found a non-flat face as coplanar_angle
+                # has not been reached
+                connected_tris_coplanar.append(entry)
             else:
                 # We found a flat face
-                connected_tris_coplanar.append(entry)
+                connected_tris_non_coplanar.append(entry)
+
+        print("DEBUG: c2: connected_tris_non_coplanar: {}".format(
+            [str(x[0]) for x in connected_tris_non_coplanar],
+            )
+        )
+        print("DEBUG: c2: connected_tris_coplanar: {}".format(
+            [str(x[0]) for x in connected_tris_coplanar],
+            )
+        )
 
         # As one coplanar face should have been found before,
         # we need to get two triangles here.
@@ -573,7 +595,7 @@ class Mesh:
 
         neighbored_triangle_with_similar_normal_found = False
         targetted_angle = this_triangle.normal.dot(other_triangle.normal)
-        print("DEBUG: c2: targetted_angle:{}".format(targetted_angle))
+        print("DEBUG: c2: targetted_angle: {}".format(targetted_angle))
         for connected_tri in connected_tris_non_coplanar:
             connected_triangle, connected_mating_edge = connected_tri
             neighbors = self.get_neighbored_triangles(connected_triangle)
@@ -605,39 +627,34 @@ class Mesh:
         #       1. The the difference of cylinder_axis(1)'s and cylinder_axis(2)'s radius is minimal
         #       2. Center(2) is close to the cylinder_axis(1)
 
-        # Double check that the normals of the two triangles are
-        # not too similar. If they are, this algorithm will not work.
-        print("DEBUG: c2: this_triangle_1: {}".format(this_triangle_1))
-        print("DEBUG: c2: other_triangle_1: {}".format(other_triangle_1))
-
-        if this_triangle_1.normal.dot(other_triangle_1.normal) > 0.999:
-            result = this_triangle_1.normal.dot(other_triangle_1.normal)
-            print("DEBUG: c2: [1] too similar: {}".format(result))
-            print("DEBUG: c2: [1] rad: {}".format(result))
-            print("DEBUG: c2: [1] deg: {}".format(math.degrees(result)))
-            return False
-        if this_triangle_2.normal.dot(other_triangle_2.normal) > 0.999:
-            result = this_triangle_2.normal.dot(other_triangle_2.normal)
-            print("DEBUG: c2: [2] too similar: {}".format(this_triangle_2.normal.dot(other_triangle_2.normal)))
-            print("DEBUG: c2: [2] rad: {}".format(result))
-            print("DEBUG: c2: [2] deg: {}".format(math.degrees(result)))
-            return False
-
         # 0. preparation: Precalculating some values we need later...
+        t1_tangent_and_others_1 = self.calculate_t1_tangent_and_others(
+                this_triangle_1,
+                other_triangle_1
+                )
+
+        if not t1_tangent_and_others_1:
+            # Return None if the function above had problems
+            return False
+
+        t1_tangent_and_others_2 = self.calculate_t1_tangent_and_others(
+                this_triangle_2,
+                other_triangle_2
+                )
+
+        if not t1_tangent_and_others_2:
+            # Return None if the function above had problems
+            return False
+
         t1_tangent_1, \
             parallel_edge_1, \
             vec_pointing_away_1, \
-            cylinder_axis_1 = self.calculate_t1_tangent_and_others(
-                this_triangle_1,
-                other_triangle_1
-            )
+            cylinder_axis_1 = t1_tangent_and_others_1
+
         t1_tangent_2, \
             parallel_edge_2, \
             vec_pointing_away_2, \
-            _ = self.calculate_t1_tangent_and_others(
-                this_triangle_2,
-                other_triangle_2
-            )
+            _ = t1_tangent_and_others_2
 
         center_1, radius_1 = self.get_center_and_radius_of_cylinder(
             this_triangle_1,
@@ -657,11 +674,13 @@ class Mesh:
 
         is_concave_1 = self.is_concave(
             vec_pointing_away_1,
-            this_triangle_1.normal + other_triangle_1.normal
+            this_triangle_1.normal,
+            other_triangle_1.normal
         )
         is_concave_2 = self.is_concave(
             vec_pointing_away_2,
-            this_triangle_2.normal + other_triangle_2.normal
+            this_triangle_2.normal,
+            other_triangle_2.normal
         )
 
         # 1. check: Doing some quick comparisons...
@@ -685,6 +704,7 @@ class Mesh:
         # As found on my papers from studies and on wikipedia:
         # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
         delta_midpoint = center_1 - center_2
+        delta_midpoint = numpy.asarray(delta_midpoint.point)
         projected_length = delta_midpoint.dot(cylinder_axis_1) * \
             cylinder_axis_1
         distance = delta_midpoint - projected_length
@@ -700,6 +720,19 @@ class Mesh:
             this_triangle,
             other_triangle,
             ):
+
+        # Double check that the normals of the two triangles are
+        # not too similar. If they are, this algorithm will not work.
+        print("DEBUG: calculate_t1_tangent_and_others: this_triangle: {}".format(this_triangle))
+        print("DEBUG: calculate_t1_tangent_and_others: other_triangle: {}".format(other_triangle))
+
+        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
+            result = this_triangle.normal.dot(other_triangle.normal)
+            print("DEBUG: calculate_t1_tangent_and_others: too similar: {}".format(result))
+            print("DEBUG: calculate_t1_tangent_and_others: rad: {}".format(result))
+            print("DEBUG: calculate_t1_tangent_and_others: deg: {}".format(math.degrees(result)))
+            return None
+
         # Compute the axis direction of the potential cylinder
         # and a corresponding plane.
         cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
@@ -819,20 +852,20 @@ class Mesh:
             print("DEBUG: area_min / area_max < 0.75: {}".format(area_share))
             return None
 
-        # Double check that the normals of the two triangles are
-        # not too similar. If they are, this algorithm will not work.
-        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
-            print("DEBUG: this_triangle.dot(other_triangle.normal) > 0.999: {}".format(this_triangle.normal.dot(other_triangle.normal)))
-            return None
-
         # Computing some commonly needed values...
-        t1_tangent, \
-            parallel_edge, \
-            vec_pointing_away, \
-            cylinder_axis = self.calculate_t1_tangent_and_others(
+        t1_tangent_and_others = self.calculate_t1_tangent_and_others(
                 this_triangle,
                 other_triangle
                 )
+
+        if not t1_tangent_and_others:
+            # Return None if the function above had problems
+            return None
+
+        t1_tangent, \
+            parallel_edge, \
+            vec_pointing_away, \
+            cylinder_axis = t1_tangent_and_others
 
         plane = Plane(cylinder_axis)
 
