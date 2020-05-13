@@ -328,7 +328,7 @@ class Mesh:
             for e in self._triangle_to_edge[t]:
                 for edge_angle in e.angles:
                     if edge_condition(edge_angle):
-                        edge_tris = { edge_angle.t1, edge_angle.t2 }
+                        edge_tris = {edge_angle.t1, edge_angle.t2}
 
                         # Add triangles to tris_to_check that are not in the face
                         # If a triangle is in face it has already been checked
@@ -651,10 +651,6 @@ class Mesh:
         this_triangle_2 = connected_triangle
         this_mating_edge_2 = neighbored_mating_edge
         other_triangle_2 = neighbored_triangle
-
-        # TODO: Adding the final check whether both triangles share the same axis..
-        #       1. The the difference of cylinder_axis(1)'s and cylinder_axis(2)'s radius is minimal
-        #       2. Center(2) is close to the cylinder_axis(1)
 
         # 0. preparation: Precalculating some values we need later...
         t1_tangent_and_others_1 = self.calculate_t1_tangent_and_others(
