@@ -45,7 +45,12 @@ class Triangle(_MeshEntity):
         self.normal = Triangle._compute_normal(self.v1, self.v2, self.v3)
 
     def __str__(self):
-        return '{} :: [{}, {}, {}]'.format(self.id, self.v1.id, self.v2.id, self.v3.id)
+        return '{} :: [{}, {}, {}]'.format(
+            self.id,
+            self.v1.id,
+            self.v2.id,
+            self.v3.id
+        )
 
     @staticmethod
     def _compute_normal(v1, v2, v3):
@@ -253,7 +258,7 @@ class Mesh:
                 e1 = SimpleEdge(t.v1, t.v2)
                 e2 = SimpleEdge(t.v2, t.v3)
                 e3 = SimpleEdge(t.v3, t.v1)
-            except:
+            except Exception:
                 # Triangle has an invalid edge - skip it
                 continue
 
@@ -912,7 +917,7 @@ class Mesh:
         # Setup the edge check to verify all vertices fall between the inner and outer
         triangle_filter = lambda triangle: \
             plane.vector_angle(triangle.normal) <= coplanar_angle and \
-            all([ outer_cyl.inside(v) and not inner_cyl.inside(v) for v in triangle.points ])
+            all([outer_cyl.inside(v) and not inner_cyl.inside(v) for v in triangle.points ])
 
         face = self._select_connected_triangles(this_triangle, triangle_filter)
 
