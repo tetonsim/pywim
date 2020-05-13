@@ -5,7 +5,7 @@ from .. import WimObject, WimList, WimTuple, WimIgnore
 
 class NumOptParam(WimObject):
     '''
-    Numerical optimization parmater class. Treated as a discrete variable with given min, max, and step_sizerement.
+    Numerical optimization parameter class. Treated as a discrete variable with given min, max, and step_size.
     '''
     def __init__(self, name='num_name', minimum=1., maximum=1., number_of_steps=0, active=False, mesh_type=chop.mesh.MeshType.normal):
         self.name = name
@@ -17,6 +17,8 @@ class NumOptParam(WimObject):
 
     @property
     def step_size(self):
+        if self.number_of_steps == 0:
+            return 0.
         return (self.maximum - self.minimum) / self.number_of_steps
 
     @property
