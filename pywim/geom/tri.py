@@ -6,7 +6,7 @@ import numpy
 try:
     import stl
     NUMPY_STL = True
-except:
+except ImportError:
     NUMPY_STL = False
 
 from typing import Dict, List, Set, Union, Callable
@@ -14,6 +14,7 @@ from typing import Dict, List, Set, Union, Callable
 from . import Vertex as _Vertex
 from . import Edge as _Edge
 from . import InfiniteCylinder, Plane, Polygon, Vector
+
 
 class _MeshEntity:
     def __init__(self, id):
@@ -25,6 +26,7 @@ class _MeshEntity:
     def __eq__(self, other):
         return self.id == other.id
 
+
 class Vertex(_MeshEntity, _Vertex):
     def __init__(self, id, *args, **kwargs):
         _MeshEntity.__init__(self, id)
@@ -32,6 +34,7 @@ class Vertex(_MeshEntity, _Vertex):
 
     def __str__(self):
         return '{} :: ({}, {}, {})'.format(self.id, self.x, self.y, self.z)
+
 
 class Triangle(_MeshEntity):
     def __init__(self, id, v1, v2, v3):
@@ -61,31 +64,34 @@ class Triangle(_MeshEntity):
         v13 = Vector.FromTwoPoints(self.v1, self.v3)
         return 0.5 * v12.cross(v13).magnitude()
 
-    def angle(self, other : 'Triangle') -> float:
+    def angle(self, other: 'Triangle') -> float:
         return self.normal.unit_angle(other.normal)
 
+
 class SimpleEdge:
-    def __init__(self, v1 : Vertex, v2 : Vertex):
+    def __init__(self, v1: Vertex, v2: Vertex):
         if v1.id == v2.id:
             raise Exception('SimpleEdge cannot have matching vertices')
         self.v1 = v1 if v1.id < v2.id else v2
         self.v2 = v2 if v2.id > v1.id else v1
 
-    def __eq__(self, other : 'SimpleEdge'):
+    def __eq__(self, other: 'SimpleEdge'):
         # assumes v1.id is always lower than v2.id
         return self.v1 == other.v1 and self.v2 == other.v2
 
     def __hash__(self):
         return hash((self.v1.id, self.v2.id))
 
+
 class EdgeAngle:
-    def __init__(self, t1 : Triangle, t2 : Triangle):
+    def __init__(self, t1: Triangle, t2: Triangle):
         self.t1 = t1
         self.t2 = t2
         self.angle = t1.angle(t2)
 
+
 class Edge(_MeshEntity, _Edge):
-    def __init__(self, id, v1 : Vertex, v2 : Vertex):
+    def __init__(self, id, v1: Vertex, v2: Vertex):
         _MeshEntity.__init__(self, id)
 
         if v1.id == v2.id:
@@ -105,8 +111,9 @@ class Edge(_MeshEntity, _Edge):
         #return set([t for t in [a.t1, a.t2] for a in self.angles])
         return set([t for a in self.angles for t in [a.t1, a.t2]])
 
+
 class Mesh:
-     # all angles in radians
+    # all angles in radians
     _COPLANAR_ANGLE = 0.002
     _MAX_EDGE_CYLINDER_ANGLE = math.pi / 6.
     _CYLINDER_RADIUS_TOLERANCE = 0.05
@@ -116,8 +123,8 @@ class Mesh:
         self.triangles = []
         self.edges = []
 
-        self._vertex_to_triangle = {} # Dict[Vertex, Set[Triangle]]
-        self._triangle_to_edge = {} # Dict[Triangle, Set[Edge]]
+        self._vertex_to_triangle = {}  # Dict[Vertex, Set[Triangle]]
+        self._triangle_to_edge = {}  # Dict[Triangle, Set[Edge]]
 
     def __str__(self):
         s = 'Vertices:\n'
@@ -166,7 +173,11 @@ class Mesh:
             self._vertex_to_triangle[v].add(t)
         return t
 
-    def analyze_mesh(self, remove_degenerate_triangles=True, renumber_vertices=False, renumber_triangles=True):
+    def analyze_mesh(self,
+                     remove_degenerate_triangles=True,
+                     renumber_vertices=False,
+                     renumber_triangles=True
+                     ):
         self._combine_vertices(renumber_vertices)
         if remove_degenerate_triangles:
             self._remove_degenerate_triangles(renumber_triangles)
@@ -250,7 +261,7 @@ class Mesh:
                 if e in edge_tris:
                     edge_tris[e].add(t)
                 else:
-                    edge_tris[e] = { t }
+                    edge_tris[e] = {t}
 
             self._triangle_to_edge[t] = set()
 
@@ -264,19 +275,22 @@ class Mesh:
                 continue
 
             for t1, t2 in itertools.combinations(tris, 2):
-                edge.angles.append( EdgeAngle(t1, t2) )
+                edge.angles.append(EdgeAngle(t1, t2))
                 self._triangle_to_edge[t1].add(edge)
                 self._triangle_to_edge[t2].add(edge)
 
             eid += 1
 
-    def _select_connected_triangles(self, tri : Triangle, triangle_filter : Callable[[Triangle], bool]) -> List[Triangle]:
+    def _select_connected_triangles(self,
+                                    tri: Triangle,
+                                    triangle_filter: Callable[[Triangle], bool]
+                                    ) -> List[Triangle]:
         '''
         Finds connected triangles who are connected via an edge that satisfies the given triangle_filter
         '''
 
-        face = { tri }
-        tris_to_check = { tri }
+        face = {tri}
+        tris_to_check = {tri}
 
         while len(tris_to_check) > 0:
             t = tris_to_check.pop()
@@ -291,13 +305,16 @@ class Mesh:
 
         return face
 
-    def _select_connected_triangles_edge_condition(self, tri : Triangle, edge_condition : Callable[[EdgeAngle], bool]) -> List[Triangle]:
+    def _select_connected_triangles_edge_condition(self,
+                                                   tri: Triangle,
+                                                   edge_condition: Callable[[EdgeAngle], bool]
+                                                   ) -> List[Triangle]:
         '''
         Finds connected triangles who are connected via an edge that satisfies the given edge_condition
         '''
 
-        face = { tri }
-        tris_to_check = { tri }
+        face = {tri}
+        tris_to_check = {tri}
 
         # The initial set of Triangles to check is the given Triangle.
         #
@@ -334,7 +351,10 @@ class Mesh:
 
         return face
 
-    def triangles_in_parallel_plane(self, tri : Union[Triangle, int], max_angle : float = _COPLANAR_ANGLE) -> List[Triangle]:
+    def triangles_in_parallel_plane(self,
+                                    tri: Union[Triangle, int],
+                                    max_angle: float = _COPLANAR_ANGLE
+                                    ) -> List[Triangle]:
         '''
         Returns a list of Triangles that are in any plane that is co-planar to the plane
         that the given Triangle lies in. max_angle is the maximum angle to consider as
@@ -351,14 +371,17 @@ class Mesh:
 
         return plane_tris
 
-    def select_planar_face(self, tri : Union[Triangle, int]) -> List[Triangle]:
+    def select_planar_face(self, tri: Union[Triangle, int]) -> List[Triangle]:
         '''
         Returns a list of Triangles that are co-planar and connected with the given Triangle.
         '''
 
         return self.select_face_by_edge_angle(tri, Mesh._COPLANAR_ANGLE)
 
-    def select_face_by_edge_angle(self, tri : Union[Triangle, int], max_angle : float) -> List[Triangle]:
+    def select_face_by_edge_angle(self,
+                                  tri: Union[Triangle, int],
+                                  max_angle: float
+                                  ) -> List[Triangle]:
         '''
         Returns a list of Triangles that are connected with the given Triangle and connected
         through an Edge that is below the given max_angle. In other words Triangle normal
@@ -372,8 +395,12 @@ class Mesh:
 
         return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
-    def select_face_by_normals_in_plane(self, tri : Union[Triangle, int], plane : Plane,
-        max_angle : float = _COPLANAR_ANGLE, max_edge_angle : float = _MAX_EDGE_CYLINDER_ANGLE) -> List[Triangle]:
+    def select_face_by_normals_in_plane(self,
+                                        tri: Union[Triangle, int],
+                                        plane: Plane,
+                                        max_angle: float = _COPLANAR_ANGLE,
+                                        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE
+                                        ) -> List[Triangle]:
         '''
         '''
         if isinstance(tri, int):
@@ -388,12 +415,11 @@ class Mesh:
 
         return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
-    def get_neighbored_triangles(
-            self,
-            tri: Union[Triangle, int],
-            coplanar_angle: float = _COPLANAR_ANGLE,
-            max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE
-            ):
+    def get_neighbored_triangles(self,
+                                 tri: Union[Triangle, int],
+                                 coplanar_angle: float = _COPLANAR_ANGLE,
+                                 max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE
+                                 ):
 
         # Convert an intenger into an Triangle if needed..
         if isinstance(tri, int):
@@ -428,6 +454,9 @@ class Mesh:
         result_simple_test = self.simple_cylindric_surface_check(this_triangle)
         print("DEBUG: Result of simple check: {}".format(result_simple_test))
 
+        # Just for logs
+        self.try_select_cylinder_face(this_triangle)
+
         print("DEBUG: Running check no. 1")
         result_extended_1 = self.extended_cylindric_surface_check_no1(this_triangle)
         print("DEBUG: Result of check no. 1: {}".format(result_extended_1))
@@ -450,13 +479,12 @@ class Mesh:
 
         return len(planar_selected_faces) <= 2
 
-    def find_neighbored_surface_for_extended_check(
-            self,
-            this_triangle: Union[Triangle, int],
-            coplanar_angle: float = _COPLANAR_ANGLE,
-            max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
-            radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
-            ):
+    def find_neighbored_surface_for_extended_check(self,
+                                                   this_triangle: Union[Triangle, int],
+                                                   coplanar_angle: float = _COPLANAR_ANGLE,
+                                                   max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+                                                   radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
+                                                   ):
         # # Extended check, which detects stacked tessellated cylinders.
         # # That one happens e.g. if an cylindric hole is deeper
         # # than the max edge length in Autodesk Inventors STL export settings.
@@ -474,7 +502,9 @@ class Mesh:
         # We need to get three neighbored triangles here.
         # A valid mesh should provide this!
         if not len(connected_tris) == 3:
-            print("DEBUG: c1: len(connected_tris) == 2: {}".format(len(connected_tris)))
+            print("DEBUG: c1: len(connected_tris) == 2: {}".format(
+                len(connected_tris))
+            )
             return None
 
         # .. and filtering it as we did before.
@@ -538,11 +568,10 @@ class Mesh:
             # to double check extended_cylindric_surface_check_no2
             return self.extended_cylindric_surface_check_no2(result_set[0])
 
-    def extended_cylindric_surface_check_no2(
-            self,
-            this_triangle: Union[Triangle, int],
-            coplanar_angle: float = _COPLANAR_ANGLE,
-            ):
+    def extended_cylindric_surface_check_no2(self,
+                                             this_triangle: Union[Triangle, int],
+                                             coplanar_angle: float = _COPLANAR_ANGLE,
+                                             ):
         # # Extended check, which detects stacked tessellated cylinders.
         # # That one happens e.g. if an cylindric hole is deeper
         # # than the max edge length in Autodesk Inventors STL export settings.
@@ -715,11 +744,10 @@ class Mesh:
 
         return True
 
-    def calculate_t1_tangent_and_others(
-            self,
-            this_triangle,
-            other_triangle,
-            ):
+    def calculate_t1_tangent_and_others(self,
+                                        this_triangle,
+                                        other_triangle,
+                                        ):
 
         # Double check that the normals of the two triangles are
         # not too similar. If they are, this algorithm will not work.
@@ -771,14 +799,13 @@ class Mesh:
         normal_average = (normal_1 + normal_2).unit()
         return vec_pointing_away.dot(normal_average) > 0.0
 
-    def get_center_and_radius_of_cylinder(
-            self,
-            this_triangle,
-            this_mating_edge,
-            other_triangle,
-            parallel_edge,
-            vec_pointing_away
-            ):
+    def get_center_and_radius_of_cylinder(self,
+                                          this_triangle,
+                                          this_mating_edge,
+                                          other_triangle,
+                                          parallel_edge,
+                                          vec_pointing_away
+                                          ):
 
         # Assume the parallel edge is an edge of a regular polygon
         # https://en.wikipedia.org/wiki/Regular_polygon
@@ -805,13 +832,12 @@ class Mesh:
 
         return center, radius
 
-    def try_select_cylinder_face(
-            self,
-            this_triangle: Union[Triangle, int],
-            coplanar_angle: float = _COPLANAR_ANGLE,
-            max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
-            radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
-            ) -> List[Triangle]:
+    def try_select_cylinder_face(self,
+                                 this_triangle: Union[Triangle, int],
+                                 coplanar_angle: float = _COPLANAR_ANGLE,
+                                 max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+                                 radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
+                                 ) -> List[Triangle]:
 
         # Convert an intenger into an Triangle if needed..
         if isinstance(this_triangle, int):
@@ -880,8 +906,12 @@ class Mesh:
         # Create inner and outer cylinders to check that vertices fall between the
         # two cylinders. If they don't we assume that triangle is NOT part of the
         # potential selected cylinder
-        inner_cyl = InfiniteCylinder(center, radius * (1. - radius_tol), cylinder_axis)
-        outer_cyl = InfiniteCylinder(center, radius * (1. + radius_tol), cylinder_axis)
+        inner_cyl = InfiniteCylinder(center,
+                                     radius * (1. - radius_tol),
+                                     cylinder_axis)
+        outer_cyl = InfiniteCylinder(center,
+                                     radius * (1. + radius_tol),
+                                     cylinder_axis)
 
         # Setup the edge check to verify all vertices fall between the inner and outer
         triangle_filter = lambda triangle: \
