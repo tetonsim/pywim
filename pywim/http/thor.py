@@ -1,7 +1,9 @@
 from typing import Any, Tuple, Union, Optional
 
 import enum
+import datetime
 import requests
+import time
 
 from pywim import WimObject, WimList
 
@@ -35,11 +37,45 @@ class Token(WimObject):
 
 class UserAuth(WimObject):
     '''
-    User authentication
+    User authentication response
     '''
     def __init__(self):
         self.user = User()
         self.token = Token()
+
+class JobInfo(WimObject):
+    class Type(enum.Enum):
+        validation = 101
+        optimizaton = 102
+
+    class Status(enum.Enum):
+        idle = 101          # Created, but not submitted to a queue
+        queued = 102        # Job in queue, but not picked up by an engine yet
+        running = 201       # Job is being solved
+        finished = 301      # Finished and results are available
+        aborted = 401       # Aborted by the user. A run can be aborted before or after it enters the running state
+        failed = 402        # The job started, but failed in a graceful fashion. A helpful error message should be available.
+        crashed = 403       # The job started, but the process crashed. Helpful error messages are probably not available (e.g. seg fault)
+
+    class Error(WimObject):
+        def __init__(self):
+            self.message = ''
+
+    def __init__(self):
+        default_dt = datetime.datetime(1900, 1, 1)
+
+        self.id = ''
+        #self.type = JobInfo.Type.validation
+        self.status = JobInfo.Status.idle
+        self.progress = 0
+        self.queued = default_dt
+        self.started = default_dt
+        self.finished = default_dt
+        self.start_estimate = default_dt
+        self.runtime_estimate = ''
+        self.runtime = 0
+        self.result = {}
+        self.errors = WimList(JobInfo.Error)
 
 class Client:
     def __init__(self, hostname='api.smartslice.xyz', port=443, protocol='https'):
@@ -127,7 +163,7 @@ class Client:
     def whoami(self) -> Tuple[int, Union[UserAuth, ApiResult]]:
         resp = self._get('/auth/whoami')
 
-        if resp.status_code >= 500:
+        if resp.status_code in (401, 500):
             return resp.status_code, None
 
         if resp.status_code == 200:
@@ -138,7 +174,7 @@ class Client:
     def refresh_token(self) -> Tuple[int, Union[UserAuth, ApiResult]]:
         resp = self._put('/auth/token')
 
-        if resp.status_code >= 500:
+        if resp.status_code in (401, 500):
             return resp.status_code, None
 
         if resp.status_code == 200:
@@ -150,9 +186,66 @@ class Client:
     def release_token(self) -> Tuple[int, ApiResult]:
         resp = self._delete('/auth/token')
 
-        if resp.status_code >= 500:
+        if resp.status_code in (401, 500):
             return resp.status_code, None
 
         self._bearer_token = None
 
         return self._code_and_object(resp, ApiResult)
+
+    def new_smartslice_job(self, tmf : bytes) -> Tuple[int, Union[JobInfo, ApiResult]]:
+        resp = self._post('/smartslice', tmf)
+
+        if resp.status_code in (401, 500):
+            return resp.status_code, None
+
+        if resp.status_code == 400:
+            return self._code_and_object(resp, ApiResult)
+
+        return self._code_and_object(resp, JobInfo)
+
+    def smartslice_job(self, job_id : str, include_results : bool = False) -> Tuple[int, Union[JobInfo, ApiResult]]:
+        if include_results:
+            resp = self._get('/smartslice/result/%s' % job_id)
+        else:
+            resp = self._get('/smartslice/%s' % job_id)
+
+        if resp.status_code in (401, 500):
+            return resp.status_code, None
+
+        if resp.status_code == 400:
+            return self._code_and_object(resp, ApiResult)
+
+        return self._code_and_object(resp, JobInfo)
+
+    def smartslice_job_wait(self, job_id : str, timeout : int = 600) -> Tuple[int, Union[JobInfo, ApiResult]]:
+        start_period = 1
+        max_poll_period = 30
+        poll_multiplier = 1.25
+
+        fperiod = lambda previous_period: min(max_poll_period, previous_period * poll_multiplier)
+
+        period = start_period
+        start_poll = time.time()
+
+        while True:
+            time.sleep(period)
+            period = fperiod(period)
+
+            status_code, job = self.smartslice_job(job_id, include_results=True)
+
+            if status_code != 200:
+                return status_code, job
+
+            if job.status in (
+                JobInfo.Status.finished,
+                JobInfo.Status.failed,
+                JobInfo.Status.aborted,
+                JobInfo.Status.crashed
+            ):
+                break
+
+            if timeout is not None and (time.time() - start_poll) > timeout:
+                break
+
+        return status_code, job
