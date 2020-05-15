@@ -581,7 +581,7 @@ class Polygon(Shape2d):
         for l in self.edges():
             A += 0.5 * (l.v2.x - l.v1.x) * (l.v2.y + l.v1.y)
 
-        return abs(A)
+        return A
 
     """
     Checks if the Vertex, v, is inside this Polygon and returns True/False.
