@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Union, Optional
+from typing import Any, Tuple, Union, Optional, Callable
 
 import enum
 import datetime
@@ -236,7 +236,20 @@ class Client:
 
         return self._code_and_object(resp, JobInfo)
 
-    def smartslice_job_wait(self, job_id : str, timeout : int = 600) -> Tuple[int, Union[JobInfo, ApiResult]]:
+    def smartslice_job_abort(self, job_id : str) -> Tuple[int, Optional[JobInfo]]:
+        resp = self._delete('/smartslice/%s' % job_id)
+
+        if resp.status_code == 200:
+            return self._code_and_object(resp, JobInfo)
+
+        return resp.status_code, None
+
+    def smartslice_job_wait(
+        self,
+        job_id : str,
+        timeout : int = 600,
+        callback : Callable[[JobInfo], bool] = None
+    ) -> Tuple[int, Union[JobInfo, ApiResult]]:
         start_period = 1
         max_poll_period = 30
         poll_multiplier = 1.25
@@ -265,5 +278,10 @@ class Client:
 
             if timeout is not None and (time.time() - start_poll) > timeout:
                 break
+
+            if callback:
+                abort = callback(job)
+                if abort:
+                    return self.smartslice_job_abort(job.id)
 
         return status_code, job
