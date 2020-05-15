@@ -141,6 +141,24 @@ class Client:
     def _code_and_object(self, resp : requests.Response, T):
         return resp.status_code, T.from_dict(resp.json())
 
+    def get_token(self) -> str:
+        return self._bearer_token
+
+    def set_token(self, token_id : str):
+        '''
+        Set the auth token explicitly. This is useful if the token was stored
+        and retrieved locally
+        '''
+        self._bearer_token = token_id
+
+    def info(self) -> Tuple[int, dict]:
+        resp = self._get('/')
+
+        if resp.status_code == 200:
+            return resp.status_code, resp.json()
+
+        return resp.status_code, None
+
     def basic_auth_login(self, email, password) -> Tuple[int, Union[UserAuth, ApiResult]]:
         resp = self._post(
             '/auth/token',
@@ -167,7 +185,7 @@ class Client:
             return resp.status_code, None
 
         if resp.status_code == 200:
-            self._code_and_object(resp, UserAuth)
+            return self._code_and_object(resp, UserAuth)
 
         return self._code_and_object(resp, ApiResult)
 
