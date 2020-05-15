@@ -212,6 +212,9 @@ class Client:
         return self._code_and_object(resp, ApiResult)
 
     def new_smartslice_job(self, tmf : bytes) -> Tuple[int, Union[JobInfo, ApiResult]]:
+        '''
+        Submits the provided 3MF as a new job and returns the new JobInfo object.
+        '''
         resp = self._post('/smartslice', tmf)
 
         if resp.status_code in (401, 500):
@@ -223,12 +226,16 @@ class Client:
         return self._code_and_object(resp, JobInfo)
 
     def smartslice_job(self, job_id : str, include_results : bool = False) -> Tuple[int, Union[JobInfo, ApiResult]]:
+        '''
+        Retrieves a JobInfo object from an existing job id. Will return a 404
+        if the user doesn't have access to the specified job.
+        '''
         if include_results:
             resp = self._get('/smartslice/result/%s' % job_id)
         else:
             resp = self._get('/smartslice/%s' % job_id)
 
-        if resp.status_code in (401, 500):
+        if resp.status_code in (401, 404, 500):
             return resp.status_code, None
 
         if resp.status_code == 400:
@@ -237,6 +244,11 @@ class Client:
         return self._code_and_object(resp, JobInfo)
 
     def smartslice_job_abort(self, job_id : str) -> Tuple[int, Optional[JobInfo]]:
+        '''
+        Requests the job with the given id should be aborted. This will return
+        the updated JobInfo object to reflect the new status after the server
+        processes the abort request.
+        '''
         resp = self._delete('/smartslice/%s' % job_id)
 
         if resp.status_code == 200:
@@ -250,6 +262,15 @@ class Client:
         timeout : int = 600,
         callback : Callable[[JobInfo], bool] = None
     ) -> Tuple[int, Union[JobInfo, ApiResult]]:
+        '''
+        This is a blocking function that will periodically poll the job status until
+        it completes. Additionally, a timeout parameter can be given to specify the maximum
+        amount of time, in seconds, to poll for. A callback function can be provided
+        that will be called periodically with the JobInfo object so the caller can take
+        actions as the job progresses. The callback must return a bool specifying if the
+        job should be aborted (True) or not (False).
+        '''
+
         start_period = 1
         max_poll_period = 30
         poll_multiplier = 1.25
