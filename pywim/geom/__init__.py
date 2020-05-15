@@ -404,6 +404,16 @@ class Vector(object):
     def __neg__(self):
         return Vector(-self.r, -self.s, -self.t, self.origin)
 
+    def __add__(self, other):
+        if isinstance(other, Vector):
+            return Vector(self.r + other.r, self.s + other.s, self.t + other.t)
+        raise NotImplementedError()
+
+    def __sub__(self, other):
+        if isinstance(other, Vector):
+            return Vector(self.r - other.r, self.s - other.s, self.t - other.t)
+        raise NotImplementedError()
+
     def __mul__(self, other):
         if isinstance(other, Vector):
             return self.dot(other)
@@ -505,6 +515,9 @@ class Plane(object):
         v2 = self.closest_point(edge.v2)
         return Edge(v1, v2)
 
+    def vector_angle(self, vector : Vector) -> float:
+        return math.asin(abs(self.normal.dot( vector.unit() )))
+
 Plane.XY = Plane(Vector(0.0, 0.0, 1.0))
 Plane.XZ = Plane(Vector(0.0, 1.0, 0.0))
 Plane.YZ = Plane(Vector(1.0, 0.0, 0.0))
@@ -568,7 +581,7 @@ class Polygon(Shape2d):
         for l in self.edges():
             A += 0.5 * (l.v2.x - l.v1.x) * (l.v2.y + l.v1.y)
 
-        return A
+        return abs(A)
 
     """
     Checks if the Vertex, v, is inside this Polygon and returns True/False.
@@ -617,6 +630,22 @@ class Sphere(Shape):
             return d <= (self.radius + shape.radius)
 
         raise Shape._intersect_undefined(self, shape)
+
+class InfiniteCylinder(Shape):
+    def __init__(self, center, radius, vector=None):
+        super(Shape, self).__init__()
+        self.center = center
+        self.radius = radius
+
+        if vector is None:
+            self.vector = Vector.UnitVector(1.0, 0.0, 0.0)
+        else:
+            self.vector = vector.unit()
+
+    def inside(self, p : Vertex) -> bool:
+        w = Vector.FromTwoPoints(self.center, p)
+        vec_to_p = w + ( - ((w.dot(self.vector)) * self.vector))
+        return vec_to_p.magnitude() < self.radius
 
 class Cylinder(Shape):
     def __init__(self, center, radius, length, vector=None):
