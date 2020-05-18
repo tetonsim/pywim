@@ -125,20 +125,7 @@ class Client:
     def _delete(self, endpoint : str, data : Any = None, **kwargs) -> requests.Response:
         return self._request('delete', endpoint, data, **kwargs)
 
-    def _serialize_request(self, data, request_type):
-        if data and isinstance(data, (WimObject, WimList)):
-            return data.to_dict()
-        return data
-
-    def _deserialize_response(self, response, response_type):
-        if response_type == dict:
-            return response.json()
-        elif hasattr(response_type, 'from_dict'):
-            return response_type.from_dict(response.json())
-
-        return response_type(response.text)
-
-    def _code_and_object(self, resp : requests.Response, T):
+    def _code_and_object(self, resp : requests.Response, T : type):
         return resp.status_code, T.from_dict(resp.json())
 
     def get_token(self) -> str:
