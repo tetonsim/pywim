@@ -209,3 +209,8 @@ class HttpClient:
         )
 
 from . import smartslice, wim
+
+# temporary fix until new Thor client is sorted out
+
+thor = smartslice
+
