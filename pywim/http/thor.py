@@ -89,12 +89,19 @@ class Client:
         return '%s://%s:%i' % (self.protocol, self.hostname, self.port)
 
     def _headers(self):
+        '''
+        Returns a dictionary of additional headers that will be added
+        to every request.
+        '''
         hdrs = {}
         if self._bearer_token:
             hdrs['Authorization'] = 'Bearer ' + self._bearer_token
         return hdrs
 
     def _request(self, method : str, endpoint : str, data : Any, **kwargs) -> requests.Response:
+        '''
+        Assembles an HTTP request and submits it using the requests library.
+        '''
         if isinstance(data, bytes):
             request_args = { 'data': data }
         else:
@@ -125,7 +132,7 @@ class Client:
     def _delete(self, endpoint : str, data : Any = None, **kwargs) -> requests.Response:
         return self._request('delete', endpoint, data, **kwargs)
 
-    def _code_and_object(self, resp : requests.Response, T : type):
+    def _code_and_object(self, resp : requests.Response, T : WimObject):
         return resp.status_code, T.from_dict(resp.json())
 
     def get_token(self) -> str:
@@ -134,7 +141,7 @@ class Client:
     def set_token(self, token_id : str):
         '''
         Set the auth token explicitly. This is useful if the token was stored
-        and retrieved locally
+        and retrieved locally.
         '''
         self._bearer_token = token_id
 
