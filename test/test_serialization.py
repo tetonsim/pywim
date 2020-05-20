@@ -1,5 +1,6 @@
 import unittest
 import enum
+import datetime
 
 import pywim
 
@@ -26,6 +27,10 @@ class ObjectIgnore(pywim.WimObject):
     def __init__(self):
         self.x = Primitives('alaska')
         self.y = pywim.WimIgnore.make(Primitives)('alabama')
+
+class ObjectWithDateTimes(pywim.WimObject):
+    def __init__(self):
+        self.a = datetime.datetime.utcnow()
 
 class WimObjectTest(unittest.TestCase):
     def test_primitives(self):
@@ -87,7 +92,7 @@ class WimObjectTest(unittest.TestCase):
 
     def test_ignore(self):
         i1 = ObjectIgnore()
-        
+
         i1.x.a = 101
 
         # modify y - our tests below will make sure
@@ -108,3 +113,18 @@ class WimObjectTest(unittest.TestCase):
 
         self.assertNotEqual(i2.y.a, 102)
         self.assertEqual(i2.y.b, 'alabama') # should be equal to what ObjectIgnore constructs it to
+
+    def test_date_times(self):
+        obj = ObjectWithDateTimes()
+
+        wyo_statehood = datetime.datetime(1890, 7, 10, 8, 0, 0)
+        obj.a = wyo_statehood
+
+        d = obj.to_dict()
+
+        self.assertTrue('a' in d.keys())
+        self.assertEqual(d['a'], wyo_statehood.isoformat())
+
+        obj2 = ObjectWithDateTimes.from_dict(d)
+
+        self.assertEqual(obj2.a, wyo_statehood)
