@@ -5,6 +5,7 @@ from ... import am, fea, http
 
 try:
     import scipy
+    import scipy.optimize
 except:
     from warnings import warn
     warn('Failed to import scipy. pywim.optimization will not work')
@@ -70,7 +71,7 @@ class Config(WimObject):
     '''
     def __init__(self):
         self.protocol = 'https'
-        self.hostname = 'wim-19.fea.cloud'
+        self.hostname = 'wim-20.fea.cloud'
         self.port = 443
         self.max_error = 0.01
         self.xatol = 0.001
