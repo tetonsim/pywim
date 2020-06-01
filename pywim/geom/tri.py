@@ -917,7 +917,7 @@ class Mesh:
         )
 
         if not t1_tangent_and_others:
-            # Return None if the function above had problems
+            logging.debug("Issues occured while running t1_tangent_and_others: {}".format(t1_tangent_and_others))
             return None
 
         t1_tangent, \
@@ -960,7 +960,7 @@ class Mesh:
         if len(face) <= 2:
             # Only the original triangle and the one co-planar triangle were
             # found so this is probably not a cylinder
-            logging.debug("DEBUG: len(face) <= 2: {}".format(repr(face)))
+            logging.debug("len(face) <= 2: {}".format(repr(face)))
 
             return None
 
