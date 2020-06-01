@@ -32,6 +32,20 @@ class PrevalidationError:
     def resolution(self):
         raise NotImplementedError()
 
+class InvalidSetup(PrevalidationError):
+    '''
+    General error
+    '''
+    def __init__(self, error, resolution):
+        self._error = error
+        self._resolution = resolution
+
+    def error(self):
+        return self._error
+
+    def resolution(self):
+        return self._resolution
+
 class InvalidPrintSetting(PrevalidationError):
     '''
     Error for when a print setting does not take a required value.
@@ -42,10 +56,10 @@ class InvalidPrintSetting(PrevalidationError):
         self.setting_value = setting_value
 
     def error(self):
-        return '{} print setting is invalid on mesh {}.'.format(self.setting_name, self.mesh.name)
+        return 'Unsupported {} for mesh {}.'.format(self.setting_name, self.mesh.name)
 
     def resolution(self):
-        return 'Set {} to {}'.format(self.setting_name, self.setting_value)
+        return '{} must equal {}'.format(self.setting_name, self.setting_value)
 
 class OutOfBoundsPrintSetting(PrevalidationError):
     '''
@@ -58,10 +72,10 @@ class OutOfBoundsPrintSetting(PrevalidationError):
         self.max_value = max_value
 
     def error(self):
-        return '{} print setting is invalid on mesh {}. '.format(self.setting_name, self.mesh.name)
+        return 'Unsupported {} for mesh {}. '.format(self.setting_name, self.mesh.name)
 
     def resolution(self):
-        return 'Set {} to a value between {} and {}.'.format(self.setting_name, self.min_value, self.max_value)
+        return '{} must be between {} and {}.'.format(self.setting_name, self.min_value, self.max_value)
 
 class ListLengthSetting(PrevalidationError):
     '''
@@ -74,10 +88,10 @@ class ListLengthSetting(PrevalidationError):
         self.max_value = max_value
 
     def error(self):
-        return '{} print setting is invalid for mesh {}.'.format(self.setting_name, self.mesh.name)
+        return 'Unsupported {} for mesh {}.'.format(self.setting_name, self.mesh.name)
 
     def resolution(self):
-        return 'Modify the total number of values for {} to be between {} and {}.'.format(self.setting_name, self.min_value, self.max_value)
+        return 'Total number of values for {} must be between {} and {}.'.format(self.setting_name, self.min_value, self.max_value)
 
 class UnsupportedPrintOptionSetting(PrevalidationError):
     '''
@@ -89,7 +103,7 @@ class UnsupportedPrintOptionSetting(PrevalidationError):
         self.allowable_values = allowable_values
 
     def error(self):
-        return '{} print setting is unsupported on mesh {}.'.format(self.setting_name, self.mesh.name)
+        return 'Unsupported {} for mesh {}.'.format(self.setting_name, self.mesh.name)
 
     def resolution(self):
         if len(self.allowable_values) > 0 and isinstance(self.allowable_values[0], enum.Enum):
@@ -110,10 +124,10 @@ class IncompatiblePrintSetting(PrevalidationError):
         self.target_name = target_name
 
     def error(self):
-        return '{} print setting is invalid on mesh {}.'.format(self.setting_name, self.mesh.name)
+        return 'Unsupported {} for mesh {}.'.format(self.setting_name, self.mesh.name)
 
     def resolution(self):
-        return 'Set {} to {}.'.format(self.setting_name, self.target_name)
+        return '{} must be {}.'.format(self.setting_name, self.target_name)
 
 class MismatchedPrintSetting(PrevalidationError):
     '''
@@ -128,7 +142,7 @@ class MismatchedPrintSetting(PrevalidationError):
         return '{} print setting is incompatible between meshes {} and {}.'.format(self.setting_name, self.mesh1.name, self.mesh2.name)
 
     def resolution(self):
-        return 'Set {} to the same value for each mesh'.format(self.setting_name)
+        return '{} must be the same value for each mesh.'.format(self.setting_name)
 
 class PrevalidationCheck:
     pass
@@ -310,4 +324,3 @@ CONFIG_MATCHING = {
     MatchedConfigsCheck('layer_height', 'Layer Height'),
     MatchedConfigsCheck('layer_width', 'Line Width')
 }
-
