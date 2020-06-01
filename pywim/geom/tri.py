@@ -122,7 +122,7 @@ class Edge(_MeshEntity, _Edge):
 
 class Mesh:
     # all angles in radians
-    _COPLANAR_ANGLE = 0.002
+    _COPLANAR_ANGLE = 0.004
     _MAX_EDGE_CYLINDER_ANGLE = math.pi / 6.
     _CYLINDER_RADIUS_TOLERANCE = 0.05
 
