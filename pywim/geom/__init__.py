@@ -515,7 +515,16 @@ class Plane(object):
         return Edge(v1, v2)
 
     def vector_angle(self, vector : Vector) -> float:
-        return math.asin(abs(self.normal.dot( vector.unit() )))
+        result = abs(self.normal.dot(vector.unit()))
+
+        # Preventing crashes due numerical errors here.
+        # We could be out of bounds for math.asin -> [-1., 1.]
+        if result < -1.0:
+            result = -1.0
+        elif result > 1.0:
+            result = 1.0
+
+        return math.asin(result)
 
 Plane.XY = Plane(Vector(0.0, 0.0, 1.0))
 Plane.XZ = Plane(Vector(0.0, 1.0, 0.0))
