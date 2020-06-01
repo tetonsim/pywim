@@ -866,18 +866,38 @@ class Mesh:
 
         # Getting all neighbored triangles via commonized function
         connected_tris = self.get_neighbored_triangles(this_triangle)
+        logging.debug("connected_tris after area filter: {}".format(connected_tris))
+
+        # .. and filtering them against area_share compared to this_triangle.
         connected_tris_filtered = connected_tris.copy()
+        for entry in connected_tris:
+            triangle = entry[0]
+
+            area_min = min(this_triangle.area, triangle.area)
+            area_max = max(this_triangle.area, triangle.area)
+
+            area_share = area_min / area_max
+            print("area_share: {}".format(area_share))
+            if not area_share > 0.75:
+                connected_tris_filtered.remove(entry)
+
+        connected_tris = connected_tris_filtered
+        logging.debug("connected_tris after area filter: {}".format(connected_tris))
 
         # .. and filtering them against min&max angle.
+        connected_tris_filtered = connected_tris.copy()
         for entry in connected_tris:
             edge_angle = entry[1]
+
             if not coplanar_angle < edge_angle.angle < max_edge_angle:
                 connected_tris_filtered.remove(entry)
-        connected_tris = connected_tris_filtered
 
-        # Check whether there are filtered ones..
+        connected_tris = connected_tris_filtered
+        logging.debug("connected_tris after angle filter: {}".format(connected_tris))
+
+        # Check whether there are results after filtering..
         if len(connected_tris) == 0:
-            logging.debug("len(connected_tris) == 0: {}".format(connected_tris))
+            logging.debug("connected_tris not found!".format(connected_tris))
             return None
 
         # Get the connected triangle with the largest angle
@@ -887,17 +907,8 @@ class Mesh:
                 connected_tri = connected_tris[i]
 
         # Decouple into the triangle and the edge angle value
+        logging.debug("selected: other_triangle, mating_edge =  {}".format(connected_tri))
         other_triangle, mating_edge = connected_tri
-
-        # Check the areas of the two triangles. If they are very different
-        # this is not a cylinder.
-        area_min = min(this_triangle.area, other_triangle.area)
-        area_max = max(this_triangle.area, other_triangle.area)
-
-        area_share = area_min / area_max
-        if area_share < 0.75:
-            logging.debug("area_min / area_max < 0.75: {}".format(area_share))
-            return None
 
         # Computing some commonly needed values...
         t1_tangent_and_others = self.calculate_t1_tangent_and_others(
