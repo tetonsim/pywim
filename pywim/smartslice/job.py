@@ -179,21 +179,21 @@ class Job(WimObject):
         '''
         mesh_errors = []
         if (self.chop.meshes.is_empty()):
-            mesh_errors.append(val.InvalidSetup('No meshes have been defined for this job', 
-                'Define at least one mesh to be used in the job'))
+            mesh_errors.append(val.InvalidSetup(
+                'No meshes have been defined for this job', 
+                'Define at least one mesh to be used in the job'
+            ))
 
         step_errors = self._validate_steps()
 
-        return mesh_errors + step_errors
+        # Adjust each mesh's print config to contain all relevant information.
+        for mesh in self.chop.meshes:
+            mesh.print_config = self.top_config(mesh.print_config)
 
-        # # Adjust each mesh's print config to contain all relevant information.
-        # for mesh in self.chop.meshes:
-        #     mesh.print_config = self.top_config(mesh.print_config)
+        comp_errors = self._validate_compatibility() if (len(self.chop.meshes) > 1) else []
 
-        # comp_errors = self._validate_compatibility() if (len(self.chop.meshes) > 1) else []
+        req_errors = self._validate_requirements()
 
-        # req_errors = self._validate_requirements()
-
-        # return mesh_errors + step_errors + comp_errors + req_errors
+        return mesh_errors + step_errors + comp_errors + req_errors
 
     
