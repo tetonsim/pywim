@@ -122,7 +122,7 @@ class Edge(_MeshEntity, _Edge):
 
 class Mesh:
     # all angles in radians
-    _COPLANAR_ANGLE = 0.002
+    _COPLANAR_ANGLE = 0.004
     _MAX_EDGE_CYLINDER_ANGLE = math.pi / 6.
     _CYLINDER_RADIUS_TOLERANCE = 0.05
 
@@ -866,18 +866,38 @@ class Mesh:
 
         # Getting all neighbored triangles via commonized function
         connected_tris = self.get_neighbored_triangles(this_triangle)
+        logging.debug("connected_tris after area filter: {}".format(connected_tris))
+
+        # .. and filtering them against area_share compared to this_triangle.
         connected_tris_filtered = connected_tris.copy()
+        for entry in connected_tris:
+            triangle = entry[0]
+
+            area_min = min(this_triangle.area, triangle.area)
+            area_max = max(this_triangle.area, triangle.area)
+
+            area_share = area_min / area_max
+            logging.debug("area_share: {}".format(area_share))
+            if not area_share > 0.75:
+                connected_tris_filtered.remove(entry)
+
+        connected_tris = connected_tris_filtered
+        logging.debug("connected_tris after area filter: {}".format(connected_tris))
 
         # .. and filtering them against min&max angle.
+        connected_tris_filtered = connected_tris.copy()
         for entry in connected_tris:
             edge_angle = entry[1]
+
             if not coplanar_angle < edge_angle.angle < max_edge_angle:
                 connected_tris_filtered.remove(entry)
-        connected_tris = connected_tris_filtered
 
-        # Check whether there are filtered ones..
+        connected_tris = connected_tris_filtered
+        logging.debug("connected_tris after angle filter: {}".format(connected_tris))
+
+        # Check whether there are results after filtering..
         if len(connected_tris) == 0:
-            logging.debug("len(connected_tris) == 0: {}".format(connected_tris))
+            logging.debug("connected_tris not found!".format(connected_tris))
             return None
 
         # Get the connected triangle with the largest angle
@@ -887,17 +907,8 @@ class Mesh:
                 connected_tri = connected_tris[i]
 
         # Decouple into the triangle and the edge angle value
+        logging.debug("selected: other_triangle, mating_edge =  {}".format(connected_tri))
         other_triangle, mating_edge = connected_tri
-
-        # Check the areas of the two triangles. If they are very different
-        # this is not a cylinder.
-        area_min = min(this_triangle.area, other_triangle.area)
-        area_max = max(this_triangle.area, other_triangle.area)
-
-        area_share = area_min / area_max
-        if area_share < 0.75:
-            logging.debug("area_min / area_max < 0.75: {}".format(area_share))
-            return None
 
         # Computing some commonly needed values...
         t1_tangent_and_others = self.calculate_t1_tangent_and_others(
@@ -906,7 +917,7 @@ class Mesh:
         )
 
         if not t1_tangent_and_others:
-            # Return None if the function above had problems
+            logging.debug("Issues occured while running t1_tangent_and_others: {}".format(t1_tangent_and_others))
             return None
 
         t1_tangent, \
@@ -949,7 +960,7 @@ class Mesh:
         if len(face) <= 2:
             # Only the original triangle and the one co-planar triangle were
             # found so this is probably not a cylinder
-            logging.debug("DEBUG: len(face) <= 2: {}".format(repr(face)))
+            logging.debug("len(face) <= 2: {}".format(repr(face)))
 
             return None
 
