@@ -877,7 +877,7 @@ class Mesh:
             area_max = max(this_triangle.area, triangle.area)
 
             area_share = area_min / area_max
-            print("area_share: {}".format(area_share))
+            logging.debug("area_share: {}".format(area_share))
             if not area_share > 0.75:
                 connected_tris_filtered.remove(entry)
 
