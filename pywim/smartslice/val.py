@@ -1,6 +1,27 @@
 from .. import am
 import enum
 
+def convert(base, value):
+    if type(base) is str:
+        return str(value).lower()
+    elif type(base) is int:
+        return int(value)
+    elif type(base) is float:
+        return float(value)
+
+    return value
+
+def areEqual(base, value):
+    convertedValue = convert(base, value)
+    if type(base) is str:
+        return base.lower() == convertedValue
+    elif type(base) is int:
+        return base == convertedValue
+    elif type(base) is float:
+        return round(base, 4) == round(convertedValue, 4)
+
+    return False
+
 def get_config_value(config, attr_name, level_modifier=None):
     if not level_modifier:
         is_aux = not hasattr(config, attr_name)
@@ -92,7 +113,7 @@ class ListLengthSetting(PrevalidationError):
         return 'Unsupported <i>{}</i> for mesh <i>{}</i>.'.format(self.setting_name, self.mesh_name)
 
     def resolution(self):
-        return 'Total number of values for <i>{}</i> must be between {} and {}.'.format(self.setting_name, self.min_value, self.max_value)
+        return 'The total number of values for <i>{}</i> must be <= {} and >= {}.'.format(self.setting_name, self.min_value, self.max_value)
 
 class UnsupportedPrintOptionSetting(PrevalidationError):
     '''
@@ -112,7 +133,7 @@ class UnsupportedPrintOptionSetting(PrevalidationError):
         else:
             allowable_names = ', '.join(self.allowable_values)
 
-        return '<i>{}</i> must be one of [<i>{}</i>].'.format(self.setting_name, allowable_names)
+        return '<i>{}</i> must be set to one of [<i>{}</i>].'.format(self.setting_name, allowable_names)
 
 
 class IncompatiblePrintSetting(PrevalidationError):
@@ -128,7 +149,7 @@ class IncompatiblePrintSetting(PrevalidationError):
         return 'Unsupported <i>{}</i> for mesh <i>{}</i>.'.format(self.setting_name, self.mesh_name)
 
     def resolution(self):
-        return '<i>{}</i> must be <i>{}</i>.'.format(self.setting_name, self.target_name)
+        return '<i>{}</i> must be equal to <i>{}</i>.'.format(self.setting_name, self.target_name)
 
 class MismatchedPrintSetting(PrevalidationError):
     '''
@@ -161,7 +182,7 @@ class EqualityCheck(PrevalidationCheck):
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
-        if mesh_value and mesh_value != self.setting_value:
+        if mesh_value and not areEqual(self.setting_value, mesh_value):
             return InvalidPrintSetting(mesh.name, self.setting_name, self.setting_value)
         else:
             return None
@@ -180,7 +201,7 @@ class BoundsCheck(PrevalidationCheck):
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
-        if mesh_value and not ( self.min_value <= mesh_value <= self.max_value ):
+        if mesh_value and not ( self.min_value <= convert(self.min_value, mesh_value) <= self.max_value ):
             return OutOfBoundsPrintSetting(mesh.name, self.setting_name, self.min_value, self.max_value)
         else:
             return None
@@ -198,8 +219,9 @@ class ListLengthCheck(PrevalidationCheck):
 
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
+        mesh_list = mesh_value.strip('][').split(',')
 
-        if mesh_value and not ( self.min_value <= len(mesh_value) <= self.max_value ):
+        if mesh_value and not ( self.min_value <= len(mesh_list) <= self.max_value ):
             return ListLengthSetting(mesh.name, self.setting_name, self.min_value, self.max_value)
         else:
             return None
@@ -215,7 +237,10 @@ class SupportedPrintOptionCheck(PrevalidationCheck):
         self.level_modifier = level_modifier
 
     def check_error(self, mesh):
-        mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
+        mesh_value = convert(
+            self.allowable_values[0],
+            get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
+        )
 
         if mesh_value and mesh_value not in self.allowable_values:
             return UnsupportedPrintOptionSetting(mesh.name, self.setting_name, self.allowable_values)
@@ -237,7 +262,7 @@ class CompatibilityCheck(PrevalidationCheck):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
         target_value = get_config_value(mesh.print_config, self.target_attr_name, self.level_modifier)
 
-        if mesh_value and mesh_value != target_value:
+        if mesh_value and not areEqual(target_value, mesh_value):
             return IncompatiblePrintSetting(mesh.name, self.setting_name, self.target_name)
         else:
             return None
@@ -293,7 +318,7 @@ NECESSARY_PRINT_PARAMETERS = [
 ]
 
 REQUIREMENTS = {
-    EqualityCheck('extruders_enabled_count', 'Number of Extruders That Are Enabled', 1),
+    #EqualityCheck('extruders_enabled_count', 'Number of Extruders That Are Enabled', '1'), # Removing this for now - we only take extruder 1
     EqualityCheck('initial_layer_line_width_factor', 'Initial Layer Line Width', 100),
     EqualityCheck('top_bottom_pattern', 'Top/Bottom Pattern', 'lines'),
     EqualityCheck('top_bottom_pattern_0', 'Bottom Pattern Initial Layer', 'lines'),
