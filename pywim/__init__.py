@@ -321,7 +321,13 @@ class ModelEncoder(json.JSONEncoder):
         elif isinstance(obj, enum.Enum):
             new_obj = obj.__class__[d]
         elif isinstance(obj, datetime.datetime):
-            new_obj = datetime.datetime.fromisoformat(d)
+            if hasattr(datetime.datetime, 'fromisoformat'):
+                new_obj = datetime.datetime.fromisoformat(d)
+            else:
+                try:
+                    new_obj = datetime.datetime.strptime(d, '%Y-%m-%dT%H:%M:%S.%f')
+                except:
+                    new_obj = datetime.datetime.strptime(d, '%Y-%m-%dT%H:%M:%S')
         elif isinstance(obj, (int, float, str, dict)) or obj is None:
             new_obj = d
         elif isinstance(obj, WimIgnore):

@@ -1,10 +1,17 @@
+from typing import List
+import enum
 import json
-import pywim
-import vtk
+
 import numpy as np
 from numpy import linalg
-import enum
-from typing import List
+
+try:
+    import vtk
+    VTK_MODULE_EXISTS = True
+except:
+    VTK_MODULE_EXISTS = False
+
+import pywim
 
 class MaterialType(enum.Enum):
     Empty = -1
