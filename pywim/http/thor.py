@@ -88,6 +88,7 @@ class Client:
         self.hostname = hostname
         self.port = port
         self.protocol = protocol
+        self._accept_version = '20.1'
         self._bearer_token = None
 
     @property
@@ -99,9 +100,12 @@ class Client:
         Returns a dictionary of additional headers that will be added
         to every request.
         '''
-        hdrs = {}
+        hdrs = {
+            'Accept-Version': self._accept_version
+        }
         if self._bearer_token:
             hdrs['Authorization'] = 'Bearer ' + self._bearer_token
+
         return hdrs
 
     def _request(self, method : str, endpoint : str, data : Any, **kwargs) -> requests.Response:
@@ -158,6 +162,9 @@ class Client:
         if resp.status_code == 200:
             return resp.status_code, resp.json()
 
+        if resp.status_code == 400:
+            return Client._code_and_object(resp, ApiResult)
+
         return resp.status_code, None
 
     def basic_auth_login(self, email, password) -> ResponseType[UserAuth, ApiResult]:
@@ -172,6 +179,9 @@ class Client:
         if resp.status_code >= 500:
             return resp.status_code, None
 
+        if resp.status_code == 400:
+            return Client._code_and_object(resp, ApiResult)
+
         if resp.status_code == 200:
             auth = UserAuth.from_dict(resp.json())
             self._bearer_token = auth.token.id
@@ -185,6 +195,9 @@ class Client:
         if resp.status_code in (401, 500):
             return resp.status_code, None
 
+        if resp.status_code == 400:
+            return Client._code_and_object(resp, ApiResult)
+
         if resp.status_code == 200:
             return Client._code_and_object(resp, UserAuth)
 
@@ -195,6 +208,9 @@ class Client:
 
         if resp.status_code in (401, 500):
             return resp.status_code, None
+
+        if resp.status_code == 400:
+            return Client._code_and_object(resp, ApiResult)
 
         if resp.status_code == 200:
             # The token id will be the same, so we don't need to update it
@@ -207,6 +223,9 @@ class Client:
 
         if resp.status_code in (401, 500):
             return resp.status_code, None
+
+        if resp.status_code == 400:
+            return Client._code_and_object(resp, ApiResult)
 
         self._bearer_token = None
 
@@ -251,6 +270,9 @@ class Client:
         processes the abort request.
         '''
         resp = self._delete('/smartslice/%s' % job_id)
+
+        if resp.status_code == 400:
+            return Client._code_and_object(resp, ApiResult)
 
         if resp.status_code == 200:
             return Client._code_and_object(resp, JobInfo)
