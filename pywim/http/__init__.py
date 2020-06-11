@@ -208,9 +208,5 @@ class HttpClient:
             'HTTP server error %i on %s' % (response.status_code, call_name)
         )
 
-from . import smartslice, wim
 
-# temporary fix until new Thor client is sorted out
-
-thor = smartslice
-
+from . import thor, wim

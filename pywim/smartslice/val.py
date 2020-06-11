@@ -2,22 +2,23 @@ from .. import am
 import enum
 
 def convert(base, value):
-    if type(base) is str:
+    if issubclass(base, str):
         return str(value).lower()
-    elif type(base) is int:
+    elif issubclass(base, int):
         return int(value)
-    elif type(base) is float:
+    elif issubclass(base, float):
         return float(value)
 
     return value
 
-def areEqual(base, value):
-    convertedValue = convert(base, value)
-    if type(base) is str:
+def are_equal(base, value):
+    base_type = type(base)
+    convertedValue = convert(base_type, value)
+    if issubclass(base_type, str):
         return base.lower() == convertedValue
-    elif type(base) is int:
+    elif issubclass(base_type, int):
         return base == convertedValue
-    elif type(base) is float:
+    elif issubclass(base_type, float):
         return round(base, 4) == round(convertedValue, 4)
 
     return False
@@ -182,7 +183,7 @@ class EqualityCheck(PrevalidationCheck):
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
-        if mesh_value and not areEqual(self.setting_value, mesh_value):
+        if mesh_value and not are_equal(self.setting_value, mesh_value):
             return InvalidPrintSetting(mesh.name, self.setting_name, self.setting_value)
         else:
             return None
@@ -201,7 +202,7 @@ class BoundsCheck(PrevalidationCheck):
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
-        if mesh_value and not ( self.min_value <= convert(self.min_value, mesh_value) <= self.max_value ):
+        if mesh_value and not ( self.min_value <= convert(type(self.min_value), mesh_value) <= self.max_value ):
             return OutOfBoundsPrintSetting(mesh.name, self.setting_name, self.min_value, self.max_value)
         else:
             return None
@@ -238,7 +239,7 @@ class SupportedPrintOptionCheck(PrevalidationCheck):
 
     def check_error(self, mesh):
         mesh_value = convert(
-            self.allowable_values[0],
+            type(self.allowable_values[0]),
             get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
         )
 
@@ -262,7 +263,7 @@ class CompatibilityCheck(PrevalidationCheck):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
         target_value = get_config_value(mesh.print_config, self.target_attr_name, self.level_modifier)
 
-        if mesh_value and not areEqual(target_value, mesh_value):
+        if mesh_value and not are_equal(target_value, mesh_value):
             return IncompatiblePrintSetting(mesh.name, self.setting_name, self.target_name)
         else:
             return None

@@ -114,28 +114,38 @@ class Job(WimObject):
         '''
         errors = []
 
-        if (self.chop.steps.is_empty()):
-            errors.append(val.InvalidSetup('No loads or anchors have been defined', 
-                'Define at least one load and boundary condition'))
+        if self.chop.steps.is_empty():
+            errors.append(val.InvalidSetup(
+                'No loads or anchors have been defined', 
+                'Define at least one load and boundary condition'
+            ))
 
         for step in self.chop.steps:
             if step.boundary_conditions.is_empty():
-                errors.append(val.InvalidSetup('No anchors have been defined for step ' + step.name, 
-                    'Define at least one anchor for the step'))
+                errors.append(val.InvalidSetup(
+                    'No anchors have been defined for step ' + step.name, 
+                    'Define at least one anchor for the step'
+                ))
 
             for bc in step.boundary_conditions:
-                if (bc.face.is_empty()):
-                    errors.append(val.InvalidSetup('No faces have been selected for anchor ' + bc.name, 
-                        'Select a face to apply the anchor'))
+                if bc.face.is_empty():
+                    errors.append(val.InvalidSetup(
+                        'No faces have been selected for anchor ' + bc.name, 
+                        'Select a face to apply the anchor'
+                    ))
 
             if step.loads.is_empty():
-                errors.append(val.InvalidSetup('No loads have been defined for step ' + step.name, 
-                    'Define at least one load for the step'))
+                errors.append(val.InvalidSetup(
+                    'No loads have been defined for step ' + step.name, 
+                    'Define at least one load for the step'
+                ))
 
             for load in step.loads:
-                if (load.face.is_empty()):
-                    errors.append(val.InvalidSetup('No faces have been selected for load ' + load.name, 
-                        'Select a face to apply the load'))
+                if load.face.is_empty():
+                    errors.append(val.InvalidSetup(
+                        'No faces have been selected for load ' + load.name, 
+                        'Select a face to apply the load'
+                    ))
 
             
         return errors
@@ -178,7 +188,7 @@ class Job(WimObject):
         Function for validating the print configs for use in smartslice validation.
         '''
         mesh_errors = []
-        if (self.chop.meshes.is_empty()):
+        if self.chop.meshes.is_empty():
             mesh_errors.append(val.InvalidSetup(
                 'No meshes have been defined for this job', 
                 'Define at least one mesh to be used in the job'
