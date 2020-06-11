@@ -5,7 +5,7 @@ def convert(base, value):
     if issubclass(base, str):
         return str(value).lower()
     elif issubclass(base, int):
-        return int(value)
+        return int(float(value))
     elif issubclass(base, float):
         return float(value)
 
@@ -320,7 +320,7 @@ NECESSARY_PRINT_PARAMETERS = [
 
 REQUIREMENTS = {
     #EqualityCheck('extruders_enabled_count', 'Number of Extruders That Are Enabled', '1'), # Removing this for now - we only take extruder 1
-    EqualityCheck('initial_layer_line_width_factor', 'Initial Layer Line Width', 100),
+    EqualityCheck('initial_layer_line_width_factor', 'Initial Layer Line Width', 100.0),
     EqualityCheck('top_bottom_pattern', 'Top/Bottom Pattern', 'lines'),
     EqualityCheck('top_bottom_pattern_0', 'Bottom Pattern Initial Layer', 'lines'),
     EqualityCheck('gradual_infill_steps', 'Gradual Infill Steps', 0),
