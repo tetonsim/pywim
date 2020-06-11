@@ -82,7 +82,7 @@ class InvalidPrintSetting(PrevalidationError):
         return 'Unsupported <i>{}</i> for mesh <i>{}</i>.'.format(self.setting_name, self.mesh_name)
 
     def resolution(self):
-        return '<i>{}</i> must equal to {}'.format(self.setting_name, self.setting_value)
+        return '<i>{}</i> must be equal to {}'.format(self.setting_name, self.setting_value)
 
 class OutOfBoundsPrintSetting(PrevalidationError):
     '''
@@ -333,11 +333,11 @@ REQUIREMENTS = {
     EqualityCheck('adaptive_layer_height_enabled', 'Use Adaptive Layers', 'false'),
 
     CompatibilityCheck('layer_height_0', 'Initial Layer Height', 'Layer Height', 'layer_height'),
-    CompatibilityCheck('infill_line_width',  'Infill Line Width', 'Layer Width', 'layer_width'),
-    CompatibilityCheck('skin_line_width', 'Top/Bottom Line Width', 'Layer Width', 'layer_width'),
-    CompatibilityCheck('wall_line_width_0', 'Outer Wall Line Width', 'Layer Width', 'layer_width'),
-    CompatibilityCheck('wall_line_width_x', 'Inner Wall(s) Line Width', 'Layer Width', 'layer_width'),
-    CompatibilityCheck('wall_line_width', 'Wall Line Width', 'Layer Width', 'layer_width'),
+    CompatibilityCheck('infill_line_width',  'Infill Line Width', 'Line Width', 'layer_width'),
+    CompatibilityCheck('skin_line_width', 'Top/Bottom Line Width', 'Line Width', 'layer_width'),
+    CompatibilityCheck('wall_line_width_0', 'Outer Wall Line Width', 'Line Width', 'layer_width'),
+    CompatibilityCheck('wall_line_width_x', 'Inner Wall(s) Line Width', 'Line Width', 'layer_width'),
+    CompatibilityCheck('wall_line_width', 'Wall Line Width', 'Line Width', 'layer_width'),
     CompatibilityCheck('infill_sparse_thickness', 'Infill Layer Thickness', 'Layer Height', 'layer_height'),
 
     BoundsCheck('density', 'Infill Density', min_value=20, max_value=100, level_modifier=['infill']),
