@@ -55,10 +55,7 @@ class Config(WimObject):
     def default_overlap(layer_height):
         return layer_height * (1.0 - math.pi / 4.0)
 
-    def from_cura_setting(self, name, value):#, set_auxiliary=True):
-
-        #if set_auxiliary:
-        #    self.auxiliary[name] = str(value)
+    def from_cura_setting(self, name, value, set_auxiliary=True):
 
         if name == 'infill_pattern':
             self.infill.pattern = InfillType[value]
@@ -83,6 +80,9 @@ class Config(WimObject):
             self.top_layers = int(value)
         elif name == 'skin_angles':
             self.skin_orientations = [int(a) for a in value.strip('[]').split(',')]
+        elif set_auxiliary:
+           self.auxiliary[name] = str(value)
+            
 
 from . import fea, micro
 

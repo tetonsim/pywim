@@ -17,6 +17,8 @@ class WimObject:
 
     @classmethod
     def from_json(cls, j):
+        if isinstance(j, bytes):
+            j = j.decode()
         return cls.from_dict(json.loads(j))
 
     @classmethod

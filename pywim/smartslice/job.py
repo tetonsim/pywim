@@ -108,6 +108,48 @@ class Job(WimObject):
 
         return top_config
 
+    def _validate_steps(self):
+        '''
+        Check the step definitions
+        '''
+        errors = []
+
+        if self.chop.steps.is_empty():
+            errors.append(val.InvalidSetup(
+                'No loads or anchors have been defined', 
+                'Define at least one load and boundary condition'
+            ))
+
+        for step in self.chop.steps:
+            if step.boundary_conditions.is_empty():
+                errors.append(val.InvalidSetup(
+                    'No anchors have been defined for step ' + step.name, 
+                    'Define at least one anchor for the step'
+                ))
+
+            for bc in step.boundary_conditions:
+                if bc.face.is_empty():
+                    errors.append(val.InvalidSetup(
+                        'No faces have been selected for anchor ' + bc.name, 
+                        'Select a face to apply the anchor'
+                    ))
+
+            if step.loads.is_empty():
+                errors.append(val.InvalidSetup(
+                    'No loads have been defined for step ' + step.name, 
+                    'Define at least one load for the step'
+                ))
+
+            for load in step.loads:
+                if load.face.is_empty():
+                    errors.append(val.InvalidSetup(
+                        'No faces have been selected for load ' + load.name, 
+                        'Select a face to apply the load'
+                    ))
+
+            
+        return errors
+
     def _validate_requirements(self):
         '''
         Check the auxiliary print settings for validity.
@@ -145,7 +187,16 @@ class Job(WimObject):
         '''
         Function for validating the print configs for use in smartslice validation.
         '''
-        # First, we need to adjust each mesh's print config to contain all relevant information.
+        mesh_errors = []
+        if self.chop.meshes.is_empty():
+            mesh_errors.append(val.InvalidSetup(
+                'No meshes have been defined for this job', 
+                'Define at least one mesh to be used in the job'
+            ))
+
+        step_errors = self._validate_steps()
+
+        # Adjust each mesh's print config to contain all relevant information.
         for mesh in self.chop.meshes:
             mesh.print_config = self.top_config(mesh.print_config)
 
@@ -153,6 +204,6 @@ class Job(WimObject):
 
         req_errors = self._validate_requirements()
 
-        return comp_errors + req_errors
+        return mesh_errors + step_errors + comp_errors + req_errors
 
     
