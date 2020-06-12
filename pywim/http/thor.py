@@ -5,6 +5,8 @@ import datetime
 import requests
 import time
 
+import pywim
+
 from pywim import WimObject, WimList
 
 class ApiResult(WimObject):
@@ -74,7 +76,7 @@ class JobInfo(WimObject):
         self.start_estimate = default_dt
         self.runtime_estimate = ''
         self.runtime = 0
-        self.result = {}
+        self.result = pywim.smartslice.result.Result()
         self.errors = WimList(JobInfo.Error)
 
 T = TypeVar('T')
