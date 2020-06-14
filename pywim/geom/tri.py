@@ -771,7 +771,16 @@ class Mesh:
         logger.debug("this_triangle: {}".format(this_triangle))
         logger.debug("other_triangle: {}".format(other_triangle))
 
-        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
+        this_dot_product = this_triangle.normal.dot(other_triangle.normal)
+        this_magnitude = numpy.linalg.norm(this_triangle.normal)
+        other_magnitude = numpy.linalg.norm(other_triangle.normal)
+        this_angle = math.acos(this_dot_product / (this_magnitude * other_magnitude))
+        logger.debug("this_angle: {}".format(this_angle))
+
+        # The angle between the normals of this_triangle and other_triangle needs to be
+        # above 0.025 degrees. If it isn't, then we likely have a planar surface and
+        # later computation might fail since the triangles are too similar!
+        if this_angle < 0.025:
             result = this_triangle.normal.dot(other_triangle.normal)
             logger.debug("Too similar!")
             logger.debug("result[rad]: {}".format(
