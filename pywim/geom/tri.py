@@ -1,5 +1,4 @@
 import itertools
-import logging
 import math
 
 import numpy
@@ -16,8 +15,12 @@ from . import Vertex as _Vertex
 from . import Edge as _Edge
 from . import InfiniteCylinder, Plane, Polygon, Vector
 
-log = logging.getLogger(__name__)
-
+try:
+    from UM.Logger import Logger
+    logger = Logger
+except:
+    import logging
+    logger = logging.getLogger(__name__)
 
 class _MeshEntity:
     def __init__(self, id):
@@ -459,23 +462,23 @@ class Mesh:
         # Simply checks for all known cases as known and
         # listed below
 
-        logging.debug("Running simple check")
+        logger.debug("Running simple check")
         result_simple_test = self.simple_cylindric_surface_check(this_triangle)
-        logging.debug("Result of simple check: {}".format(result_simple_test))
+        logger.debug("Result of simple check: {}".format(result_simple_test))
 
         # Just for logs
         self.try_select_cylinder_face(this_triangle)
 
-        logging.debug("Running check no. 1")
+        logger.debug("Running check no. 1")
         result_extended_1 = self.extended_cylindric_surface_check_no1(
             this_triangle
         )
-        logging.debug("Result of check no. 1: {}".format(result_extended_1))
-        logging.debug("Running check no. 2")
+        logger.debug("Result of check no. 1: {}".format(result_extended_1))
+        logger.debug("Running check no. 2")
         result_extended_2 = self.extended_cylindric_surface_check_no2(
             this_triangle
         )
-        logging.debug("Result of check no. 2: {}".format(result_extended_2))
+        logger.debug("Result of check no. 2: {}".format(result_extended_2))
 
         return result_simple_test or \
             result_extended_1 or \
@@ -514,7 +517,7 @@ class Mesh:
         # We need to get three neighbored triangles here.
         # A valid mesh should provide this!
         if not len(connected_tris) == 3:
-            logging.debug("len(connected_tris) == 2: {}".format(
+            logger.debug("len(connected_tris) == 2: {}".format(
                 len(connected_tris))
             )
             return None
@@ -530,7 +533,7 @@ class Mesh:
         # As one coplanar face should have been found before,
         # we need to get two triangles here.
         if not len(connected_tris) == 2:
-            logging.debug("len(connected_tris_filtered) == 2: {}".format(
+            logger.debug("len(connected_tris_filtered) == 2: {}".format(
                 len(connected_tris_filtered))
             )
             return None
@@ -541,7 +544,7 @@ class Mesh:
         tri2_angle = connected_tris[1][1]
         tri_angle_delta = abs(tri1_angle.angle - tri2_angle.angle)
         if tri_angle_delta < numpy.radians(80.0):
-            logging.debug("tri_angle_delta < {}: {}".format(
+            logger.debug("tri_angle_delta < {}: {}".format(
                 numpy.radians(80.0),
                 tri_angle_delta)
             )
@@ -550,8 +553,8 @@ class Mesh:
 
         # Check the areas of the two triangles. If they are very different
         # this is not a cylinder
-        logging.debug("this_triangle: {}".format(this_triangle))
-        logging.debug("connected_coplanar_tris[0]: {}".format(
+        logger.debug("this_triangle: {}".format(this_triangle))
+        logger.debug("connected_coplanar_tris[0]: {}".format(
             connected_coplanar_tris[0]
             )
         )
@@ -559,7 +562,7 @@ class Mesh:
         area_max = max(this_triangle.area, connected_coplanar_tris[0][0].area)
 
         if area_min / area_max < 0.90:
-            logging.debug("amin / amax < 0.90: {}".format(area_min / area_max))
+            logger.debug("amin / amax < 0.90: {}".format(area_min / area_max))
             return None
 
         return connected_coplanar_tris[0]
@@ -617,11 +620,11 @@ class Mesh:
                 # We found a flat face
                 connected_tris_non_coplanar.append(entry)
 
-        logging.debug("connected_tris_non_coplanar: {}".format(
+        logger.debug("connected_tris_non_coplanar: {}".format(
                 [str(x[0]) for x in connected_tris_non_coplanar],
             )
         )
-        logging.debug("connected_tris_coplanar: {}".format(
+        logger.debug("connected_tris_coplanar: {}".format(
                 [str(x[0]) for x in connected_tris_coplanar],
             )
         )
@@ -639,7 +642,7 @@ class Mesh:
 
         similar_neighbored_found = False
         targetted_angle = this_triangle.normal.dot(other_triangle.normal)
-        logging.debug("targetted_angle: {}".format(targetted_angle))
+        logger.debug("targetted_angle: {}".format(targetted_angle))
         for connected_tri in connected_tris_non_coplanar:
             connected_triangle, connected_mating_edge = connected_tri
             neighbors = self.get_neighbored_triangles(connected_triangle)
@@ -648,14 +651,14 @@ class Mesh:
                 current_angle = connected_triangle.normal.dot(
                     neighbored_triangle.normal
                 )
-                logging.debug("current_angle:{}".format(current_angle))
+                logger.debug("current_angle:{}".format(current_angle))
                 # The maximum difference between both angles is 0.001deg
                 if abs(abs(targetted_angle) - abs(current_angle)) < math.radians(0.001):
                     similar_neighbored_found = True
                     break
 
         if not similar_neighbored_found:
-            logging.debug("similar_neighbored_found: {}".format(
+            logger.debug("similar_neighbored_found: {}".format(
                 similar_neighbored_found)
             )
             return False
@@ -728,7 +731,7 @@ class Mesh:
         # 1. check: Doing some quick comparisons...
         if not (is_concave_1 and is_concave_2):
             # We have different contours..
-            logging.debug("is_concave_1 and is_concave_2: {}".format(
+            logger.debug("is_concave_1 and is_concave_2: {}".format(
                     is_concave_1 and is_concave_2
                 )
             )
@@ -739,7 +742,7 @@ class Mesh:
 
         radius_share = radius_min / radius_max
         if radius_share < 0.995:
-            logging.debug("similar_neighbored_found: {}".format(similar_neighbored_found))
+            logger.debug("similar_neighbored_found: {}".format(similar_neighbored_found))
             return False
 
         # 2. check: cylinder(2)'s midpoint is close to cylinder(1)'s axis
@@ -753,7 +756,7 @@ class Mesh:
         # Amount of our vector and thus the distance
         distance = numpy.sqrt(distance.dot(distance))
 
-        logging.debug("distance: {}".format(distance))
+        logger.debug("distance: {}".format(distance))
 
         return True
 
@@ -765,26 +768,37 @@ class Mesh:
 
         # Double check that the normals of the two triangles are
         # not too similar. If they are, this algorithm will not work.
-        logging.debug("this_triangle: {}".format(this_triangle))
-        logging.debug("other_triangle: {}".format(other_triangle))
+        logger.debug("this_triangle: {}".format(this_triangle))
+        logger.debug("other_triangle: {}".format(other_triangle))
 
-        if this_triangle.normal.dot(other_triangle.normal) > 0.999:
+        this_dot_product = this_triangle.normal.dot(other_triangle.normal)
+        this_magnitude = numpy.linalg.norm(this_triangle.normal)
+        other_magnitude = numpy.linalg.norm(other_triangle.normal)
+        this_angle = math.acos(this_dot_product / (this_magnitude * other_magnitude))
+        logger.debug("this_angle: {}".format(this_angle))
+
+        # The angle between the normals of this_triangle and other_triangle needs to be
+        # above 0.025 degrees. If it isn't, then we likely have a planar surface and
+        # later computation might fail since the triangles are too similar!
+        if this_angle < 0.025:
             result = this_triangle.normal.dot(other_triangle.normal)
-            logging.debug("Too similar!")
-            logging.debug("result[rad]: {}".format(
-                result)
+            logger.debug("Too similar!")
+            logger.debug("result[rad]: {}".format(
+                    result
+                )
             )
-            logging.debug("result[deg]: {}".format(
-                math.degrees(result))
+            logger.debug("result[deg]: {}".format(
+                    math.degrees(result)
+                )
             )
             return None
 
         # Compute the axis direction of the potential cylinder
         # and a corresponding plane.
         cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
-        logging.debug("cylinder_axis: {}".format(cylinder_axis))
+        logger.debug("cylinder_axis: {}".format(cylinder_axis))
         t1_tangent = this_triangle.normal.cross(cylinder_axis).unit()
-        logging.debug("t1_tangent: {}".format(t1_tangent))
+        logger.debug("t1_tangent: {}".format(t1_tangent))
 
         # Find the edge that is closest to parallel with t1_tangent
         edges = self._triangle_to_edge[this_triangle]
@@ -792,10 +806,10 @@ class Mesh:
         max_dot = 0.0
         parallel_edge = None
         vec_pointing_away = None
-        logging.debug("edges: {}".format(edges))
+        logger.debug("edges: {}".format(edges))
         for edge in edges:
             e_t_dot = abs(edge.vector.dot(t1_tangent))
-            logging.debug("e_t_dot: {}".format(e_t_dot))
+            logger.debug("e_t_dot: {}".format(e_t_dot))
 
             if e_t_dot > max_dot:
                 max_dot = e_t_dot
@@ -866,7 +880,7 @@ class Mesh:
 
         # Getting all neighbored triangles via commonized function
         connected_tris = self.get_neighbored_triangles(this_triangle)
-        logging.debug("connected_tris after area filter: {}".format(connected_tris))
+        logger.debug("connected_tris after area filter: {}".format(connected_tris))
 
         # .. and filtering them against area_share compared to this_triangle.
         connected_tris_filtered = connected_tris.copy()
@@ -877,12 +891,12 @@ class Mesh:
             area_max = max(this_triangle.area, triangle.area)
 
             area_share = area_min / area_max
-            logging.debug("area_share: {}".format(area_share))
+            logger.debug("area_share: {}".format(area_share))
             if not area_share > 0.75:
                 connected_tris_filtered.remove(entry)
 
         connected_tris = connected_tris_filtered
-        logging.debug("connected_tris after area filter: {}".format(connected_tris))
+        logger.debug("connected_tris after area filter: {}".format(connected_tris))
 
         # .. and filtering them against min&max angle.
         connected_tris_filtered = connected_tris.copy()
@@ -893,11 +907,11 @@ class Mesh:
                 connected_tris_filtered.remove(entry)
 
         connected_tris = connected_tris_filtered
-        logging.debug("connected_tris after angle filter: {}".format(connected_tris))
+        logger.debug("connected_tris after angle filter: {}".format(connected_tris))
 
         # Check whether there are results after filtering..
         if len(connected_tris) == 0:
-            logging.debug("connected_tris not found!".format(connected_tris))
+            logger.debug("connected_tris not found!".format(connected_tris))
             return None
 
         # Get the connected triangle with the largest angle
@@ -907,7 +921,7 @@ class Mesh:
                 connected_tri = connected_tris[i]
 
         # Decouple into the triangle and the edge angle value
-        logging.debug("selected: other_triangle, mating_edge =  {}".format(connected_tri))
+        logger.debug("selected: other_triangle, mating_edge =  {}".format(connected_tri))
         other_triangle, mating_edge = connected_tri
 
         # Computing some commonly needed values...
@@ -917,7 +931,7 @@ class Mesh:
         )
 
         if not t1_tangent_and_others:
-            logging.debug("Issues occured while running t1_tangent_and_others: {}".format(t1_tangent_and_others))
+            logger.debug("Issues occured while running t1_tangent_and_others: {}".format(t1_tangent_and_others))
             return None
 
         t1_tangent, \
@@ -960,7 +974,7 @@ class Mesh:
         if len(face) <= 2:
             # Only the original triangle and the one co-planar triangle were
             # found so this is probably not a cylinder
-            logging.debug("len(face) <= 2: {}".format(repr(face)))
+            logger.debug("len(face) <= 2: {}".format(repr(face)))
 
             return None
 
