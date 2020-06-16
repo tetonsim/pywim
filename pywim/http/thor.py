@@ -169,7 +169,7 @@ class Client:
 
         return resp.status_code, None
 
-    def basic_auth_login(self, email, password) -> ResponseType[UserAuth, ApiResult]:
+    def basic_auth_login(self, email, password) -> 'ResponseType[UserAuth, ApiResult]':
         resp = self._post(
             '/auth/token',
             {
@@ -191,7 +191,7 @@ class Client:
 
         return Client._code_and_object(resp, ApiResult)
 
-    def whoami(self) -> ResponseType[UserAuth, ApiResult]:
+    def whoami(self) -> 'ResponseType[UserAuth, ApiResult]':
         resp = self._get('/auth/whoami')
 
         if resp.status_code in (401, 500):
@@ -205,7 +205,7 @@ class Client:
 
         return Client._code_and_object(resp, ApiResult)
 
-    def refresh_token(self) -> ResponseType[UserAuth, ApiResult]:
+    def refresh_token(self) -> 'ResponseType[UserAuth, ApiResult]':
         resp = self._put('/auth/token')
 
         if resp.status_code in (401, 500):
@@ -233,7 +233,7 @@ class Client:
 
         return Client._code_and_object(resp, ApiResult)
 
-    def new_smartslice_job(self, tmf : bytes) -> ResponseType[JobInfo, ApiResult]:
+    def new_smartslice_job(self, tmf : bytes) -> 'ResponseType[JobInfo, ApiResult]':
         '''
         Submits the provided 3MF as a new job and returns the new JobInfo object.
         '''
@@ -247,7 +247,7 @@ class Client:
 
         return Client._code_and_object(resp, JobInfo)
 
-    def smartslice_job(self, job_id : str, include_results : bool = False) -> ResponseType[JobInfo, ApiResult]:
+    def smartslice_job(self, job_id : str, include_results : bool = False) -> 'ResponseType[JobInfo, ApiResult]':
         '''
         Retrieves a JobInfo object from an existing job id. Will return a 404
         if the user doesn't have access to the specified job.
@@ -286,7 +286,7 @@ class Client:
         job_id : str,
         timeout : int = 600,
         callback : Callable[[JobInfo], bool] = None
-    ) -> ResponseType[JobInfo, ApiResult]:
+    ) -> 'ResponseType[JobInfo, ApiResult]':
         '''
         This is a blocking function that will periodically poll the job status until
         it completes. Additionally, a timeout parameter can be given to specify the maximum
