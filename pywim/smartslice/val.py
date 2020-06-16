@@ -220,7 +220,10 @@ class ListLengthCheck(PrevalidationCheck):
 
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
-        mesh_list = mesh_value.strip('][').split(',')
+        if isinstance(mesh_value, str):
+            mesh_list = mesh_value.strip('][').split(',')
+        else:
+            mesh_list = mesh_value
 
         if mesh_value and not ( self.min_value <= len(mesh_list) <= self.max_value ):
             return ListLengthSetting(mesh.name, self.setting_name, self.min_value, self.max_value)
