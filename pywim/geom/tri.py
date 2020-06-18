@@ -100,6 +100,19 @@ class EdgeAngle:
         self.t2 = t2
         self.angle = t1.angle(t2)
 
+        # Concave/convex check
+        # Find the vertices not shared
+        t1_points = set(self.t1.points)
+        t2_points = set(self.t2.points)
+
+        t1_v = list(t1_points.difference(t2_points))[0]
+        t2_v = list(t2_points.difference(t1_points))[0]
+
+        v12 = Vector.FromTwoPoints(t1_v, t2_v)
+        v1n = Vector(self.t1.normal.r, self.t1.normal.s, self.t1.normal.t, t1_v)
+
+        self.concave = v1n.angle(v12) <= (math.pi / 2)
+
 
 class Edge(_MeshEntity, _Edge):
     def __init__(self, id, v1: Vertex, v2: Vertex):
@@ -128,6 +141,8 @@ class Mesh:
     _COPLANAR_ANGLE = 0.004
     _MAX_EDGE_CYLINDER_ANGLE = math.pi / 6.
     _CYLINDER_RADIUS_TOLERANCE = 0.05
+    _MIN_CONCAVE_ANGLE = -0.004
+    _MAX_CONCAVE_ANGLE = math.pi / 6
 
     def __init__(self):
         self.vertices = []
@@ -429,6 +444,22 @@ class Mesh:
             edge_angle.angle < max_edge_angle and \
             plane.vector_angle(edge_angle.t1.normal) < max_angle and \
             plane.vector_angle(edge_angle.t2.normal) < max_angle
+
+        return self._select_connected_triangles_edge_condition(tri, edge_condition)
+
+    def select_concave_face(
+        self,
+        tri: Union[Triangle, int],
+        min_concave_angle: float = _MIN_CONCAVE_ANGLE,
+        max_concave_angle: float = _MAX_CONCAVE_ANGLE
+    ) -> List[Triangle]:
+        if isinstance(tri, int):
+            tri = next(t for t in self.triangles if t.id == tri)
+
+        edge_condition = lambda edge_angle: \
+            edge_angle.concave and \
+            edge_angle.angle >= min_concave_angle and \
+            edge_angle.angle < max_concave_angle
 
         return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
