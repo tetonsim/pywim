@@ -257,7 +257,7 @@ class Client:
         else:
             resp = self._get('/smartslice/%s' % job_id)
 
-        if resp.status_code in (401, 404, 500):
+        if resp.status_code in (401, 404, 429, 500):
             return resp.status_code, None
 
         if resp.status_code == 400:
@@ -310,6 +310,10 @@ class Client:
             period = fperiod(period)
 
             status_code, job = self.smartslice_job(job_id, include_results=True)
+
+            if status_code == 429:
+                # We hit a rate limit, so check again after the poll period
+                continue
 
             if status_code != 200:
                 return status_code, job
