@@ -361,7 +361,7 @@ class Client:
 
         return status_code, job
 
-    def subscription(self) -> 'ResponseType[Subscription, ApiResult]':
+    def smartslice_subscription(self) -> 'ResponseType[Subscription, ApiResult]':
         '''
         Retrieve the user's active subscription. If the user does not have
         an active subscription a Subscription object with no Products will
