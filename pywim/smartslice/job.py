@@ -206,4 +206,3 @@ class Job(WimObject):
 
         return mesh_errors + step_errors + comp_errors + req_errors
 
-    
