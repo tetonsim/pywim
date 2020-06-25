@@ -71,6 +71,8 @@ class Optimization(WimObject):
         self.minimum_percentile_for_mod_mesh = 1.
         self.maximum_percentile_for_mod_mesh = 99.
         self.estimated_number_of_solves_per_model = 6
+        self.difference_proportion = 0.707
+        self.stagnation_limit = 3
 
         # default modifier mesh config
         self.modifier_meshes.extend(
