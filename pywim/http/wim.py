@@ -61,6 +61,7 @@ class Client(HttpClient):
         super().__init__(hostname=hostname, port=port, protocol=protocol)
 
         self._process = None
+        self._process_starter = None
 
     def __del__(self):
         self.close()
@@ -68,6 +69,15 @@ class Client(HttpClient):
     def close(self):
         if self._process and self._process.poll() is None:
             self._process.terminate()
+
+    def health_check(self):
+        '''
+        If the solver process was started, this will check if it's still running,
+        and if not, restart the process.
+        '''
+        if self._process:
+            if self._process.poll() is not None:
+                self._start_solver()
 
     @classmethod
     def CreateAndStart(cls, port=HttpClient.DEFAULT_PORT, exe_name='wim-httpd', exe_path=None,
@@ -88,9 +98,18 @@ class Client(HttpClient):
         if debug:
             args.append('-d')
 
-        client._process = subprocess.Popen(args=args, executable=exe)
+        client._process_starter = lambda: subprocess.Popen(args=args, executable=exe)
+        client._start_solver()
 
         return client
+
+    def _start_solver(self):
+        self._process = self._process_starter()
+
+        poll = self._process.poll()
+
+        if poll:
+            raise Exception('Solver process immediately exited with return code %i' % self._process.returncode)
 
     def _handle_4XX_status_code(self, response, method, endpoint):
         # Override the default 4XX status code handler so we don't

@@ -169,7 +169,7 @@ class JobValidateTest(unittest.TestCase):
         for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
-        
+
         mesh1.print_config = c1
 
         mesh2 = pywim.chop.mesh.Mesh()
@@ -189,7 +189,7 @@ class JobValidateTest(unittest.TestCase):
         for key,value in comparative_reqs.items():
 
             c2.auxiliary[key] = getattr(c1, value[0])
-        
+
         mesh2.print_config = c2
 
         job = pywim.smartslice.job.Job()
@@ -218,7 +218,7 @@ class JobValidateTest(unittest.TestCase):
         for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
-        
+
         mesh1.print_config = c1
 
         mesh2 = pywim.chop.mesh.Mesh()
@@ -238,7 +238,7 @@ class JobValidateTest(unittest.TestCase):
         for key,value in comparative_reqs.items():
 
             c2.auxiliary[key] = getattr(c1, value[0])
-        
+
         mesh2.print_config = c2
 
         job = pywim.smartslice.job.Job()
@@ -273,7 +273,7 @@ class JobValidateTest(unittest.TestCase):
         for key,value in comparative_reqs.items():
 
             c1.auxiliary[key] = getattr(c1, value[0])
-        
+
         c1.auxiliary['extruders_enabled_count'] = 0
         c1.auxiliary['skin_line_width'] = 0.8
 
@@ -284,13 +284,8 @@ class JobValidateTest(unittest.TestCase):
 
         errors = job._validate_requirements()
 
-        self.assertEqual( len(errors), 2)
-
-        error_names = set([errors[0].setting_name, errors[1].setting_name])
-
-        results_names = set(['Number of Extruders That Are Enabled', 'Top/Bottom Line Width'])
-
-        self.assertEqual(error_names, results_names)
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].setting_name, 'Top/Bottom Line Width')
 
     def test_validate(self):
         mesh1 = pywim.chop.mesh.Mesh('mesh1')
@@ -313,7 +308,7 @@ class JobValidateTest(unittest.TestCase):
 
         c1.auxiliary['extruders_enabled_count'] = 0
         c1.auxiliary['skin_line_width'] = 0.8
-        
+
         mesh1.print_config = c1
 
         mesh2 = pywim.chop.mesh.Mesh('mesh2')
@@ -335,7 +330,7 @@ class JobValidateTest(unittest.TestCase):
         for key,value in comparative_reqs.items():
 
             c2.auxiliary[key] = getattr(c1, value[0])
-        
+
         mesh2.print_config = c2
 
         job = pywim.smartslice.job.Job()
@@ -349,8 +344,11 @@ class JobValidateTest(unittest.TestCase):
 
         self.assertEqual( len(errors), 5)
 
-        error_names = set([errors[0].setting_name, errors[1].setting_name, errors[2].setting_name, errors[3].setting_name, errors[4].setting_name])
+        #error_names = set([errors[0].setting_name, errors[1].setting_name, errors[2].setting_name, errors[3].setting_name, errors[4].setting_name])
+        error_names = set([
+            e.setting_name if hasattr(e, 'setting_name') else e.error() for e in errors
+        ])
 
-        results_names = set(['Number of Extruders That Are Enabled', 'Top/Bottom Line Width', 'Infill Density', 'Infill Pattern', 'Number of Infill Line Directions'])
+        results_names = set(['No loads or anchors have been defined', 'Top/Bottom Line Width', 'Infill Density', 'Infill Pattern', 'Number of Infill Line Directions'])
 
         self.assertEqual(error_names, results_names)
