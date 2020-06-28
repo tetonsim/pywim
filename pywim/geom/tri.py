@@ -1022,3 +1022,102 @@ class Mesh:
                     break
 
         return triangle_list
+
+    def try_grow_planar_by_concavity(
+        self,
+        this_triangle: Union[Triangle, int],
+        with_concavity,
+        coplanar_angle: float = _COPLANAR_ANGLE,
+        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+    ) -> List[Triangle]:
+
+        # Convert an intenger into an Triangle if needed..
+        if isinstance(this_triangle, int):
+            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
+
+        these_triangles = [this_triangle]
+
+        for this_triangle in these_triangles:
+            # Getting all neighbored triangles via commonized function
+            connected_tris = self.get_neighbored_triangles(this_triangle)
+            logger.debug("connected_tris: {}".format(connected_tris))
+
+            for connected_tri in connected_tris:
+                # Grow by any connected planar triangle
+                if connected_tri[1].angle < coplanar_angle and connected_tri[0] not in these_triangles:
+                    logger.debug("Found planar triangle: {}".format(connected_tri[0]))
+                    these_triangles.append(connected_tri[0])
+                    continue
+
+                # Grow by any connected concave/convex triangle
+                # without reaching a maximum angle
+                if connected_tri[1].angle < max_edge_angle:
+                    try:
+                        t1_tangent_and_others = self.calculate_t1_tangent_and_others(
+                            this_triangle,
+                            connected_tri[0]
+                        )
+                    except ValueError:
+                        # Catching math domain errors here.
+                        # Previously we made checks before running this function.
+                        # However, when reading the older code I don't see where the check is.
+                        continue
+
+                    if not t1_tangent_and_others:
+                        # Catching whether t1_tangent_and_others returned None
+                        continue
+
+                    t1_tangent, \
+                        parallel_edge, \
+                        vec_pointing_away, \
+                        cylinder_axis = t1_tangent_and_others
+
+                    result = self.is_concave(
+                        vec_pointing_away,
+                        this_triangle.normal,
+                        connected_tri[0].normal
+                    )
+
+                    # Negate the logic if we are looking for convex
+                    if not with_concavity:
+                        result = not result
+
+                    if result and connected_tri[0] not in these_triangles:
+                        logger.debug("Found concave triangle: {}".format(connected_tri[0]))
+                        these_triangles.append(connected_tri[0])
+                        continue
+
+        return these_triangles
+
+    def try_grow_planar_and_concave(
+        self,
+        this_triangle: Union[Triangle, int],
+        coplanar_angle: float = _COPLANAR_ANGLE,
+        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+    ) -> List[Triangle]:
+
+        these_triangles = self.try_grow_planar_by_concavity(
+            this_triangle,
+            True,
+            coplanar_angle=coplanar_angle,
+            max_edge_angle=max_edge_angle,
+        )
+
+        return these_triangles
+
+    def try_grow_planar_and_convex(
+        self,
+        this_triangle: Union[Triangle, int],
+        coplanar_angle: float = _COPLANAR_ANGLE,
+        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
+    ) -> List[Triangle]:
+
+        these_triangles = self.try_grow_planar_by_concavity(
+            this_triangle,
+            False,
+            coplanar_angle=coplanar_angle,
+            max_edge_angle=max_edge_angle,
+        )
+
+        return these_triangles
+
