@@ -45,6 +45,29 @@ class UserAuth(WimObject):
         self.user = User()
         self.token = Token()
 
+class Product(WimObject):
+    '''
+    A product definition in a subscription
+    '''
+
+    class UsageType(enum.Enum):
+        unlimited = 0
+        limited = 1
+
+    def __init__(self, name : str = None):
+        self.name = name if name else ''
+        self.usage_type = Product.UsageType.limited
+        self.used = 0
+        self.total = 0
+
+class Subscription(WimObject):
+    def __init__(self):
+        default_dt = datetime.datetime(1900, 1, 1)
+
+        self.start = default_dt
+        self.end = default_dt
+        self.products = WimList(Product)
+
 class JobInfo(WimObject):
     class Type(enum.Enum):
         validation = 101
@@ -337,3 +360,16 @@ class Client:
                     return self.smartslice_job_abort(job.id)
 
         return status_code, job
+
+    def smartslice_subscription(self) -> 'ResponseType[Subscription, ApiResult]':
+        '''
+        Retrieve the user's active subscription. If the user does not have
+        an active subscription a Subscription object with no Products will
+        be returned.
+        '''
+        resp = self._get('/smartslice/subscription')
+
+        if resp.status_code in (401, 500):
+            return resp.status_code, None
+
+        return Client._code_and_object(resp, Subscription)

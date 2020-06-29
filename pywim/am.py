@@ -8,6 +8,7 @@ class InfillType(enum.Enum):
     unknown = -1
     grid = 1
     triangle = 2
+    triangles = 2
     cubic = 3
 
 class Infill(WimObject):
@@ -25,6 +26,13 @@ class Infill(WimObject):
         c.orientation = 0.0
 
         return c
+
+    def __eq__(self, other):
+        return (
+            self.density == other.density and
+            self.pattern == other.pattern and
+            self.orientation == other.orientation
+        )
 
 class Config(WimObject):
     def __init__(self):
@@ -50,6 +58,18 @@ class Config(WimObject):
         c.infill = Infill.Defaults()
 
         return c
+
+    def __eq__(self, other):
+        return (
+            self.layer_width == other.layer_width and
+            self.layer_height == other.layer_height and
+            self.walls == other.walls and
+            self.skin_orientations == other.skin_orientations and
+            self.bottom_layers == other.bottom_layers and
+            self.top_layers == other.top_layers and
+            self.infill == other.infill and
+            self.auxiliary == other.auxiliary
+        )
 
     @staticmethod
     def default_overlap(layer_height):
