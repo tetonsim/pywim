@@ -322,3 +322,15 @@ class Mesh:
                             face.add(tri_added)
 
         return face
+
+    def triangles_from_ids(self, ids: List[int]) -> List[Triangle]:
+
+        triangle_list = []
+
+        for id in ids:
+            for tri in self.triangles:
+                if tri.id == id:
+                    triangle_list.append(tri)
+                    break
+
+        return triangle_list
