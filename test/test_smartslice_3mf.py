@@ -19,7 +19,7 @@ class SmartSlice3MFTest(unittest.TestCase):
 
         ss = pywim.smartslice.ThreeMFExtension()
         asset = ss.make_asset('job.json')
-        job : pwyim.smartslice.job.Job = asset.content
+        job = asset.content
 
         ss.assets.append(asset)
 
@@ -62,12 +62,12 @@ class SmartSlice3MFTest(unittest.TestCase):
 
         self.assertTrue(isinstance(asset, pywim.smartslice.JobThreeMFAsset))
 
-        job : pywim.smartslice.job.Job = asset.content
+        job = asset.content
 
         self.assertTrue(isinstance(job, pywim.smartslice.job.Job))
         self.assertEqual(len(job.chop.meshes), 1)
 
-        mesh : pywim.chop.mesh.Mesh = job.chop.meshes[0]
+        mesh = job.chop.meshes[0]
 
         np.testing.assert_array_equal(mesh.transform, np.identity(4))
 
@@ -101,7 +101,7 @@ class SmartSlice3MFTest(unittest.TestCase):
         tmf_bytes = self._write_3mf_bytes(tmf)
         tmf = self._read_3mf_bytes(tmf_bytes)
 
-        job : pywim.smartslice.job.Job = tmf.extensions[0].assets[0].content
+        job = tmf.extensions[0].assets[0].content
 
         self.assertEqual(len(job.chop.meshes), 2)
 

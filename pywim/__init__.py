@@ -17,6 +17,8 @@ class WimObject:
 
     @classmethod
     def from_json(cls, j):
+        if isinstance(j, bytes):
+            j = j.decode()
         return cls.from_dict(json.loads(j))
 
     @classmethod
@@ -209,6 +211,8 @@ class ModelEncoder(json.JSONEncoder):
             if obj.value == -1:
                 return None
             return obj.name
+        elif isinstance(obj, datetime.datetime):
+            return obj.isoformat()
         elif isinstance(obj, dict):
             if len(obj.keys()) == 0:
                 return None
@@ -318,6 +322,14 @@ class ModelEncoder(json.JSONEncoder):
                 ModelEncoder._set_object_attrs(new_obj, d)
         elif isinstance(obj, enum.Enum):
             new_obj = obj.__class__[d]
+        elif isinstance(obj, datetime.datetime):
+            if hasattr(datetime.datetime, 'fromisoformat'):
+                new_obj = datetime.datetime.fromisoformat(d)
+            else:
+                try:
+                    new_obj = datetime.datetime.strptime(d, '%Y-%m-%dT%H:%M:%S.%f')
+                except:
+                    new_obj = datetime.datetime.strptime(d, '%Y-%m-%dT%H:%M:%S')
         elif isinstance(obj, (int, float, str, dict)) or obj is None:
             new_obj = d
         elif isinstance(obj, WimIgnore):
