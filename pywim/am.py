@@ -8,6 +8,7 @@ class InfillType(enum.Enum):
     unknown = -1
     grid = 1
     triangle = 2
+    triangles = 2
     cubic = 3
 
 class Infill(WimObject):
