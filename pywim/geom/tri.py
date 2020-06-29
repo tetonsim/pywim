@@ -323,7 +323,7 @@ class Mesh:
 
         return face
 
-    def trianglesFromIds(self, ids: List[int]) -> List[Triangle]:
+    def triangles_from_ids(self, ids: List[int]) -> List[Triangle]:
 
         triangle_list = []
 
