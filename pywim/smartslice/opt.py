@@ -7,10 +7,10 @@ class NumOptParam(WimObject):
     '''
     Numerical optimization parameter class. Treated as a discrete variable with given min, max, and step_size.
     '''
-    def __init__(self, name='num_name', minimum=1., maximum=1., number_of_steps=0, active=False, mesh_type=chop.mesh.MeshType.normal):
+    def __init__(self, name='num_name', min=1., max=1., number_of_steps=0, active=False, mesh_type=chop.mesh.MeshType.normal):
         self.name = name
-        self.minimum = minimum
-        self.maximum = maximum
+        self.min = min
+        self.max = max
         self.number_of_steps = number_of_steps
         self.active = active
         self.mesh_type = mesh_type
@@ -19,18 +19,18 @@ class NumOptParam(WimObject):
     def step_size(self):
         if self.number_of_steps == 0:
             return 0.
-        return (self.maximum - self.minimum) / self.number_of_steps
+        return (self.max - self.min) / self.number_of_steps
 
     @property
     def interval(self):
-        if self.minimum == self.maximum:
-            return [self.minimum]
+        if self.min == self.max:
+            return [self.min]
         else:
-            return [self.minimum, self.maximum]
+            return [self.min, self.max]
 
     @property
     def range(self):
-        return self.maximum - self.minimum
+        return self.max - self.min
 
 class CatOptParam(WimObject):
     '''
@@ -50,9 +50,9 @@ class ModifierMeshCriteria(enum.Enum):
     selden = 1
 
 class ModifierMesh(WimObject):
-    def __init__(self, minimum_score=50.0):
+    def __init__(self, min_score=50.0):
         self.criterion = ModifierMeshCriteria.selden
-        self.minimum_score = minimum_score
+        self.min_score = min_score
 
 class OptimizimationTarget(enum.Enum):
     cura_print_time = 1
@@ -61,15 +61,15 @@ class OptimizimationTarget(enum.Enum):
 class Optimization(WimObject):
     def __init__(self):
         self.number_of_results_requested = 5
-        self.minimum_safety_factor = 2.0
-        self.maximum_displacement = 1.0
+        self.min_safety_factor = 2.0
+        self.max_displacement = 1.0
         self.optimization_target = OptimizimationTarget.cura_print_time
         self.numerical_parameters = WimList(NumOptParam)
         self.categorical_parameters = WimList(CatOptParam)
         self.modifier_meshes = WimList(ModifierMesh)
-        self.minimum_element_count_in_mod_mesh_component = 10
-        self.minimum_percentile_for_mod_mesh = 1.
-        self.maximum_percentile_for_mod_mesh = 99.
+        self.min_element_count_in_mod_mesh_component = 10
+        self.min_percentile_for_mod_mesh = 1.
+        self.max_percentile_for_mod_mesh = 99.
         self.estimated_number_of_solves_per_model = 6
         self.difference_proportion = 0.707
         self.stagnation_limit = 3
@@ -77,7 +77,7 @@ class Optimization(WimObject):
         # default modifier mesh config
         self.modifier_meshes.extend(
             (
-                ModifierMesh(minimum_score=80.0),
+                ModifierMesh(min_score=80.0),
             )
         )
 
@@ -86,45 +86,45 @@ class Optimization(WimObject):
             (
                 NumOptParam(
                     name='infill.density',
-                    minimum=20.,
-                    maximum=95.,
+                    min=20.,
+                    max=95.,
                     number_of_steps=15,
                     active=True
                 ),
                 NumOptParam(
                     name='walls',
-                    minimum=2,
-                    maximum=6,
+                    min=2,
+                    max=6,
                     number_of_steps=4,
                     active=True
                 ),
                 NumOptParam(
                     name='skins',
-                    minimum=2,
-                    maximum=6,
+                    min=2,
+                    max=6,
                     number_of_steps=4,
                     active=True
                 ),
                 NumOptParam(
                     name='infill.density',
-                    minimum=20.,
-                    maximum=95.,
+                    min=20.,
+                    max=95.,
                     number_of_steps=15,
                     mesh_type=chop.mesh.MeshType.infill,
                     active=True
                 ),
                 NumOptParam(
                     name='walls',
-                    minimum=2.,
-                    maximum=6,
+                    min=2.,
+                    max=6,
                     number_of_steps=4,
                     mesh_type=chop.mesh.MeshType.infill,
                     active=False
                 ),
                 NumOptParam(
                     name='skins',
-                    minimum=2,
-                    maximum=6,
+                    min=2,
+                    max=6,
                     number_of_steps=4,
                     mesh_type=chop.mesh.MeshType.infill,
                     active=False
