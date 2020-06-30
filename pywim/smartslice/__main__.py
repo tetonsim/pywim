@@ -21,7 +21,7 @@ def get_smart_slice_job(tmf_path):
 
     if len(tmf.extensions) != 1:
         raise Exception('3MF extension count is not 1')
-    
+
     ext = tmf.extensions[0]
 
     job_assets = list(
