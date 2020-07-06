@@ -23,6 +23,8 @@ def main():
 
     bulk_mat.to_json_file(f'{jopt}.bulk', indent=1)
 
+    print(bulk_mat.to_dict())
+
 def usage():
     print('Usage:')
     print('{} JSON'.format(sys.argv[0]))
