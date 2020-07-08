@@ -10,6 +10,12 @@ except:
     from warnings import warn
     warn('Failed to import scipy. pywim.optimization will not work')
 
+class Specimen(WimObject):
+    def __init__(self):
+        self.type = 'dogbone'
+        self.gage_width = 13.0
+        self.gage_thickness = 3.2
+
 class ExtrusionTest(WimObject):
     '''
     A class which sets up the data used to test dogbones.
@@ -17,6 +23,7 @@ class ExtrusionTest(WimObject):
     def __init__(self):
         self.name = None
         self.geometry = am.Config()
+        self.specimen = Specimen()
         self.type = 'unfilled'
         self.density = 0.0
         self.EXY0 = None
@@ -96,38 +103,48 @@ class BulkOptimization():
     def error(self, predicted, known):
         return abs((predicted - known) / known)
 
-    def density_error(self, d, density, bulk, layer_config):
+    def density_error(self, d, density, bulk, test_data : ExtrusionTest):
         bulk.density = d
-        layer_mat = self.run_model(bulk, layer_config)
+        layer_mat = self.run_model(bulk, test_data.geometry)
 
         return self.error(layer_mat.density, density)
 
-    def axial_error(self, Eb, stiffness, bulk, layer_config):
-
+    def axial_error(self, Eb, stiffness, bulk, test_data : ExtrusionTest):
         if bulk.elastic.type == 'isotropic':
             bulk.elastic.E = Eb
         else:
             bulk.elastic.Ea = Eb
 
-        layer_mat = self.run_model(bulk, layer_config)
+        layer_mat = self.run_model(bulk, test_data.geometry)
 
         return self.error(layer_mat.elastic.E11, stiffness)
 
-    def transverse_error(self, Eb, stiffness, bulk, layer_config, direction='Z'):
-
+    def transverse_error(self, Eb, stiffness, bulk, test_data : ExtrusionTest, direction='Z'):
         if bulk.elastic.type == 'isotropic':
             bulk.elastic.E = Eb
         else:
             bulk.elastic.Et = Eb
 
-        layer_mat = self.run_model(bulk, layer_config)
+        layer_mat = self.run_model(bulk, test_data.geometry)
 
-        if direction == 'Y':
-            return self.error(layer_mat.elastic.E22, stiffness)
+        Et = {
+            'Y': layer_mat.elastic.E22,
+            'Z': layer_mat.elastic.E33
+        }[direction]
 
-        return self.error(layer_mat.elastic.E33, stiffness)
+        nwalls = test_data.geometry.walls or 0
+        if nwalls > 0:
+            # Use rule of mixtures to add the stiffness contribution from the walls
+            wall_thickness = 2 * test_data.geometry.layer_width # walls on both sides of gage section
 
-    def axial_yield_error(self, S, yield_strength, bulk, layer_config):
+            wall_gage_fraction = wall_thickness / test_data.specimen.gage_width
+            skin_gage_fraction = 1.0 - wall_gage_fraction
+
+            Et = skin_gage_fraction * Et + wall_gage_fraction * layer_mat.elastic.E11
+
+        return self.error(Et, stiffness)
+
+    def axial_yield_error(self, S, yield_strength, bulk, test_data : ExtrusionTest):
 
         if bulk.failure_yield.type == 'von_mises':
             bulk.failure_yield.Sy = S
@@ -135,26 +152,31 @@ class BulkOptimization():
             bulk.failure_yield.T = S
             bulk.failure_yield.C = S
 
-        layer_mat = self.run_model(bulk, layer_config)
+        layer_mat = self.run_model(bulk, test_data.geometry)
 
         return self.error(layer_mat.failure_yield.T11, yield_strength)
 
-    def transverse_yield_error(self, kt, yield_strength, bulk, layer_config, direction='Z'):
+    def transverse_yield_error(self, kt, yield_strength, bulk, test_data : ExtrusionTest, direction='Z'):
 
         bulk.fracture.KIc = kt
 
-        layer_mat = self.run_model(bulk, layer_config)
+        layer_mat = self.run_model(bulk, test_data.geometry)
+
+        nwalls = test_data.geometry.walls or 0
+        if nwalls > 0 and direction == 'Y':
+            yield_strain = test_data.SXY90 / test_data.EXY90
+            yield_strength = layer_mat.elastic.E22 * yield_strain
 
         if direction == 'Y':
             return self.error(layer_mat.failure_yield.T22, yield_strength)
 
         return self.error(layer_mat.failure_yield.T33, yield_strength)
 
-    def shear_yield_error(self, S, yield_strength, bulk, layer_config):
+    def shear_yield_error(self, S, yield_strength, bulk, test_data : ExtrusionTest):
 
         bulk.failure_yield.S = S
 
-        layer_mat = self.run_model(bulk, layer_config)
+        layer_mat = self.run_model(bulk, test_data.geometry)
 
         return self.error(layer_mat.failure_yield.S12, yield_strength)
 
@@ -177,7 +199,7 @@ class BulkOptimization():
         model and physical reality.
         '''
         if direction == 'Y':
-            return (x, x / 0.80)
+            return (0.80 * x, x / 0.80)
 
         return (x, x / 0.35)
 
@@ -203,9 +225,12 @@ class BulkOptimization():
 
         return (x * 0.1, x * 1.5)
 
-    def minimize(self, opt_fun=None, opt_args=None, opt_bounds=None, tol=1.e-3):
-        res = scipy.optimize.minimize_scalar(fun=opt_fun, method='bounded', args=opt_args, bounds=opt_bounds,
-                                             options={'xatol': tol, 'maxiter': self.config.maxiter})
+    def minimize(self, opt_fun=None, opt_args=None, opt_bounds=None):
+        res = scipy.optimize.minimize_scalar(
+            fun=opt_fun, method='bounded', args=opt_args, bounds=opt_bounds,
+            options={'xatol': self.config.max_error, 'maxiter': self.config.maxiter}
+        )
+
         return res.x
 
 def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
@@ -269,59 +294,60 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
 
     mat_0 = bulk_opt.run_model(bulk, test_data.geometry)
 
+    has_walls = test_data.geometry.walls is not None and test_data.geometry.walls > 0
+
     # Optimize the axial modulus
     if bulk_opt.error(mat_0.elastic.E11, EX) > config.max_error:
-        Ea = bulk_opt.minimize(bulk_opt.axial_error, (EX, bulk, test_data.geometry), bulk_opt.axial_bounds(EX), config.xatol * EX)
+        Ea = bulk_opt.minimize(bulk_opt.axial_error, (EX, bulk, test_data), bulk_opt.axial_bounds(EX))
 
     # Optimize transverse modulus for filled materials
     if test_data.type == 'unfilled':
         bulk.elastic.E = Ea
 
     else:
-        if EY is not None and bulk_opt.error(mat_0.elastic.E22, EY) > config.max_error:
-            Et = bulk_opt.minimize(bulk_opt.transverse_error, (EY, bulk, test_data.geometry, 'Y'), bulk_opt.transverse_bounds(EY, 'Z'),
-                                                               config.xatol * EY)
+        if EY is not None and (has_walls or bulk_opt.error(mat_0.elastic.E22, EY) > config.max_error):
+            Et = bulk_opt.minimize(
+                bulk_opt.transverse_error,
+                (EY, bulk, test_data, 'Y'),
+                bulk_opt.transverse_bounds(EY, 'Y')
+            )
 
-        elif EZ is not None and bulk_opt.error(mat_0.elastic.E33, EZ) > config.max_error:
-            Et = bulk_opt.minimize(bulk_opt.transverse_error, (EZ, bulk, test_data.geometry, 'Z'), bulk_opt.transverse_bounds(EZ, 'Z'),
-                                                               config.xatol * EZ)
+        elif EZ is not None and (has_walls or bulk_opt.error(mat_0.elastic.E33, EZ) > config.max_error):
+            Et = bulk_opt.minimize(
+                bulk_opt.transverse_error,
+                (EZ, bulk, test_data, 'Z'),
+                bulk_opt.transverse_bounds(EZ, 'Z')
+            )
 
         bulk.elastic.Ea = Ea
         bulk.elastic.Et = Et
 
     # Optimize the bulk yield strength
     if bulk_opt.error(mat_0.failure_yield.T11, SX) > config.max_error:
-        if bulk_opt.failure_yield.type == 'von_mises':
-            bulk.failure_yield.Sy = bulk_opt.minimize(bulk_opt.axial_yield_error, (SX, bulk, test_data.geometry), bulk_opt.axial_bounds(SX),
-                                                      config.xatol * SX)
+        if bulk.failure_yield.type == 'von_mises':
+            bulk.failure_yield.Sy = bulk_opt.minimize(bulk_opt.axial_yield_error, (SX, bulk, test_data), bulk_opt.axial_bounds(SX))
         else:
-            bulk.failure_yield.T = bulk_opt.minimize(bulk_opt.axial_yield_error, (SX, bulk, test_data.geometry), bulk_opt.axial_bounds(SX),
-                                                     config.xatol * SX)
+            bulk.failure_yield.T = bulk_opt.minimize(bulk_opt.axial_yield_error, (SX, bulk, test_data), bulk_opt.axial_bounds(SX))
             bulk.failure_yield.C = bulk.failure_yield.T
 
     # Optimize the fracture toughness
-    if SY is not None and bulk_opt.error(mat_0.failure_yield.T22, SY) > config.max_error:
-        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SY, bulk, test_data.geometry, 'Y'), bulk_opt.toughness_bounds(SY, 'Y'),
-                                              config.xatol * SY)
+    if SY is not None and (has_walls or bulk_opt.error(mat_0.failure_yield.T22, SY) > config.max_error):
+        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SY, bulk, test_data, 'Y'), bulk_opt.toughness_bounds(SY, 'Y'))
 
-    elif SZ is not None and bulk_opt.error(mat_0.failure_yield.T33, SZ) > config.max_error:
-        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SZ, bulk, test_data.geometry, 'Z'), bulk_opt.toughness_bounds(SZ, 'Z'),
-                                              config.xatol * SZ)
+    elif SZ is not None and (has_walls or bulk_opt.error(mat_0.failure_yield.T33, SZ) > config.max_error):
+        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SZ, bulk, test_data, 'Z'), bulk_opt.toughness_bounds(SZ, 'Z'))
 
     else:
         SY = test_data.transverse_yield_ratio() * SX
-        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SY, bulk, test_data.geometry, 'Y'), bulk_opt.toughness_bounds(SY, 'Y'),
-                                              config.xatol * SY)
+        bulk.fracture.KIc = bulk_opt.minimize(bulk_opt.transverse_yield_error, (SY, bulk, test_data, 'Y'), bulk_opt.toughness_bounds(SY, 'Y'))
 
     # Optimize shear if present
     if SXY is not None and bulk.failure_yield.type == 'isotropic':
-        bulk.failure_yield.S = bulk_opt.minimize(bulk_opt.shear_yield_error, (SXY, bulk, test_data.geometry), bulk_opt.shear_bounds(SXY),
-                                                 config.xatol * SXY)
+        bulk.failure_yield.S = bulk_opt.minimize(bulk_opt.shear_yield_error, (SXY, bulk, test_data), bulk_opt.shear_bounds(SXY))
 
     # # Optimize the density of the material
     # if test_data.density > 0.0 and bulk_opt.error(mat_0.density, test_data.density) > config.max_error:
     #     bulk.density = bulk_opt.minimize(bulk_opt.density_error, (test_data.density, bulk, test_data.geometry),
-    #                                      bulk_opt.axial_bounds(test_data.density), config.xatol * test_data.density)
+    #                                      bulk_opt.axial_bounds(test_data.density))
 
     return bulk
-
