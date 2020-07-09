@@ -29,6 +29,7 @@ class ExtrusionTest(WimObject):
         self.EXY0 = None
         self.EXY90 = None
         self.EZX90 = None
+        self.EXY45 = None
         self.SXY0 = None
         self.SXY90 = None
         self.SZX90 = None
@@ -144,6 +145,41 @@ class BulkOptimization():
 
         return self.error(Et, stiffness)
 
+    def shear_error(self, Gat, EXY45_test, bulk, test_data : ExtrusionTest):
+        bulk.elastic.Gat = Gat
+
+        layer_mat = self.run_model(bulk, test_data.geometry)
+
+        E11 = layer_mat.elastic.E11
+        E22 = layer_mat.elastic.E22
+        v12 = layer_mat.elastic.nu12
+        G12 = layer_mat.elastic.G12
+        v21 = v12 * E22 / E11
+
+        # Plane stress stifness matrix terms for the extrusion unit cell properties
+        C11 = E11 / (1 - v12 * v21)
+        C12 = v12 * E22 / (1 - v12 * v21)
+        C22 = E22 / (1 - v12 * v21)
+        C66 = G12
+
+        # This equation was derived from classical laminate theory (CLT).
+        # It computes the 11 stiffness of a +-45 laminate. We compare this
+        # stiffness to the experimental stiffness of the XY45 coupon.
+        EXY45 = (-(C11/4 + C12/2 + C22/4 - C66)**2 + (C11/4 + C12/2 + C22/4 + C66)**2)/(C11/4 + C12/2 + C22/4 + C66)
+
+        nwalls = test_data.geometry.walls or 0
+        if nwalls > 0:
+            # Use rule of mixtures to remove the stiffness contribution
+            # of the walls from the EXY45 measurement
+            wall_thickness = 2 * test_data.geometry.layer_width # walls on both sides of gage section
+
+            wall_gage_fraction = wall_thickness / test_data.specimen.gage_width
+            skin_gage_fraction = 1.0 - wall_gage_fraction
+
+            EXY45_test = (EXY45_test - wall_gage_fraction * E11) / skin_gage_fraction
+
+        return self.error(EXY45, EXY45_test)
+
     def axial_yield_error(self, S, yield_strength, bulk, test_data : ExtrusionTest):
 
         if bulk.failure_yield.type == 'von_mises':
@@ -244,6 +280,7 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     EX = test_data.EXY0
     EY = test_data.EXY90
     EZ = test_data.EZX90
+    EXY45 = test_data.EXY45
 
     SX = test_data.SXY0
     SY = test_data.SXY90
@@ -267,22 +304,23 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
     Et = Ea
     nuat = 0.35
     nutt = 0.45
-    Gat = 0.6 * Ea
+    Gat = 0.6 * Et
 
     Sy = test_data.axial_ratio() * SX
     KIc = 6.0
 
     if test_data.type == 'unfilled':
-        bulk.elastic = fea.model.Elastic(type = 'isotropic', properties = {'E': Ea, 'nu': nuat})
-        bulk.failure_yield = fea.model.Yield(type = 'von_mises', properties = {'Sy': Sy})
+        bulk.elastic = fea.model.Elastic(type='isotropic', properties={'E': Ea, 'nu': nuat})
+        bulk.failure_yield = fea.model.Yield(type='von_mises', properties={'Sy': Sy})
     else:
         if EY is not None:
             Et = test_data.transverse_ratio('Y') * EY
         else:
             Et = test_data.transverse_ratio('Z') * EZ
 
-        bulk.elastic = fea.model.Elastic(type = 'transverse_isotropic', properties = {'Ea': Ea, 'Et': Et,
-                                         'nuat': nuat, 'nutt': nutt, 'Gat': Gat})
+        bulk_elas_props = {'Ea': Ea, 'Et': Et, 'nuat': nuat, 'nutt': nutt, 'Gat': Gat}
+
+        bulk.elastic = fea.model.Elastic(type='transverse_isotropic', properties=bulk_elas_props)
 
         Sxy = test_data.axial_ratio() * SXY
         bulk.failure_yield = fea.model.Yield(type = 'isotropic', properties = {'T': Sy, 'C': Sy, 'S': Sxy})
@@ -319,8 +357,16 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
                 bulk_opt.transverse_bounds(EZ, 'Z')
             )
 
+        if EXY45 is not None:
+            Gat = bulk_opt.minimize(
+                bulk_opt.shear_error,
+                (EXY45, bulk, test_data),
+                (0.25 * EY, EX)
+            )
+
         bulk.elastic.Ea = Ea
         bulk.elastic.Et = Et
+        bulk.elastic.Gat = Gat
 
     # Optimize the bulk yield strength
     if bulk_opt.error(mat_0.failure_yield.T11, SX) > config.max_error:
