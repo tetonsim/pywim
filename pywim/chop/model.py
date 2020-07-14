@@ -47,7 +47,7 @@ class Step(WimObject):
         self.boundary_conditions = WimList(BoundaryCondition)
         self.loads = WimList(Load)
 
-class Mesher(dict):
+class Mesher(WimObject):
     pass
 
 class Model(WimObject):
