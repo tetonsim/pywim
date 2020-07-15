@@ -201,7 +201,7 @@ class Client:
             }
         )
 
-        if resp.status_code >= 500:
+        if resp.status_code in (429, 500):
             return resp.status_code, None
 
         if resp.status_code == 400:
