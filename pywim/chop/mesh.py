@@ -75,6 +75,8 @@ class Mesh(WimObject, threemf.mesh.Mesh):
     def __from_dict__(cls, d):
         m = cls()
 
+        m.name = d.get('name', '')
+
         for v in d['vertices']:
             m.vertices.append(
                 threemf.mesh.Vertex(v[0], v[1], v[2])
