@@ -48,7 +48,8 @@ class Step(WimObject):
         self.loads = WimList(Load)
 
 class Mesher(WimObject):
-    pass
+    def __init__(self):
+        self.voxel_resolution = 0.
 
 class Model(WimObject):
     def __init__(self):

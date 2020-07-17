@@ -1,3 +1,5 @@
+import numpy as np
+
 from .. import WimObject, WimList, WimTuple, WimNone, Meta
 
 class Process(WimObject):
@@ -147,6 +149,31 @@ class Fracture(WimObject):
     def __init__(self, KIc=None):
         self.KIc = KIc
 
+class Mapping(WimObject):
+    def __init__(self):
+        self.stress = np.zeros((6, 6))
+        self.temperature = np.zeros((6, 1))
+
+    @classmethod
+    def __from_dict__(cls, d):
+        mapping = cls()
+
+        stress_list = d.get('stress', [0.] * 36)
+        temp_list = d.get('temperature', [0.] * 6)
+
+        for i in range(6):
+            mapping.temperature[i, 0] = temp_list[i]
+            for j in range(6):
+                mapping.stress[i, j] = stress_list[j * 6 + i]
+
+        return mapping
+
+    def __to_dict__(self):
+        return {
+            'stress': self.stress.flatten('F').tolist(),
+            'temperature': self.temperature.flatten('F').tolist()
+        }
+
 class Material(WimObject):
     def __init__(self, name=None):
         self.name = name if name else 'material'
@@ -157,6 +184,7 @@ class Material(WimObject):
         self.expansion = WimNone(Expansion)
         self.failure_yield = WimNone(Yield)
         self.fracture = WimNone(Fracture)
+        self.mappings = WimList(Mapping)
 
 class CoordinateSystem(WimObject):
     DEFAULTTYPENAME = 'three_points'
