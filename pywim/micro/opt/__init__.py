@@ -318,8 +318,6 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
         else:
             Et = test_data.transverse_ratio('Z') * EZ
 
-        Gat = 0.6 * Et
-
         bulk_elas_props = {'Ea': Ea, 'Et': Et, 'nuat': nuat, 'nutt': nutt, 'Gat': Gat}
 
         bulk.elastic = fea.model.Elastic(type='transverse_isotropic', properties=bulk_elas_props)
@@ -365,6 +363,8 @@ def optimize_bulk(test_data : ExtrusionTest, config : Config = None):
                 (EXY45, bulk, test_data),
                 (0.25 * EY, EX)
             )
+        else:
+            Gat = 0.6 * Et
 
         bulk.elastic.Ea = Ea
         bulk.elastic.Et = Et
