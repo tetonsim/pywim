@@ -1,8 +1,13 @@
+import enum
 import sys
 
 from . import job
 from .. import am, chop
 from .. import Meta, WimObject, WimList, WimTuple
+
+class ResultStatus(enum.Enum):
+    FeasibleResult = 0
+    InfeasibleSolidResult = 1
 
 class Extruder(WimObject):
     def __init__(self, number=0):
@@ -26,6 +31,9 @@ class Analysis(WimObject):
         self.modifier_meshes = WimList(chop.mesh.Mesh)
 
 class Result(WimObject):
-    def __init__(self):
+    def __init__(self, feasibility_result : Analysis = None, result_status : ResultStatus = ResultStatus.FeasibleResult):
         self.meta = Meta()
         self.analyses = WimList(Analysis)
+        self.result_status = result_status
+        self.feasibility_result = feasibility_result
+
