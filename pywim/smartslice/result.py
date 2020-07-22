@@ -6,8 +6,14 @@ from .. import am, chop
 from .. import Meta, WimObject, WimList, WimTuple
 
 class ResultStatus(enum.Enum):
-    FeasibleResult = 0
-    InfeasibleSolidResult = 1
+    unknown = 0
+    solution_found = 1
+    no_solution_found = 2
+
+class FeasibilityStatus(enum.Enum):
+    unknown = 0
+    feasible = 1
+    infeasible = 2
 
 class Extruder(WimObject):
     def __init__(self, number=0):
@@ -31,9 +37,10 @@ class Analysis(WimObject):
         self.modifier_meshes = WimList(chop.mesh.Mesh)
 
 class Result(WimObject):
-    def __init__(self, feasibility_result : Analysis = None, result_status : ResultStatus = ResultStatus.FeasibleResult):
+    def __init__(self, feasibility_result : Analysis = None):
         self.meta = Meta()
         self.analyses = WimList(Analysis)
-        self.result_status = result_status
+        self.result_status = ResultStatus.unknown
+        self.feasibility_status = FeasibilityStatus.unknown
         self.feasibility_result = feasibility_result
 
