@@ -40,7 +40,7 @@ class Result(WimObject):
     def __init__(self, feasibility_result : Analysis = None):
         self.meta = Meta()
         self.analyses = WimList(Analysis)
-        self.result_status = ResultStatus.unknown
+        self.status = ResultStatus.unknown
         self.feasibility_status = FeasibilityStatus.unknown
         self.feasibility_result = feasibility_result
 
