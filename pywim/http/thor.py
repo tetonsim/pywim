@@ -61,11 +61,20 @@ class Product(WimObject):
         self.total = 0
 
 class Subscription(WimObject):
+    class Status(enum.Enum):
+        unknown = 0
+        inactive = 1
+        active = 2
+        trial = 3
+
     def __init__(self):
         default_dt = datetime.datetime(1900, 1, 1)
 
+        self.status = Subscription.Status.unknown
         self.start = default_dt
         self.end = default_dt
+        self.trial_start = default_dt
+        self.trial_end = default_dt
         self.products = WimList(Product)
 
 class JobInfo(WimObject):
