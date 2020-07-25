@@ -116,38 +116,37 @@ class Job(WimObject):
 
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
-                'No loads or anchors have been defined', 
+                'No loads or anchors have been defined',
                 'Define at least one load and boundary condition'
             ))
 
         for step in self.chop.steps:
             if step.boundary_conditions.is_empty():
                 errors.append(val.InvalidSetup(
-                    'No anchors have been defined for step ' + step.name, 
-                    'Define at least one anchor for the step'
+                    'No anchors have been defined',
+                    'Define at least one anchor'
                 ))
 
             for bc in step.boundary_conditions:
                 if bc.face.is_empty():
                     errors.append(val.InvalidSetup(
-                        'No faces have been selected for anchor ' + bc.name, 
+                        'No faces have been selected for anchor ' + bc.name,
                         'Select a face to apply the anchor'
                     ))
 
             if step.loads.is_empty():
                 errors.append(val.InvalidSetup(
-                    'No loads have been defined for step ' + step.name, 
-                    'Define at least one load for the step'
+                    'No loads have been defined',
+                    'Define at least one load'
                 ))
 
             for load in step.loads:
                 if load.face.is_empty():
                     errors.append(val.InvalidSetup(
-                        'No faces have been selected for load ' + load.name, 
+                        'No faces have been selected for load ' + load.name,
                         'Select a face to apply the load'
                     ))
 
-            
         return errors
 
     def _validate_requirements(self):
@@ -190,7 +189,7 @@ class Job(WimObject):
         mesh_errors = []
         if self.chop.meshes.is_empty():
             mesh_errors.append(val.InvalidSetup(
-                'No meshes have been defined for this job', 
+                'No meshes have been defined for this job',
                 'Define at least one mesh to be used in the job'
             ))
 

@@ -323,7 +323,7 @@ NECESSARY_PRINT_PARAMETERS = [
 
 REQUIREMENTS = {
     #EqualityCheck('extruders_enabled_count', 'Number of Extruders That Are Enabled', '1'), # Removing this for now - we only take extruder 1
-    EqualityCheck('initial_layer_line_width_factor', 'Initial Layer Line Width', 100.0),
+    #EqualityCheck('initial_layer_line_width_factor', 'Initial Layer Line Width', 100.0),
     EqualityCheck('top_bottom_pattern', 'Top/Bottom Pattern', 'lines'),
     EqualityCheck('top_bottom_pattern_0', 'Bottom Pattern Initial Layer', 'lines'),
     EqualityCheck('gradual_infill_steps', 'Gradual Infill Steps', 0),
@@ -335,13 +335,13 @@ REQUIREMENTS = {
     EqualityCheck('wireframe_enabled', 'Wire Printing', 'false'),
     EqualityCheck('adaptive_layer_height_enabled', 'Use Adaptive Layers', 'false'),
 
-    CompatibilityCheck('layer_height_0', 'Initial Layer Height', 'Layer Height', 'layer_height'),
-    CompatibilityCheck('infill_line_width',  'Infill Line Width', 'Line Width', 'layer_width'),
-    CompatibilityCheck('skin_line_width', 'Top/Bottom Line Width', 'Line Width', 'layer_width'),
-    CompatibilityCheck('wall_line_width_0', 'Outer Wall Line Width', 'Line Width', 'layer_width'),
-    CompatibilityCheck('wall_line_width_x', 'Inner Wall(s) Line Width', 'Line Width', 'layer_width'),
+    #CompatibilityCheck('layer_height_0', 'Initial Layer Height', 'Layer Height', 'layer_height'),
+    # CompatibilityCheck('infill_line_width',  'Infill Line Width', 'Line Width', 'layer_width'),
+    # CompatibilityCheck('skin_line_width', 'Top/Bottom Line Width', 'Line Width', 'layer_width'),
+    # CompatibilityCheck('wall_line_width_0', 'Outer Wall Line Width', 'Line Width', 'layer_width'),
+    # CompatibilityCheck('wall_line_width_x', 'Inner Wall(s) Line Width', 'Line Width', 'layer_width'),
     CompatibilityCheck('wall_line_width', 'Wall Line Width', 'Line Width', 'layer_width'),
-    CompatibilityCheck('infill_sparse_thickness', 'Infill Layer Thickness', 'Layer Height', 'layer_height'),
+    #CompatibilityCheck('infill_sparse_thickness', 'Infill Layer Thickness', 'Layer Height', 'layer_height'),
 
     BoundsCheck('density', 'Infill Density', min_value=20, max_value=100, level_modifier=['infill']),
 
