@@ -116,41 +116,40 @@ class Job(WimObject):
 
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
-                'No loads or anchors have been defined', 
+                'No loads or anchors have been defined',
                 'Define at least one load and boundary condition'
             ))
 
         for step in self.chop.steps:
             if step.boundary_conditions.is_empty():
                 errors.append(val.InvalidSetup(
-                    'No anchors have been defined for step ' + step.name, 
-                    'Define at least one anchor for the step'
+                    'No anchors have been defined',
+                    'Define at least one anchor'
                 ))
 
             for bc in step.boundary_conditions:
                 if bc.face.is_empty():
                     errors.append(val.InvalidSetup(
-                        'No faces have been selected for anchor ' + bc.name, 
+                        'No faces have been selected for anchor ' + bc.name,
                         'Select a face to apply the anchor'
                     ))
 
             if step.loads.is_empty():
                 errors.append(val.InvalidSetup(
-                    'No loads have been defined for step ' + step.name, 
-                    'Define at least one load for the step'
+                    'No loads have been defined',
+                    'Define at least one load'
                 ))
 
             for load in step.loads:
                 if load.face.is_empty():
                     errors.append(val.InvalidSetup(
-                        'No faces have been selected for load ' + load.name, 
+                        'No faces have been selected for load ' + load.name,
                         'Select a face to apply the load'
                     ))
 
-            
         return errors
 
-    def _validate_requirements(self):
+    def _validate_requirements(self, check_strict=True, check_optional=False):
         '''
         Check the auxiliary print settings for validity.
         '''
@@ -158,11 +157,19 @@ class Job(WimObject):
 
         for mesh in self.chop.meshes:
 
-            for req in val.REQUIREMENTS:
-                req_error = req.check_error(mesh)
+            if check_strict:
+                for req in val.STRICT_REQUIREMENTS:
+                    req_error = req.check_error(mesh)
 
-                if req_error:
-                    errors.append(req_error)
+                    if req_error:
+                        errors.append(req_error)
+
+            if check_optional:
+                for req in val.OPTIONAL_REQUIREMENTS:
+                    req_error = req.check_error(mesh)
+
+                    if req_error:
+                        errors.append(req_error)
 
         return errors
 
@@ -183,26 +190,26 @@ class Job(WimObject):
 
         return errors
 
-    def validate(self):
+    def validate(self, check_step=True, check_strict=True, check_compatibility=True, check_optional=False):
         '''
         Function for validating the print configs for use in smartslice validation.
         '''
         mesh_errors = []
         if self.chop.meshes.is_empty():
             mesh_errors.append(val.InvalidSetup(
-                'No meshes have been defined for this job', 
+                'No meshes have been defined for this job',
                 'Define at least one mesh to be used in the job'
             ))
 
-        step_errors = self._validate_steps()
+        step_errors = self._validate_steps() if check_step else []
 
         # Adjust each mesh's print config to contain all relevant information.
         for mesh in self.chop.meshes:
             mesh.print_config = self.top_config(mesh.print_config)
 
-        comp_errors = self._validate_compatibility() if (len(self.chop.meshes) > 1) else []
+        comp_errors = self._validate_compatibility() if (len(self.chop.meshes) > 1) and check_compatibility else []
 
-        req_errors = self._validate_requirements()
+        req_errors = self._validate_requirements(check_strict, check_optional)
 
         return mesh_errors + step_errors + comp_errors + req_errors
 
