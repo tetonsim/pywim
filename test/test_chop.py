@@ -196,7 +196,7 @@ class JobValidateTest(unittest.TestCase):
         job.chop.meshes.append(mesh1)
         job.chop.meshes.append(mesh2)
 
-        errors = job._validate_requirements()
+        errors = job._validate_requirements(check_strict=True, check_optional=True)
 
         self.assertEqual( errors, [])
 
@@ -245,7 +245,7 @@ class JobValidateTest(unittest.TestCase):
         job.chop.meshes.append(mesh1)
         job.chop.meshes.append(mesh2)
 
-        errors = job._validate_requirements()
+        errors = job._validate_requirements(check_strict=True, check_optional=True)
 
         self.assertEqual( len(errors), 3)
 
@@ -282,10 +282,41 @@ class JobValidateTest(unittest.TestCase):
         job = pywim.smartslice.job.Job()
         job.chop.meshes.append(mesh1)
 
-        errors = job._validate_requirements()
+        errors = job._validate_requirements(check_strict=True, check_optional=True)
 
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].setting_name, 'Top/Bottom Line Width')
+
+    def test_validate_reqs_4(self):
+        mesh1 = pywim.chop.mesh.Mesh()
+        c1 = pywim.am.Config()
+        c1.layer_height = 0.4
+        c1.layer_width = 0.6
+        c1.bottom_layers = 1
+        c1.infill.density = 20
+        c1.infill.pattern = pywim.am.InfillType.triangle
+        c1.infill.orientation = 0.0
+        c1.auxiliary['infill_angles'] = []
+
+        for key,value in specific_reqs.items():
+
+            c1.auxiliary[key] = value[0]
+
+        for key,value in comparative_reqs.items():
+
+            c1.auxiliary[key] = getattr(c1, value[0])
+
+        c1.auxiliary['extruders_enabled_count'] = 0
+        c1.auxiliary['skin_line_width'] = 0.8
+
+        mesh1.print_config = c1
+
+        job = pywim.smartslice.job.Job()
+        job.chop.meshes.append(mesh1)
+
+        errors = job._validate_requirements(check_strict=True, check_optional=False)
+
+        self.assertEqual(len(errors), 0)
 
     def test_validate(self):
         mesh1 = pywim.chop.mesh.Mesh('mesh1')
@@ -340,15 +371,15 @@ class JobValidateTest(unittest.TestCase):
         job.chop.meshes.append(mesh1)
         job.chop.meshes.append(mesh2)
 
-        errors = job.validate()
+        errors = job.validate(check_step=True, check_compatibility=True, check_strict=True, check_optional=False)
 
-        self.assertEqual( len(errors), 5)
+        self.assertEqual( len(errors), 4)
 
         #error_names = set([errors[0].setting_name, errors[1].setting_name, errors[2].setting_name, errors[3].setting_name, errors[4].setting_name])
         error_names = set([
             e.setting_name if hasattr(e, 'setting_name') else e.error() for e in errors
         ])
 
-        results_names = set(['No loads or anchors have been defined', 'Top/Bottom Line Width', 'Infill Density', 'Infill Pattern', 'Number of Infill Line Directions'])
+        results_names = set(['No loads or anchors have been defined', 'Infill Density', 'Infill Pattern', 'Number of Infill Line Directions'])
 
         self.assertEqual(error_names, results_names)

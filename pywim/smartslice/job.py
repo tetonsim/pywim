@@ -149,7 +149,7 @@ class Job(WimObject):
 
         return errors
 
-    def _validate_requirements(self):
+    def _validate_requirements(self, check_strict=True, check_optional=False):
         '''
         Check the auxiliary print settings for validity.
         '''
@@ -157,11 +157,19 @@ class Job(WimObject):
 
         for mesh in self.chop.meshes:
 
-            for req in val.REQUIREMENTS:
-                req_error = req.check_error(mesh)
+            if check_strict:
+                for req in val.STRICT_REQUIREMENTS:
+                    req_error = req.check_error(mesh)
 
-                if req_error:
-                    errors.append(req_error)
+                    if req_error:
+                        errors.append(req_error)
+
+            if check_optional:
+                for req in val.OPTIONAL_REQUIREMENTS:
+                    req_error = req.check_error(mesh)
+
+                    if req_error:
+                        errors.append(req_error)
 
         return errors
 
@@ -182,7 +190,7 @@ class Job(WimObject):
 
         return errors
 
-    def validate(self):
+    def validate(self, check_step=True, check_strict=True, check_compatibility=True, check_optional=False):
         '''
         Function for validating the print configs for use in smartslice validation.
         '''
@@ -193,15 +201,15 @@ class Job(WimObject):
                 'Define at least one mesh to be used in the job'
             ))
 
-        step_errors = self._validate_steps()
+        step_errors = self._validate_steps() if check_step else []
 
         # Adjust each mesh's print config to contain all relevant information.
         for mesh in self.chop.meshes:
             mesh.print_config = self.top_config(mesh.print_config)
 
-        comp_errors = self._validate_compatibility() if (len(self.chop.meshes) > 1) else []
+        comp_errors = self._validate_compatibility() if (len(self.chop.meshes) > 1) and check_compatibility else []
 
-        req_errors = self._validate_requirements()
+        req_errors = self._validate_requirements(check_strict, check_optional)
 
         return mesh_errors + step_errors + comp_errors + req_errors
 
