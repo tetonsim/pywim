@@ -23,17 +23,17 @@ class EdgeAngleTest(unittest.TestCase):
         a = self._make_edge_angle(0.)
 
         self.assertAlmostEqual(a.angle, 0.)
-        self.assertTrue(a.concave)
+        self.assertAlmostEqual(a.face_angle, math.pi)
 
     def test_concave(self):
         a = self._make_edge_angle(0.1)
 
-        self.assertTrue(a.concave)
+        self.assertLess(a.face_angle, math.pi)
 
     def test_convex(self):
         a = self._make_edge_angle(-0.1)
 
-        self.assertFalse(a.concave)
+        self.assertGreater(a.face_angle, math.pi)
 
 class CubeBasic(unittest.TestCase):
     def setUp(self):
