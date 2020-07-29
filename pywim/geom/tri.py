@@ -9,7 +9,7 @@ try:
 except ImportError:
     NUMPY_STL = False
 
-from typing import Dict, List, Set, Union, Callable
+from typing import Dict, List, Set, Union, Callable, Tuple
 
 from . import Vertex as _Vertex
 from . import Edge as _Edge
@@ -98,9 +98,10 @@ class EdgeAngle:
     def __init__(self, t1: Triangle, t2: Triangle):
         self.t1 = t1
         self.t2 = t2
+
+        # Angle between the two triangle normals
         self.angle = t1.angle(t2)
 
-        # Concave/convex check
         # Find the vertices not shared
         t1_points = set(self.t1.points)
         t2_points = set(self.t2.points)
@@ -109,9 +110,14 @@ class EdgeAngle:
         t2_v = list(t2_points.difference(t1_points))[0]
 
         v12 = Vector.FromTwoPoints(t1_v, t2_v)
-        v1n = Vector(self.t1.normal.r, self.t1.normal.s, self.t1.normal.t, t1_v)
 
-        self.concave = v1n.angle(v12) <= (math.pi / 2)
+        t1_v12_dot = self.t1.normal.dot(v12)
+
+        # Angle between the two planes that the triangles lie in (180 deg is coplanar)
+        if t1_v12_dot > 0.:
+            self.face_angle = math.pi - self.angle
+        else:
+            self.face_angle = math.pi + self.angle
 
 
 class Edge(_MeshEntity, _Edge):
@@ -141,8 +147,10 @@ class Mesh:
     _COPLANAR_ANGLE = 0.004
     _MAX_EDGE_CYLINDER_ANGLE = math.pi / 6.
     _CYLINDER_RADIUS_TOLERANCE = 0.05
-    _MIN_CONCAVE_ANGLE = -0.004
-    _MAX_CONCAVE_ANGLE = math.pi / 6
+    _MIN_CONCAVE_ANGLE = math.pi - math.pi / 12
+    _MAX_CONCAVE_ANGLE = math.pi + _COPLANAR_ANGLE
+    _MIN_CONVEX_ANGLE = math.pi - _COPLANAR_ANGLE
+    _MAX_CONVEX_ANGLE = math.pi + math.pi / 12
 
     def __init__(self):
         self.vertices = []
@@ -457,13 +465,27 @@ class Mesh:
             tri = next(t for t in self.triangles if t.id == tri)
 
         edge_condition = lambda edge_angle: \
-            edge_angle.concave and \
-            edge_angle.angle >= min_concave_angle and \
-            edge_angle.angle < max_concave_angle
+            edge_angle.face_angle >= min_concave_angle and \
+            edge_angle.face_angle < max_concave_angle
 
         return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
-    def get_neighbored_triangles(self, tri: Union[Triangle, int]):
+    def select_convex_face(
+        self,
+        tri: Union[Triangle, int],
+        min_convex_angle: float = _MIN_CONVEX_ANGLE,
+        max_convex_angle: float = _MAX_CONVEX_ANGLE
+    ) -> List[Triangle]:
+        if isinstance(tri, int):
+            tri = next(t for t in self.triangles if t.id == tri)
+
+        edge_condition = lambda edge_angle: \
+            edge_angle.face_angle >= min_convex_angle and \
+            edge_angle.face_angle < max_convex_angle
+
+        return self._select_connected_triangles_edge_condition(tri, edge_condition)
+
+    def get_neighbored_triangles(self, tri: Union[Triangle, int]) -> List[Tuple[Triangle, EdgeAngle]]:
         # Convert an intenger into an Triangle if needed..
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
@@ -488,43 +510,6 @@ class Mesh:
         # List with tuples of triangles and angles
         # (relative to the provided triangle)
         return connected_tris
-
-    def general_cylinder_check(self, this_triangle):
-        # Simply checks for all known cases as known and
-        # listed below
-
-        logger.debug("Running simple check")
-        result_simple_test = self.simple_cylindric_surface_check(this_triangle)
-        logger.debug("Result of simple check: {}".format(result_simple_test))
-
-        # Just for logs
-        self.try_select_cylinder_face(this_triangle)
-
-        logger.debug("Running check no. 1")
-        result_extended_1 = self.extended_cylindric_surface_check_no1(
-            this_triangle
-        )
-        logger.debug("Result of check no. 1: {}".format(result_extended_1))
-        logger.debug("Running check no. 2")
-        result_extended_2 = self.extended_cylindric_surface_check_no2(
-            this_triangle
-        )
-        logger.debug("Result of check no. 2: {}".format(result_extended_2))
-
-        return result_simple_test or \
-            result_extended_1 or \
-            result_extended_2
-
-    def simple_cylindric_surface_check(self, face_id):
-        # Simple check, which savely detects
-        # non-stacked tessellated cylinders.
-        planar_selected_faces = self.select_planar_face(face_id)
-
-        # If we found a planar face using two or less faces, it is likely,
-        # that this face is a cylinder. Normally a plane consists of more
-        # than two faces. However, it doesn't need to be always the case.
-
-        return len(planar_selected_faces) <= 2
 
     def _find_neighbored_surface_for_extended_check(
         self,
@@ -799,14 +784,14 @@ class Mesh:
 
         # Double check that the normals of the two triangles are
         # not too similar. If they are, this algorithm will not work.
-        logger.debug("this_triangle: {}".format(this_triangle))
-        logger.debug("other_triangle: {}".format(other_triangle))
+        #logger.debug("this_triangle: {}".format(this_triangle))
+        #logger.debug("other_triangle: {}".format(other_triangle))
 
         this_dot_product = this_triangle.normal.dot(other_triangle.normal)
         this_magnitude = numpy.linalg.norm(this_triangle.normal)
         other_magnitude = numpy.linalg.norm(other_triangle.normal)
         this_angle = math.acos(this_dot_product / (this_magnitude * other_magnitude))
-        logger.debug("this_angle: {}".format(this_angle))
+        #logger.debug("this_angle: {}".format(this_angle))
 
         # The angle between the normals of this_triangle and other_triangle needs to be
         # above 0.025 degrees. If it isn't, then we likely have a planar surface and
@@ -814,22 +799,15 @@ class Mesh:
         if this_angle < 0.025:
             result = this_triangle.normal.dot(other_triangle.normal)
             logger.debug("Too similar!")
-            logger.debug("result[rad]: {}".format(
-                    result
-                )
-            )
-            logger.debug("result[deg]: {}".format(
-                    math.degrees(result)
-                )
-            )
+            logger.debug("result[rad]: {}".format(result))
             return None
 
         # Compute the axis direction of the potential cylinder
         # and a corresponding plane.
         cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
-        logger.debug("cylinder_axis: {}".format(cylinder_axis))
+        #logger.debug("cylinder_axis: {}".format(cylinder_axis))
         t1_tangent = this_triangle.normal.cross(cylinder_axis).unit()
-        logger.debug("t1_tangent: {}".format(t1_tangent))
+        #logger.debug("t1_tangent: {}".format(t1_tangent))
 
         # Find the edge that is closest to parallel with t1_tangent
         edges = self._triangle_to_edge[this_triangle]
@@ -837,10 +815,10 @@ class Mesh:
         max_dot = 0.0
         parallel_edge = None
         vec_pointing_away = None
-        logger.debug("edges: {}".format(edges))
+        #logger.debug("edges: {}".format(edges))
         for edge in edges:
             e_t_dot = abs(edge.vector.dot(t1_tangent))
-            logger.debug("e_t_dot: {}".format(e_t_dot))
+            #logger.debug("e_t_dot: {}".format(e_t_dot))
 
             if e_t_dot > max_dot:
                 max_dot = e_t_dot
@@ -1035,59 +1013,48 @@ class Mesh:
         if isinstance(this_triangle, int):
             this_triangle = next(t for t in self.triangles if t.id == this_triangle)
 
-        these_triangles = [this_triangle]
+        def meets_concavity_requirement(edge_angle : EdgeAngle):
+            if edge_angle.angle < coplanar_angle:
+                # Triangle is coplanar
+                return True
 
-        for this_triangle in these_triangles:
-            # Getting all neighbored triangles via commonized function
-            connected_tris = self.get_neighbored_triangles(this_triangle)
-            logger.debug("connected_tris: {}".format(connected_tris))
+            # Grow by any connected concave/convex triangle
+            # without reaching a maximum angle
+            if edge_angle.angle > max_edge_angle:
+                return False
 
-            for connected_tri in connected_tris:
-                # Grow by any connected planar triangle
-                if connected_tri[1].angle < coplanar_angle and connected_tri[0] not in these_triangles:
-                    logger.debug("Found planar triangle: {}".format(connected_tri[0]))
-                    these_triangles.append(connected_tri[0])
-                    continue
+            try:
+                t1_tangent_and_others = self.calculate_t1_tangent_and_others(
+                    edge_angle.t1,
+                    edge_angle.t2
+                )
+            except ValueError:
+                # Catching math domain errors here.
+                # Previously we made checks before running this function.
+                # However, when reading the older code I don't see where the check is.
+                return False
 
-                # Grow by any connected concave/convex triangle
-                # without reaching a maximum angle
-                if connected_tri[1].angle < max_edge_angle:
-                    try:
-                        t1_tangent_and_others = self.calculate_t1_tangent_and_others(
-                            this_triangle,
-                            connected_tri[0]
-                        )
-                    except ValueError:
-                        # Catching math domain errors here.
-                        # Previously we made checks before running this function.
-                        # However, when reading the older code I don't see where the check is.
-                        continue
+            if not t1_tangent_and_others:
+                return False
 
-                    if not t1_tangent_and_others:
-                        # Catching whether t1_tangent_and_others returned None
-                        continue
+            _, _, vec_pointing_away, _ = t1_tangent_and_others
 
-                    t1_tangent, \
-                        parallel_edge, \
-                        vec_pointing_away, \
-                        cylinder_axis = t1_tangent_and_others
+            result = self.is_concave(
+                vec_pointing_away,
+                edge_angle.t1.normal,
+                edge_angle.t2.normal
+            )
 
-                    result = self.is_concave(
-                        vec_pointing_away,
-                        this_triangle.normal,
-                        connected_tri[0].normal
-                    )
+            # Negate the logic if we are looking for convex
+            if not with_concavity:
+                result = not result
 
-                    # Negate the logic if we are looking for convex
-                    if not with_concavity:
-                        result = not result
+            return result
 
-                    if result and connected_tri[0] not in these_triangles:
-                        logger.debug("Found concave triangle: {}".format(connected_tri[0]))
-                        these_triangles.append(connected_tri[0])
-                        continue
-
-        return these_triangles
+        return self._select_connected_triangles_edge_condition(
+            this_triangle,
+            meets_concavity_requirement
+        )
 
     def try_grow_planar_and_concave(
         self,
@@ -1120,4 +1087,3 @@ class Mesh:
         )
 
         return these_triangles
-
