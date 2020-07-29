@@ -511,271 +511,6 @@ class Mesh:
         # (relative to the provided triangle)
         return connected_tris
 
-    def _find_neighbored_surface_for_extended_check(
-        self,
-        this_triangle: Union[Triangle, int],
-        coplanar_angle: float = _COPLANAR_ANGLE
-    ):
-        # # Extended check, which detects stacked tessellated cylinders.
-        # # That one happens e.g. if an cylindric hole is deeper
-        # # than the max edge length in Autodesk Inventors STL export settings.
-
-        # # Checking case no. 1 here. It will decide whether we need a fallback or not.
-
-        # Convert the face_id into a Triangle object if it is an integer
-        if isinstance(this_triangle, int):
-            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
-
-        connected_tris = self.get_neighbored_triangles(this_triangle)
-        connected_coplanar_tris = []
-        connected_tris_filtered = connected_tris.copy()
-
-        # We need to get three neighbored triangles here.
-        # A valid mesh should provide this!
-        if not len(connected_tris) == 3:
-            logger.debug("len(connected_tris) == 2: {}".format(
-                len(connected_tris))
-            )
-            return None
-
-        # .. and filtering it as we did before.
-        for entry in connected_tris:
-            other_tri, edge_angle = entry
-            if not coplanar_angle < edge_angle.angle:
-                connected_tris_filtered.remove(entry)
-                connected_coplanar_tris.append(entry)
-        connected_tris = connected_tris_filtered
-
-        # As one coplanar face should have been found before,
-        # we need to get two triangles here.
-        if not len(connected_tris) == 2:
-            logger.debug("len(connected_tris_filtered) == 2: {}".format(
-                len(connected_tris_filtered))
-            )
-            return None
-
-        # One of the connected triangles is the top plane,
-        # the other the one, which belongs to the cylinder.
-        tri1_angle = connected_tris[0][1]
-        tri2_angle = connected_tris[1][1]
-        tri_angle_delta = abs(tri1_angle.angle - tri2_angle.angle)
-        if tri_angle_delta < numpy.radians(80.0):
-            logger.debug("tri_angle_delta < {}: {}".format(
-                numpy.radians(80.0),
-                tri_angle_delta)
-            )
-            # NOTE: Adding a per layer check here: XY, XZ, YZ
-            return None
-
-        # Check the areas of the two triangles. If they are very different
-        # this is not a cylinder
-        logger.debug("this_triangle: {}".format(this_triangle))
-        logger.debug("connected_coplanar_tris[0]: {}".format(
-            connected_coplanar_tris[0]
-            )
-        )
-        area_min = min(this_triangle.area, connected_coplanar_tris[0][0].area)
-        area_max = max(this_triangle.area, connected_coplanar_tris[0][0].area)
-
-        if area_min / area_max < 0.90:
-            logger.debug("amin / amax < 0.90: {}".format(area_min / area_max))
-            return None
-
-        return connected_coplanar_tris[0]
-
-    def extended_cylindric_surface_check_no1(self, this_triangle):
-        # Convert the face_id into a Triangle object if it is an integer
-        if isinstance(this_triangle, int):
-            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
-
-        result_set = self._find_neighbored_surface_for_extended_check(
-            this_triangle
-        )
-
-        # If we didn't end up with results, it doesn't make sense to follow up
-        # with check number 2..
-        if not result_set:
-            return False
-        else:
-            # If something has been found via result_no1, we need
-            # to double check extended_cylindric_surface_check_no2
-            return self.extended_cylindric_surface_check_no2(result_set[0])
-
-    def extended_cylindric_surface_check_no2(
-        self,
-        this_triangle: Union[Triangle, int],
-        coplanar_angle: float = _COPLANAR_ANGLE,
-    ):
-        # # Extended check, which detects stacked tessellated cylinders.
-        # # That one happens e.g. if an cylindric hole is deeper
-        # # than the max edge length in Autodesk Inventors STL export settings.
-
-        # # Checking case no. 2 here. It will decide whether we need a fallback or not.
-
-        # Convert the face_id into a Triangle object if it is an integer
-        if isinstance(this_triangle, int):
-            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
-
-        connected_tris = self.get_neighbored_triangles(this_triangle)
-        connected_tris_coplanar = []
-        connected_tris_non_coplanar = []
-
-        # We need to get three neighbored triangles here.
-        # A valid mesh should provide this!
-        if not len(connected_tris) == 3:
-            return False
-
-        # .. and filtering it as we did before.
-        for entry in connected_tris:
-            other_tri, edge_angle = entry
-            if coplanar_angle >= edge_angle.angle:
-                # We found a non-flat face as coplanar_angle
-                # has not been reached
-                connected_tris_coplanar.append(entry)
-            else:
-                # We found a flat face
-                connected_tris_non_coplanar.append(entry)
-
-        logger.debug("connected_tris_non_coplanar: {}".format(
-                [str(x[0]) for x in connected_tris_non_coplanar],
-            )
-        )
-        logger.debug("connected_tris_coplanar: {}".format(
-                [str(x[0]) for x in connected_tris_coplanar],
-            )
-        )
-
-        # As one coplanar face should have been found before,
-        # we need to get two triangles here.
-        if not len(connected_tris_non_coplanar) == 1:
-            return False
-
-        # Compared to the found triangle, one of the other triangles
-        # should have a very similar triangle.
-        # The area might be different, but since the cylinders are stacked
-        # it should represent generally the same geometry.
-        other_triangle, this_mating_edge = connected_tris_non_coplanar[0]
-
-        similar_neighbored_found = False
-        targetted_angle = this_triangle.normal.dot(other_triangle.normal)
-        logger.debug("targetted_angle: {}".format(targetted_angle))
-        for connected_tri in connected_tris_non_coplanar:
-            connected_triangle, connected_mating_edge = connected_tri
-            neighbors = self.get_neighbored_triangles(connected_triangle)
-            for neighbor in neighbors:
-                neighbored_triangle, neighbored_mating_edge = neighbor
-                current_angle = connected_triangle.normal.dot(
-                    neighbored_triangle.normal
-                )
-                logger.debug("current_angle:{}".format(current_angle))
-                # The maximum difference between both angles is 0.001deg
-                if abs(abs(targetted_angle) - abs(current_angle)) < math.radians(0.001):
-                    similar_neighbored_found = True
-                    break
-
-        if not similar_neighbored_found:
-            logger.debug("similar_neighbored_found: {}".format(
-                similar_neighbored_found)
-            )
-            return False
-
-        # Renaming some variables here, it will improve the readability below.
-        this_triangle_1 = this_triangle
-        this_mating_edge_1 = this_mating_edge
-        other_triangle_1 = other_triangle
-
-        this_triangle_2 = connected_triangle
-        this_mating_edge_2 = neighbored_mating_edge
-        other_triangle_2 = neighbored_triangle
-
-        # 0. preparation: Precalculating some values we need later...
-        t1_tangent_and_others_1 = self.calculate_t1_tangent_and_others(
-            this_triangle_1,
-            other_triangle_1
-        )
-
-        if not t1_tangent_and_others_1:
-            # Return None if the function above had problems
-            return False
-
-        t1_tangent_and_others_2 = self.calculate_t1_tangent_and_others(
-            this_triangle_2,
-            other_triangle_2
-        )
-
-        if not t1_tangent_and_others_2:
-            # Return None if the function above had problems
-            return False
-
-        t1_tangent_1, \
-            parallel_edge_1, \
-            vec_pointing_away_1, \
-            cylinder_axis_1 = t1_tangent_and_others_1
-
-        t1_tangent_2, \
-            parallel_edge_2, \
-            vec_pointing_away_2, \
-            _ = t1_tangent_and_others_2
-
-        center_1, radius_1 = self._get_center_and_radius_of_cylinder(
-            this_triangle_1,
-            this_mating_edge_1,
-            other_triangle_1,
-            parallel_edge_1,
-            vec_pointing_away_1
-        )
-
-        center_2, radius_2 = self._get_center_and_radius_of_cylinder(
-            this_triangle_2,
-            this_mating_edge_2,
-            other_triangle_2,
-            parallel_edge_2,
-            vec_pointing_away_2
-        )
-
-        is_concave_1 = self.is_concave(
-            vec_pointing_away_1,
-            this_triangle_1.normal,
-            other_triangle_1.normal
-        )
-        is_concave_2 = self.is_concave(
-            vec_pointing_away_2,
-            this_triangle_2.normal,
-            other_triangle_2.normal
-        )
-
-        # 1. check: Doing some quick comparisons...
-        if not (is_concave_1 and is_concave_2):
-            # We have different contours..
-            logger.debug("is_concave_1 and is_concave_2: {}".format(
-                    is_concave_1 and is_concave_2
-                )
-            )
-            return False
-
-        radius_min = min(radius_1, radius_2)
-        radius_max = max(radius_1, radius_2)
-
-        radius_share = radius_min / radius_max
-        if radius_share < 0.995:
-            logger.debug("similar_neighbored_found: {}".format(similar_neighbored_found))
-            return False
-
-        # 2. check: cylinder(2)'s midpoint is close to cylinder(1)'s axis
-        # As found on my papers from studies and on wikipedia:
-        # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
-        delta_midpoint = center_1 - center_2
-        delta_midpoint = numpy.asarray(delta_midpoint.point)
-        projected_length = delta_midpoint.dot(cylinder_axis_1) * \
-            cylinder_axis_1
-        distance = delta_midpoint - projected_length
-        # Amount of our vector and thus the distance
-        distance = numpy.sqrt(distance.dot(distance))
-
-        logger.debug("distance: {}".format(distance))
-
-        return True
-
     def calculate_t1_tangent_and_others(
         self,
         this_triangle,
@@ -798,16 +533,12 @@ class Mesh:
         # later computation might fail since the triangles are too similar!
         if this_angle < 0.025:
             result = this_triangle.normal.dot(other_triangle.normal)
-            logger.debug("Too similar!")
-            logger.debug("result[rad]: {}".format(result))
             return None
 
         # Compute the axis direction of the potential cylinder
         # and a corresponding plane.
         cylinder_axis = this_triangle.normal.cross(other_triangle.normal).unit()
-        #logger.debug("cylinder_axis: {}".format(cylinder_axis))
         t1_tangent = this_triangle.normal.cross(cylinder_axis).unit()
-        #logger.debug("t1_tangent: {}".format(t1_tangent))
 
         # Find the edge that is closest to parallel with t1_tangent
         edges = self._triangle_to_edge[this_triangle]
@@ -815,10 +546,8 @@ class Mesh:
         max_dot = 0.0
         parallel_edge = None
         vec_pointing_away = None
-        #logger.debug("edges: {}".format(edges))
         for edge in edges:
             e_t_dot = abs(edge.vector.dot(t1_tangent))
-            #logger.debug("e_t_dot: {}".format(e_t_dot))
 
             if e_t_dot > max_dot:
                 max_dot = e_t_dot
@@ -889,7 +618,6 @@ class Mesh:
 
         # Getting all neighbored triangles via commonized function
         connected_tris = self.get_neighbored_triangles(this_triangle)
-        logger.debug("connected_tris after area filter: {}".format(connected_tris))
 
         # .. and filtering them against area_share compared to this_triangle.
         connected_tris_filtered = connected_tris.copy()
@@ -900,12 +628,10 @@ class Mesh:
             area_max = max(this_triangle.area, triangle.area)
 
             area_share = area_min / area_max
-            logger.debug("area_share: {}".format(area_share))
             if not area_share > 0.75:
                 connected_tris_filtered.remove(entry)
 
         connected_tris = connected_tris_filtered
-        logger.debug("connected_tris after area filter: {}".format(connected_tris))
 
         # .. and filtering them against min&max angle.
         connected_tris_filtered = connected_tris.copy()
@@ -916,11 +642,9 @@ class Mesh:
                 connected_tris_filtered.remove(entry)
 
         connected_tris = connected_tris_filtered
-        logger.debug("connected_tris after angle filter: {}".format(connected_tris))
 
         # Check whether there are results after filtering..
         if len(connected_tris) == 0:
-            logger.debug("connected_tris not found!".format(connected_tris))
             return None
 
         # Get the connected triangle with the largest angle
@@ -930,7 +654,6 @@ class Mesh:
                 connected_tri = connected_tris[i]
 
         # Decouple into the triangle and the edge angle value
-        logger.debug("selected: other_triangle, mating_edge =  {}".format(connected_tri))
         other_triangle, mating_edge = connected_tri
 
         # Computing some commonly needed values...
@@ -940,7 +663,6 @@ class Mesh:
         )
 
         if not t1_tangent_and_others:
-            logger.debug("Issues occured while running t1_tangent_and_others: {}".format(t1_tangent_and_others))
             return None
 
         t1_tangent, \
@@ -983,8 +705,6 @@ class Mesh:
         if len(face) <= 2:
             # Only the original triangle and the one co-planar triangle were
             # found so this is probably not a cylinder
-            logger.debug("len(face) <= 2: {}".format(repr(face)))
-
             return None
 
         return face
@@ -1000,90 +720,3 @@ class Mesh:
                     break
 
         return triangle_list
-
-    def try_grow_planar_by_concavity(
-        self,
-        this_triangle: Union[Triangle, int],
-        with_concavity,
-        coplanar_angle: float = _COPLANAR_ANGLE,
-        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
-    ) -> List[Triangle]:
-
-        # Convert an intenger into an Triangle if needed..
-        if isinstance(this_triangle, int):
-            this_triangle = next(t for t in self.triangles if t.id == this_triangle)
-
-        def meets_concavity_requirement(edge_angle : EdgeAngle):
-            if edge_angle.angle < coplanar_angle:
-                # Triangle is coplanar
-                return True
-
-            # Grow by any connected concave/convex triangle
-            # without reaching a maximum angle
-            if edge_angle.angle > max_edge_angle:
-                return False
-
-            try:
-                t1_tangent_and_others = self.calculate_t1_tangent_and_others(
-                    edge_angle.t1,
-                    edge_angle.t2
-                )
-            except ValueError:
-                # Catching math domain errors here.
-                # Previously we made checks before running this function.
-                # However, when reading the older code I don't see where the check is.
-                return False
-
-            if not t1_tangent_and_others:
-                return False
-
-            _, _, vec_pointing_away, _ = t1_tangent_and_others
-
-            result = self.is_concave(
-                vec_pointing_away,
-                edge_angle.t1.normal,
-                edge_angle.t2.normal
-            )
-
-            # Negate the logic if we are looking for convex
-            if not with_concavity:
-                result = not result
-
-            return result
-
-        return self._select_connected_triangles_edge_condition(
-            this_triangle,
-            meets_concavity_requirement
-        )
-
-    def try_grow_planar_and_concave(
-        self,
-        this_triangle: Union[Triangle, int],
-        coplanar_angle: float = _COPLANAR_ANGLE,
-        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
-    ) -> List[Triangle]:
-
-        these_triangles = self.try_grow_planar_by_concavity(
-            this_triangle,
-            True,
-            coplanar_angle=coplanar_angle,
-            max_edge_angle=max_edge_angle,
-        )
-
-        return these_triangles
-
-    def try_grow_planar_and_convex(
-        self,
-        this_triangle: Union[Triangle, int],
-        coplanar_angle: float = _COPLANAR_ANGLE,
-        max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
-    ) -> List[Triangle]:
-
-        these_triangles = self.try_grow_planar_by_concavity(
-            this_triangle,
-            False,
-            coplanar_angle=coplanar_angle,
-            max_edge_angle=max_edge_angle,
-        )
-
-        return these_triangles
