@@ -5,6 +5,36 @@ from pywim import geom
 
 from . import stl_loader
 
+class EdgeAngleTest(unittest.TestCase):
+    def setUp(self):
+        self.v2 = geom.tri.Vertex(2, 1., 0., 0.)
+        self.v3 = geom.tri.Vertex(3, 1., 1., 0.)
+        self.v4 = geom.tri.Vertex(4, 0., 1., 0.)
+
+    def _make_edge_angle(self, z):
+        v1 = geom.tri.Vertex(1, 0., 0., z)
+
+        t1 = geom.tri.Triangle(1, v1, self.v2, self.v4)
+        t2 = geom.tri.Triangle(2, self.v2, self.v3, self.v4)
+
+        return geom.tri.EdgeAngle(t1, t2)
+
+    def test_coplanar(self):
+        a = self._make_edge_angle(0.)
+
+        self.assertAlmostEqual(a.angle, 0.)
+        self.assertAlmostEqual(a.face_angle, math.pi)
+
+    def test_concave(self):
+        a = self._make_edge_angle(0.1)
+
+        self.assertLess(a.face_angle, math.pi)
+
+    def test_convex(self):
+        a = self._make_edge_angle(-0.1)
+
+        self.assertGreater(a.face_angle, math.pi)
+
 class CubeBasic(unittest.TestCase):
     def setUp(self):
         stl_mesh = stl_loader.load_from_file('cube.stl')
