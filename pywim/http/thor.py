@@ -118,10 +118,11 @@ W = TypeVar('W', bound=WimObject)
 ResponseType = Tuple[int, Optional[Union[T, U]]]
 
 class Client:
-    def __init__(self, hostname='api.smartslice.xyz', port=443, protocol='https'):
+    def __init__(self, hostname='api.smartslice.xyz', port=443, protocol='https', cluster=None):
         self.hostname = hostname
         self.port = port
         self.protocol = protocol
+        self.cluster = cluster
         self._accept_version = '20.1'
         self._bearer_token = None
 
@@ -137,8 +138,12 @@ class Client:
         hdrs = {
             'Accept-Version': self._accept_version
         }
+
         if self._bearer_token:
             hdrs['Authorization'] = 'Bearer ' + self._bearer_token
+
+        if self.cluster:
+            hdrs['SmartSlice-Cluster'] = self.cluster
 
         return hdrs
 
@@ -372,13 +377,13 @@ class Client:
 
     def smartslice_subscription(self) -> 'ResponseType[Subscription, ApiResult]':
         '''
-        Retrieve the user's active subscription. If the user does not have
-        an active subscription a Subscription object with no Products will
+        Retrieve the user's subscription. If the user does not have
+        a subscription a Subscription object with no Products will
         be returned.
         '''
         resp = self._get('/smartslice/subscription')
 
-        if resp.status_code in (401, 500):
+        if resp.status_code in (401, 429, 500):
             return resp.status_code, None
 
         return Client._code_and_object(resp, Subscription)
