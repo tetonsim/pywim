@@ -15,13 +15,6 @@ from . import Vertex as _Vertex
 from . import Edge as _Edge
 from . import InfiniteCylinder, Plane, Polygon, Vector
 
-try:
-    from UM.Logger import Logger
-    logger = Logger
-except:
-    import logging
-    logger = logging.getLogger(__name__)
-
 class _MeshEntity:
     def __init__(self, id):
         self.id = id
@@ -519,14 +512,11 @@ class Mesh:
 
         # Double check that the normals of the two triangles are
         # not too similar. If they are, this algorithm will not work.
-        #logger.debug("this_triangle: {}".format(this_triangle))
-        #logger.debug("other_triangle: {}".format(other_triangle))
 
         this_dot_product = this_triangle.normal.dot(other_triangle.normal)
         this_magnitude = numpy.linalg.norm(this_triangle.normal)
         other_magnitude = numpy.linalg.norm(other_triangle.normal)
         this_angle = math.acos(this_dot_product / (this_magnitude * other_magnitude))
-        #logger.debug("this_angle: {}".format(this_angle))
 
         # The angle between the normals of this_triangle and other_triangle needs to be
         # above 0.025 degrees. If it isn't, then we likely have a planar surface and
