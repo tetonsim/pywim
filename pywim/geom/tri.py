@@ -607,31 +607,19 @@ class Mesh:
             this_triangle = next(t for t in self.triangles if t.id == this_triangle)
 
         # Getting all neighbored triangles via commonized function
-        connected_tris = self.get_neighbored_triangles(this_triangle)
-
-        # .. and filtering them against area_share compared to this_triangle.
-        connected_tris_filtered = connected_tris.copy()
-        for entry in connected_tris:
-            triangle = entry[0]
-
+        def tri_area_ratio_filter(entry):
+            triangle, edge_angle = entry
             area_min = min(this_triangle.area, triangle.area)
             area_max = max(this_triangle.area, triangle.area)
 
-            area_share = area_min / area_max
-            if not area_share > 0.75:
-                connected_tris_filtered.remove(entry)
+            return \
+                area_min / area_max > 0.75 and \
+                coplanar_angle < edge_angle.angle < max_edge_angle
 
-        connected_tris = connected_tris_filtered
-
-        # .. and filtering them against min&max angle.
-        connected_tris_filtered = connected_tris.copy()
-        for entry in connected_tris:
-            edge_angle = entry[1]
-
-            if not coplanar_angle < edge_angle.angle < max_edge_angle:
-                connected_tris_filtered.remove(entry)
-
-        connected_tris = connected_tris_filtered
+        connected_tris = filter(
+            tri_area_ratio_filter,
+            self.get_neighbored_triangles(this_triangle)
+        )
 
         # Check whether there are results after filtering..
         if len(connected_tris) == 0:
