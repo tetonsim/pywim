@@ -33,13 +33,19 @@ class Load(WimObject):
 
 class Force(Load):
     JSONTYPENAME = 'force'
-    def __init__(self, name=None, mesh=None, face=None, force=None):
+    def __init__(self, name=None, mesh=None, face=None, force=None, origin=None):
         super().__init__(name, mesh, face)
         self.type = Force.JSONTYPENAME
         self.force = WimTuple(float, float, float)
+        self.origin = WimTuple(float, float, float)
 
         if force:
             self.force.set(force)
+
+        if origin:
+            self.origin.set(origin)
+        else:
+            self.origin.set([0., 0., 0.])
 
 class Step(WimObject):
     def __init__(self, name=None):

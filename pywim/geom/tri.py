@@ -698,3 +698,75 @@ class Mesh:
                     break
 
         return triangle_list
+
+    @staticmethod
+    def planar_axis(triangles: List[Triangle]) -> Vector:
+        '''
+        Returns an axis normal to the first triangl in the list
+        TODO: Check the triangles are all normal before returning the normal triangle
+        '''
+        axis = triangles[0].normal
+        axis.origin = Mesh.compute_center(triangles)
+        return axis
+
+    @staticmethod
+    def rotation_axis(triangles: List[Triangle]) -> Vector:
+        '''
+        Returns an axis which is believed to be the cetner of rotation for the list of triangles,
+        otherwise will return None
+        '''
+        if len(triangles) < 2:
+            return None
+
+        # For curved surfaces we want to find a constant axis of rotation.
+        # We start by computing a vector perpendicular to any two triangle
+        # normals.
+        normals = [t.normal for t in triangles]
+
+        n0 = normals[0]
+        for n1 in normals[1:]:
+            possible_cyl_axis = n0.cross(n1)
+
+            # If the magnitude of the axis is very small then the two
+            # triangles are likely co-planar so let's continue and try
+            # a different combination.
+            if possible_cyl_axis.magnitude() < 1.0E-4:
+                continue
+
+            # We now construct a Plane, that the computed axis is normal
+            # to. We'll use this to compute an angle from the plane to each
+            # triangle normal. If any triangle normal deviates from the plane
+            # by more than our tolerance for a co-planar triangle then we'll
+            # assume the selected curved surface does NOT have a constant axis
+            # of rotation.
+
+            plane = Plane(possible_cyl_axis)
+
+            max_angle = max([plane.vector_angle(n) for n in normals])
+
+            if max_angle < Mesh._COPLANAR_ANGLE:
+                possible_cyl_axis.origin = Mesh.compute_center(triangles)
+                return possible_cyl_axis.unit()
+
+            break
+
+        return None
+
+    @staticmethod
+    def compute_center(triangles: List[Triangle]) -> Vertex:
+        '''
+        Computes the center of the supplied list of faces
+        '''
+
+        if len(triangles) == 0:
+            return _Vertex()
+
+        verts = set()
+        for t in triangles:
+            verts.update(set([t.v1, t.v2, t.v3 ]))
+
+        return _Vertex(
+            sum([v.x for v in verts]) / len(verts),
+            sum([v.y for v in verts]) / len(verts),
+            sum([v.z for v in verts]) / len(verts)
+        )
