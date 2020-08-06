@@ -745,8 +745,9 @@ class Mesh:
             max_angle = max([plane.vector_angle(n) for n in normals])
 
             if max_angle < Mesh._COPLANAR_ANGLE:
+                possible_cyl_axis = possible_cyl_axis.unit()
                 possible_cyl_axis.origin = Mesh.compute_center(triangles)
-                return possible_cyl_axis.unit()
+                return possible_cyl_axis
 
             break
 
