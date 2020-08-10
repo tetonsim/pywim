@@ -139,9 +139,7 @@ class Face:
     _SMALLEST_MAGNITUDE = 1.e-4
 
     def __init__(self, triangles: List[Triangle] = None):
-        self.triangles = []
-        if triangles:
-            self.triangles = triangles
+        self.triangles = triangles if triangles else []
 
     def planar_axis(self) -> Vector:
         '''
@@ -179,7 +177,7 @@ class Face:
             # If the magnitude of the axis is very small then the two
             # triangles are likely co-planar so let's continue and try
             # a different combination.
-            if possible_cyl_axis.magnitude() < self._SMALLEST_MAGNITUDE:
+            if possible_cyl_axis.magnitude() < Face._SMALLEST_MAGNITUDE:
                 continue
 
             # We now construct a Plane, that the computed axis is normal
@@ -404,7 +402,7 @@ class Mesh:
         Finds connected triangles who are connected via an edge that satisfies the given triangle_filter
         '''
 
-        face= Face({tri})
+        face = Face({tri})
         tris_to_check = {tri}
 
         while len(tris_to_check) > 0:
@@ -773,7 +771,7 @@ class Mesh:
 
         return face
 
-    def triangles_from_ids(self, ids: List[int]) -> Face:
+    def face_from_ids(self, ids: List[int]) -> Face:
 
         face = Face()
 
