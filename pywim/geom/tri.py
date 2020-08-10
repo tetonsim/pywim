@@ -134,6 +134,92 @@ class Edge(_MeshEntity, _Edge):
         #return set([t for t in [a.t1, a.t2] for a in self.angles])
         return set([t for a in self.angles for t in [a.t1, a.t2]])
 
+class Face:
+
+    _SMALLEST_MAGNITUDE = 1.e-4
+
+    def __init__(self, triangles: List[Triangle] = None):
+        self.triangles = []
+        if triangles:
+            self.triangles = triangles
+
+    def planar_axis(self) -> Vector:
+        '''
+        Returns an axis normal to the first triangle
+        TODO: Check the triangles are all normal before returning the normal triangle
+        '''
+        if len(self.triangles) == 0:
+            return None
+
+        axis = Vector(
+            self.triangles[0].normal.r,
+            self.triangles[0].normal.s,
+            self.triangles[0].normal.t
+        )
+        axis.origin = self.center()
+        return axis
+
+    def rotation_axis(self) -> Vector:
+        '''
+        Returns an axis which is believed to be the center of rotation for the list of triangles,
+        otherwise will return None
+        '''
+        if len(self.triangles) < 2:
+            return None
+
+        # For curved surfaces we want to find a constant axis of rotation.
+        # We start by computing a vector perpendicular to any two triangle
+        # normals.
+        normals = [t.normal for t in self.triangles]
+
+        n0 = normals[0]
+        for n1 in normals[1:]:
+            possible_cyl_axis = n0.cross(n1)
+
+            # If the magnitude of the axis is very small then the two
+            # triangles are likely co-planar so let's continue and try
+            # a different combination.
+            if possible_cyl_axis.magnitude() < self._SMALLEST_MAGNITUDE:
+                continue
+
+            # We now construct a Plane, that the computed axis is normal
+            # to. We'll use this to compute an angle from the plane to each
+            # triangle normal. If any triangle normal deviates from the plane
+            # by more than our tolerance for a co-planar triangle then we'll
+            # assume the selected curved surface does NOT have a constant axis
+            # of rotation.
+
+            plane = Plane(possible_cyl_axis)
+
+            max_angle = max([plane.vector_angle(n) for n in normals])
+
+            if max_angle < Mesh._COPLANAR_ANGLE:
+                possible_cyl_axis = possible_cyl_axis.unit()
+                possible_cyl_axis.origin = self.center()
+                return possible_cyl_axis
+
+            break
+
+        return None
+
+    def center(self) -> Vertex:
+        '''
+        Computes the center of the face
+        '''
+
+        if len(self.triangles) == 0:
+            return _Vertex()
+
+        verts = set()
+        for t in self.triangles:
+            verts.update(set([t.v1, t.v2, t.v3 ]))
+
+        return _Vertex(
+            sum([v.x for v in verts]) / len(verts),
+            sum([v.y for v in verts]) / len(verts),
+            sum([v.z for v in verts]) / len(verts)
+        )
+
 
 class Mesh:
     # all angles in radians
@@ -313,23 +399,23 @@ class Mesh:
         self,
         tri: Triangle,
         triangle_filter: Callable[[Triangle], bool]
-    ) -> List[Triangle]:
+    ) -> Face:
         '''
         Finds connected triangles who are connected via an edge that satisfies the given triangle_filter
         '''
 
-        face = {tri}
+        face= Face({tri})
         tris_to_check = {tri}
 
         while len(tris_to_check) > 0:
             t = tris_to_check.pop()
             for e in self._triangle_to_edge[t]:
                 for t2 in e.triangles:
-                    if t2 in face:
+                    if t2 in face.triangles:
                         continue
 
                     if triangle_filter(t2):
-                        face.add(t2)
+                        face.triangles.add(t2)
                         tris_to_check.add(t2)
 
         return face
@@ -338,12 +424,12 @@ class Mesh:
         self,
         tri: Triangle,
         edge_condition: Callable[[EdgeAngle], bool]
-    ) -> List[Triangle]:
+    ) -> Face:
         '''
         Finds connected triangles who are connected via an edge that satisfies the given edge_condition
         '''
 
-        face = {tri}
+        face = Face({tri})
         tris_to_check = {tri}
 
         # The initial set of Triangles to check is the given Triangle.
@@ -362,7 +448,7 @@ class Mesh:
 
                         # Add triangles to tris_to_check that are not in the face
                         # If a triangle is in face it has already been checked
-                        tri_added = edge_tris.difference(face)
+                        tri_added = edge_tris.difference(face.triangles)
 
                         # Note, with this logic, it is possible for a triangle
                         # to be checked more than once. If on the first check,
@@ -377,7 +463,7 @@ class Mesh:
                             tri_added = tri_added.pop()
 
                             tris_to_check.add(tri_added)
-                            face.add(tri_added)
+                            face.triangles.add(tri_added)
 
         return face
 
@@ -385,7 +471,7 @@ class Mesh:
         self,
         tri: Union[Triangle, int],
         max_angle: float = _COPLANAR_ANGLE
-    ) -> List[Triangle]:
+    ) -> Face:
         '''
         Returns a list of Triangles that are in any plane that is co-planar to the plane
         that the given Triangle lies in. max_angle is the maximum angle to consider as
@@ -394,15 +480,15 @@ class Mesh:
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
 
-        plane_tris = []
+        plane_tris = Face()
 
         for t in self.triangles:
             if tri.angle(t) < max_angle: # 0.1 degrees
-                plane_tris.append(t)
+                plane_tris.triangles.append(t)
 
         return plane_tris
 
-    def select_planar_face(self, tri: Union[Triangle, int]) -> List[Triangle]:
+    def select_planar_face(self, tri: Union[Triangle, int]) -> Face:
         '''
         Returns a list of Triangles that are co-planar and connected with the given Triangle.
         '''
@@ -413,7 +499,7 @@ class Mesh:
         self,
         tri: Union[Triangle, int],
         max_angle: float
-    ) -> List[Triangle]:
+    ) -> Face:
         '''
         Returns a list of Triangles that are connected with the given Triangle and connected
         through an Edge that is below the given max_angle. In other words Triangle normal
@@ -433,7 +519,7 @@ class Mesh:
         plane: Plane,
         max_angle: float = _COPLANAR_ANGLE,
         max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE
-    ) -> List[Triangle]:
+    ) -> Face:
         '''
         '''
         if isinstance(tri, int):
@@ -453,7 +539,7 @@ class Mesh:
         tri: Union[Triangle, int],
         min_concave_angle: float = _MIN_CONCAVE_ANGLE,
         max_concave_angle: float = _MAX_CONCAVE_ANGLE
-    ) -> List[Triangle]:
+    ) -> Face:
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
 
@@ -468,7 +554,7 @@ class Mesh:
         tri: Union[Triangle, int],
         min_convex_angle: float = _MIN_CONVEX_ANGLE,
         max_convex_angle: float = _MAX_CONVEX_ANGLE
-    ) -> List[Triangle]:
+    ) -> Face:
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
 
@@ -600,7 +686,7 @@ class Mesh:
         coplanar_angle: float = _COPLANAR_ANGLE,
         max_edge_angle: float = _MAX_EDGE_CYLINDER_ANGLE,
         radius_tol: float = _CYLINDER_RADIUS_TOLERANCE
-    ) -> List[Triangle]:
+    ) -> Face:
 
         # Convert an intenger into an Triangle if needed..
         if isinstance(this_triangle, int):
@@ -687,87 +773,14 @@ class Mesh:
 
         return face
 
-    def triangles_from_ids(self, ids: List[int]) -> List[Triangle]:
+    def triangles_from_ids(self, ids: List[int]) -> Face:
 
-        triangle_list = []
+        face = Face()
 
         for id in ids:
             for tri in self.triangles:
                 if tri.id == id:
-                    triangle_list.append(tri)
+                    face.triangles.append(tri)
                     break
 
-        return triangle_list
-
-    @staticmethod
-    def planar_axis(triangles: List[Triangle]) -> Vector:
-        '''
-        Returns an axis normal to the first triangl in the list
-        TODO: Check the triangles are all normal before returning the normal triangle
-        '''
-        axis = triangles[0].normal
-        axis.origin = Mesh.compute_center(triangles)
-        return axis
-
-    @staticmethod
-    def rotation_axis(triangles: List[Triangle]) -> Vector:
-        '''
-        Returns an axis which is believed to be the cetner of rotation for the list of triangles,
-        otherwise will return None
-        '''
-        if len(triangles) < 2:
-            return None
-
-        # For curved surfaces we want to find a constant axis of rotation.
-        # We start by computing a vector perpendicular to any two triangle
-        # normals.
-        normals = [t.normal for t in triangles]
-
-        n0 = normals[0]
-        for n1 in normals[1:]:
-            possible_cyl_axis = n0.cross(n1)
-
-            # If the magnitude of the axis is very small then the two
-            # triangles are likely co-planar so let's continue and try
-            # a different combination.
-            if possible_cyl_axis.magnitude() < 1.0E-4:
-                continue
-
-            # We now construct a Plane, that the computed axis is normal
-            # to. We'll use this to compute an angle from the plane to each
-            # triangle normal. If any triangle normal deviates from the plane
-            # by more than our tolerance for a co-planar triangle then we'll
-            # assume the selected curved surface does NOT have a constant axis
-            # of rotation.
-
-            plane = Plane(possible_cyl_axis)
-
-            max_angle = max([plane.vector_angle(n) for n in normals])
-
-            if max_angle < Mesh._COPLANAR_ANGLE:
-                possible_cyl_axis = possible_cyl_axis.unit()
-                possible_cyl_axis.origin = Mesh.compute_center(triangles)
-                return possible_cyl_axis
-
-            break
-
-        return None
-
-    @staticmethod
-    def compute_center(triangles: List[Triangle]) -> Vertex:
-        '''
-        Computes the center of the supplied list of faces
-        '''
-
-        if len(triangles) == 0:
-            return _Vertex()
-
-        verts = set()
-        for t in triangles:
-            verts.update(set([t.v1, t.v2, t.v3 ]))
-
-        return _Vertex(
-            sum([v.x for v in verts]) / len(verts),
-            sum([v.y for v in verts]) / len(verts),
-            sum([v.z for v in verts]) / len(verts)
-        )
+        return face
