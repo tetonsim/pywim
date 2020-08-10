@@ -177,7 +177,7 @@ class Face:
             # If the magnitude of the axis is very small then the two
             # triangles are likely co-planar so let's continue and try
             # a different combination.
-            if possible_cyl_axis.magnitude() < Face._SMALLEST_MAGNITUDE:
+            if possible_cyl_axis.magnitude() < self._SMALLEST_MAGNITUDE:
                 continue
 
             # We now construct a Plane, that the computed axis is normal
