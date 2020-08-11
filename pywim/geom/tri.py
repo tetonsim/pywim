@@ -138,8 +138,8 @@ class Face:
 
     _SMALLEST_MAGNITUDE = 1.e-4
 
-    def __init__(self, triangles: List[Triangle] = None):
-        self.triangles = triangles if triangles else []
+    def __init__(self, triangles: Union[Set[Triangle], List[Triangle]] = None):
+        self.triangles = set(triangles) if triangles else {}
 
     def planar_axis(self) -> Vector:
         '''
@@ -149,10 +149,12 @@ class Face:
         if len(self.triangles) == 0:
             return None
 
+        triangle_list = list(self.triangles)
+
         axis = Vector(
-            self.triangles[0].normal.r,
-            self.triangles[0].normal.s,
-            self.triangles[0].normal.t
+            triangle_list[0].normal.r,
+            triangle_list[0].normal.s,
+            triangle_list[0].normal.t
         )
         axis.origin = self.center()
         return axis
@@ -402,7 +404,7 @@ class Mesh:
         Finds connected triangles who are connected via an edge that satisfies the given triangle_filter
         '''
 
-        face = Face([tri])
+        face = Face({tri})
         tris_to_check = {tri}
 
         while len(tris_to_check) > 0:
@@ -413,7 +415,7 @@ class Mesh:
                         continue
 
                     if triangle_filter(t2):
-                        face.triangles.append(t2)
+                        face.triangles.add(t2)
                         tris_to_check.add(t2)
 
         return face
@@ -427,7 +429,7 @@ class Mesh:
         Finds connected triangles who are connected via an edge that satisfies the given edge_condition
         '''
 
-        face = Face([tri])
+        face = Face({tri})
         tris_to_check = {tri}
 
         # The initial set of Triangles to check is the given Triangle.
@@ -461,7 +463,7 @@ class Mesh:
                             tri_added = tri_added.pop()
 
                             tris_to_check.add(tri_added)
-                            face.triangles.append(tri_added)
+                            face.triangles.add(tri_added)
 
         return face
 
@@ -482,7 +484,7 @@ class Mesh:
 
         for t in self.triangles:
             if tri.angle(t) < max_angle: # 0.1 degrees
-                plane_tris.triangles.append(t)
+                plane_tris.triangles.add(t)
 
         return plane_tris
 
@@ -778,7 +780,7 @@ class Mesh:
         for id in ids:
             for tri in self.triangles:
                 if tri.id == id:
-                    face.triangles.append(tri)
+                    face.triangles.add(tri)
                     break
 
         return face
