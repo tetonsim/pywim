@@ -402,7 +402,7 @@ class Mesh:
         Finds connected triangles who are connected via an edge that satisfies the given triangle_filter
         '''
 
-        face = Face({tri})
+        face = Face([tri])
         tris_to_check = {tri}
 
         while len(tris_to_check) > 0:
@@ -413,7 +413,7 @@ class Mesh:
                         continue
 
                     if triangle_filter(t2):
-                        face.triangles.add(t2)
+                        face.triangles.append(t2)
                         tris_to_check.add(t2)
 
         return face
@@ -427,7 +427,7 @@ class Mesh:
         Finds connected triangles who are connected via an edge that satisfies the given edge_condition
         '''
 
-        face = Face({tri})
+        face = Face([tri])
         tris_to_check = {tri}
 
         # The initial set of Triangles to check is the given Triangle.
@@ -461,7 +461,7 @@ class Mesh:
                             tri_added = tri_added.pop()
 
                             tris_to_check.add(tri_added)
-                            face.triangles.add(tri_added)
+                            face.triangles.append(tri_added)
 
         return face
 
