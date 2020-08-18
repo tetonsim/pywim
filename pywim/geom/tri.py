@@ -139,7 +139,10 @@ class Face:
     _SMALLEST_MAGNITUDE = 1.e-4
 
     def __init__(self, triangles: Union[Set[Triangle], List[Triangle]] = None):
-        self.triangles = set(triangles) if triangles else {}
+        if triangles:
+            self.triangles = set(triangles) if triangles else {}
+        else:
+            self.triangles = set()
 
     def planar_axis(self) -> Vector:
         '''
