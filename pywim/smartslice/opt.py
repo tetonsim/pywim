@@ -60,7 +60,7 @@ class OptimizimationTarget(enum.Enum):
 
 class Optimization(WimObject):
     def __init__(self):
-        self.number_of_results_requested = 5
+        self.number_of_results_requested = 10
         self.min_safety_factor = 2.0
         self.max_displacement = 1.0
         self.optimization_target = OptimizimationTarget.cura_print_time
@@ -70,8 +70,7 @@ class Optimization(WimObject):
         self.min_element_count_in_mod_mesh_component = 10
         self.min_percentile_for_mod_mesh = 1.
         self.max_percentile_for_mod_mesh = 99.
-        self.estimated_number_of_solves_per_model = 6
-        self.difference_proportion = 0.707
+        self.difference_proportion = 0.05
         self.stagnation_limit = 3
 
         # default modifier mesh config
