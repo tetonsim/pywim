@@ -56,9 +56,9 @@ class Cube(unittest.TestCase):
     def _select_face(self, tri0, expected_tris):
         face = self.mesh.select_planar_face(tri0)
 
-        self.assertEqual(len(face), len(expected_tris))
+        self.assertEqual(len(face.triangles), len(expected_tris))
 
-        for t_sel in face:
+        for t_sel in face.triangles:
             self.assertTrue(t_sel.id in expected_tris)
 
     def test_select_faces(self):
