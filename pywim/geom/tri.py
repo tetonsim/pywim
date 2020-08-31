@@ -99,10 +99,15 @@ class EdgeAngle:
         t1_points = set(self.t1.points)
         t2_points = set(self.t2.points)
 
-        t1_v = list(t1_points.difference(t2_points))[0]
-        t2_v = list(t2_points.difference(t1_points))[0]
+        t1_v = list(t1_points.difference(t2_points))
+        t2_v = list(t2_points.difference(t1_points))
 
-        v12 = Vector.FromTwoPoints(t1_v, t2_v)
+        if len(t1_v) == 0 or len(t2_v) == 0:
+            # This is not a valid shared edge for these triangles
+            # because the triangles have the same vertices.
+            raise CoincidentTriangles(t1, t2)
+
+        v12 = Vector.FromTwoPoints(t1_v[0], t2_v[0])
 
         t1_v12_dot = self.t1.normal.dot(v12)
 
@@ -390,7 +395,12 @@ class Mesh:
                 continue
 
             for t1, t2 in itertools.combinations(tris, 2):
-                edge.angles.append(EdgeAngle(t1, t2))
+                try:
+                    edge.angles.append(EdgeAngle(t1, t2))
+                except MeshException as exc:
+                    # Something is invalid here - ignore the edge
+                    continue
+
                 self._triangle_to_edge[t1].add(edge)
                 self._triangle_to_edge[t2].add(edge)
 
@@ -785,3 +795,15 @@ class Mesh:
                     break
 
         return face
+
+class MeshException(Exception):
+    pass
+
+class CoincidentTriangles(MeshException):
+    def __init__(self, t1, t2):
+        super().__init__()
+        self.t1 = t1
+        self.t2 = t2
+
+    def __str__(self):
+        return 'Triangles %i and %i are coincident' % (self.t1.id, self.t2.id)
