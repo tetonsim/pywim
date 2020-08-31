@@ -137,6 +137,7 @@ class Edge(_MeshEntity, _Edge):
 class Face:
 
     _SMALLEST_MAGNITUDE = 1.e-4
+    _ROTATION_AXIS_MAX_ANGLE = 0.04
 
     def __init__(self, triangles: Union[Set[Triangle], List[Triangle]] = None):
         self.triangles = set(triangles) if triangles else set()
@@ -159,7 +160,7 @@ class Face:
         axis.origin = self.center()
         return axis
 
-    def rotation_axis(self) -> Vector:
+    def rotation_axis(self, max_angle : float = _ROTATION_AXIS_MAX_ANGLE) -> Vector:
         '''
         Returns an axis which is believed to be the center of rotation for the list of triangles,
         otherwise will return None
@@ -179,7 +180,7 @@ class Face:
             # If the magnitude of the axis is very small then the two
             # triangles are likely co-planar so let's continue and try
             # a different combination.
-            if possible_cyl_axis.magnitude() < self._SMALLEST_MAGNITUDE:
+            if possible_cyl_axis.magnitude() < Face._SMALLEST_MAGNITUDE:
                 continue
 
             # We now construct a Plane, that the computed axis is normal
@@ -191,9 +192,9 @@ class Face:
 
             plane = Plane(possible_cyl_axis)
 
-            max_angle = max([plane.vector_angle(n) for n in normals])
+            max_normal_angle = max([plane.vector_angle(n) for n in normals])
 
-            if max_angle < Mesh._COPLANAR_ANGLE:
+            if max_normal_angle < max_angle:
                 possible_cyl_axis = possible_cyl_axis.unit()
                 possible_cyl_axis.origin = self.center()
                 return possible_cyl_axis
