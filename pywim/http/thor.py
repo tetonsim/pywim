@@ -106,7 +106,8 @@ class JobInfo(WimObject):
         self.started = default_dt
         self.finished = default_dt
         self.start_estimate = default_dt
-        self.runtime_estimate = ''
+        self.runtime_estimate = 0
+        self.runtime_remaining = 0
         self.runtime = 0
         self.result = pywim.smartslice.result.Result()
         self.errors = WimList(JobInfo.Error)
