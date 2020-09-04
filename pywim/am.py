@@ -99,7 +99,7 @@ class Config(WimObject):
         elif name == 'top_layers':
             self.top_layers = int(float(value))
         elif name == 'skin_angles':
-            self.skin_orientations = [int(float(value)) for a in value.strip('[]').split(',')]
+            self.skin_orientations = [int(float(a)) for a in value.strip('[]').split(',')]
         elif set_auxiliary:
             self.auxiliary[name] = str(value)
 
