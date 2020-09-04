@@ -93,16 +93,16 @@ class Config(WimObject):
                 raise WimException('Multiple infill angles are not supported: {}'.format(value))
             self.infill.orientation = float(angles[0])
         elif name == 'wall_line_count':
-            self.walls = int(value)
+            self.walls = int(float(value))
         elif name == 'bottom_layers':
-            self.bottom_layers = int(value)
+            self.bottom_layers = int(float(value))
         elif name == 'top_layers':
-            self.top_layers = int(value)
+            self.top_layers = int(float(value))
         elif name == 'skin_angles':
-            self.skin_orientations = [int(a) for a in value.strip('[]').split(',')]
+            self.skin_orientations = [int(float(value)) for a in value.strip('[]').split(',')]
         elif set_auxiliary:
-           self.auxiliary[name] = str(value)
-            
+            self.auxiliary[name] = str(value)
+
 
 from . import fea, micro
 
