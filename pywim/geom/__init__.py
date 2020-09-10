@@ -106,7 +106,7 @@ class Transformation(object):
         v0: Vertex at the origin
         vx: Vertex that lies on the X axis
         vxy: Vertex that lies in the X-Y plane
-        
+
         v0, vx, and vxy must not be collinear.
     """
     @classmethod
@@ -448,13 +448,15 @@ class Vector(object):
             self.s * v.t - self.t * v.s,
             self.t * v.r - self.r * v.t,
             self.r * v.s - self.s * v.r)
-    
+
     def angle(self, v) -> float:
         '''Returns the angle between self and v in radians'''
         if isinstance(v, (list, tuple)):
             v = Vector(v[0], v[1], v[2])
 
-        return math.acos(self.dot(v) / (self.magnitude() * v.magnitude()))
+        _dot = self.dot(v) / (self.magnitude() * v.magnitude())
+
+        return math.acos(max(min(_dot, 1), -1))
 
     def unit_angle(self, u : 'Vector') -> float:
         '''
@@ -594,7 +596,7 @@ class Polygon(Shape2d):
 
     """
     Checks if the Vertex, v, is inside this Polygon and returns True/False.
-    This uses the "Winding Number" method.        
+    This uses the "Winding Number" method.
     """
     def inside(self, v):
         raise NotImplementedError()
