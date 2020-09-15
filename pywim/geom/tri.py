@@ -245,6 +245,13 @@ class Mesh:
         self._vertex_to_triangle = {}  # Dict[Vertex, Set[Triangle]]
         self._triangle_to_edge = {}  # Dict[Triangle, Set[Edge]]
 
+        # If True edges that contain 2 or more triangles are ignored
+        self._strict_edge_definition = True
+
+        # If True, during edge condition checks, assertion checks will be
+        # made to ensure only one triangle is added from an edge check
+        self._strict_edge_condition_check = False
+
     def __str__(self):
         s = 'Vertices:\n'
         for v in self.vertices:
@@ -390,8 +397,11 @@ class Mesh:
             edge = Edge(eid, e.v1, e.v2)
             self.edges.append(edge)
 
+            if self._strict_edge_definition and len(tris) > 2:
+                continue
+
             if len(tris) == 1:
-                # Only one triangle found on edge - should we do anything?
+                # Only one triangle found on edge, skip it
                 continue
 
             for t1, t2 in itertools.combinations(tris, 2):
@@ -468,7 +478,12 @@ class Mesh:
                         # path of edges that brings the previously discarded Triangle
                         # back into the check.
 
-                        assert len(tri_added) <= 1
+                        # If the _strict_edge_condition_check is False then we don't
+                        # worry about bad edge definitions and just add all of the triangles
+                        # to the face. This has makes it possible to create a Face that
+                        # actually violates the edge_condition.
+                        if self._strict_edge_condition_check:
+                            assert len(tri_added) <= 1
 
                         if len(tri_added) > 0:
                             tri_added = tri_added.pop()
