@@ -101,7 +101,13 @@ class ThreeMFExtension(threemf.extension.Extension):
             iitem += 1
 
             for comp in top_obj.components:
-                obj = next(o for o in mdl.objects if o.id == comp.objectid)
+                try:
+                    obj = next(o for o in mdl.objects if o.id == comp.objectid)
+                except:
+                    raise WimException(
+                        'An object was not found for the component referencing id {} in {}'.\
+                        format(comp.objectid, mdl.path)
+                    )
                 transform = np.matmul(item.transform, comp.transform)
                 add_object_to_job(iitem, obj, transform)
                 iitem += 1
