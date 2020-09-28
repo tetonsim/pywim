@@ -1,3 +1,4 @@
+import numpy as np
 import threemf
 
 from . import job, opt, result
@@ -67,6 +68,15 @@ class ThreeMFExtension(threemf.extension.Extension):
         if not isinstance(j, JobThreeMFAsset):
             raise WimException('Could not find SmartSlice job asset in: {}'.format(mdl.path))
 
+        def add_object_to_job(iitem: int, obj: threemf.model.ObjectModel, transform):
+            mesh = chop.mesh.Mesh.from_threemf_object_model(obj)
+
+            mesh.name = 'mesh-%i' % iitem
+            mesh.transform = transform
+
+            j.content.chop.meshes.append(mesh)
+
+
         iitem = 1
         for item in build.items:
             # Find the object model this build item references
@@ -84,16 +94,23 @@ class ThreeMFExtension(threemf.extension.Extension):
                     format(item.objectid, mdl.path)
                 )
 
-            obj = objs[0]
+            top_obj = objs[0]
 
-            mesh = chop.mesh.Mesh.from_threemf_object_model(obj)
-
-            mesh.name = 'mesh-%i' % iitem
-            mesh.transform = item.transform
-
-            j.content.chop.meshes.append(mesh)
+            add_object_to_job(iitem, top_obj, item.transform)
 
             iitem += 1
+
+            for comp in top_obj.components:
+                try:
+                    obj = next(o for o in mdl.objects if o.id == comp.objectid)
+                except:
+                    raise WimException(
+                        'An object was not found for the component referencing id {} in {}'.\
+                        format(comp.objectid, mdl.path)
+                    )
+                transform = np.matmul(item.transform, comp.transform)
+                add_object_to_job(iitem, obj, transform)
+                iitem += 1
 
         # Now that we've processed all build items, let's validate everything
         meshes = j.content.chop.meshes
