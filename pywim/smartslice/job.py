@@ -113,6 +113,8 @@ class Job(WimObject):
         Check the step definitions
         '''
         errors = []
+        anchorFaces = []
+        loadFaces = []
 
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
@@ -133,6 +135,9 @@ class Job(WimObject):
                         'No faces have been selected for anchor ' + bc.name,
                         'Select a face to apply the anchor'
                     ))
+                else:
+                    anchorFaces.append(bc.face)
+
 
             if step.loads.is_empty():
                 errors.append(val.InvalidSetup(
@@ -146,6 +151,14 @@ class Job(WimObject):
                         'No faces have been selected for load ' + load.name,
                         'Select a face to apply the load'
                     ))
+                else:
+                    loadFaces.append(load.face)
+
+        if any(check in anchorFaces for check in loadFaces):
+            errors.append(val.InvalidSetup(
+                'Selecting the same face for an anchor and a load is not allowed.',
+                'Please adjust anchors/loads accordingly.'
+            ))
 
         return errors
 
