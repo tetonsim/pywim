@@ -113,8 +113,9 @@ class Job(WimObject):
         Check the step definitions
         '''
         errors = []
-        anchorFaces = []
-        loadFaces = []
+        error_faces = []
+        anchor_faces = {}
+        load_faces = {}
 
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
@@ -136,7 +137,7 @@ class Job(WimObject):
                         'Select a face to apply the anchor'
                     ))
                 else:
-                    anchorFaces.append(bc.face)
+                    anchor_faces[bc.name] = (bc.face)
 
 
             if step.loads.is_empty():
@@ -152,11 +153,27 @@ class Job(WimObject):
                         'Select a face to apply the load'
                     ))
                 else:
-                    loadFaces.append(load.face)
+                    load_faces[load.name] = (load.face)
 
-        if any(check in anchorFaces for check in loadFaces):
+        check_anchor_faces = anchor_faces.copy()
+        for anchor_name, anchor in anchor_faces.items():
+            anchor = set(anchor)
+
+            for load_name, load in load_faces.items():
+                load = set(load)
+                if len(anchor.intersection(load)) > 0:
+                    error_faces.append([anchor_name, load_name])
+
+            for check_anchor_name, check_anchor in check_anchor_faces.items():
+                check_anchor = set(check_anchor)
+                if len(check_anchor.intersection(anchor)) > 0 and check_anchor_name != anchor_name:
+                    error_faces.append([anchor_name, check_anchor_name])
+
+            del check_anchor_faces[anchor_name]
+
+        for faces in error_faces:
             errors.append(val.InvalidSetup(
-                'Selecting the same face for an anchor and a load is not allowed.',
+                'The {} and {} boundary conditions contain overlapping faces, which is not supported.'.format(faces[0],faces[1]),
                 'Please adjust anchors/loads accordingly.'
             ))
 
