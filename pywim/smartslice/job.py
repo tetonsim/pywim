@@ -114,6 +114,16 @@ class Job(WimObject):
         '''
         errors = []
 
+        def check_for_overlapping(bc1, bc2):
+            bc1_set = set(bc1.face)
+            bc2_set = set(bc2.face)
+
+            if len(bc1_set.intersection(bc2_set)) > 0:
+                errors.append(val.InvalidSetup(
+                    '{} has overlapping faces with {}.'.format(bc1.name, bc2.name),
+                    'Please adjust anchors/loads accordingly.'
+                ))
+
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
                 'No loads or anchors have been defined',
@@ -148,33 +158,12 @@ class Job(WimObject):
                     ))
 
             for anchor1, anchor2 in combinations(step.boundary_conditions, 2):
-                #error = self.check_for_overlapping(anchor1, anchor2, "Anchor")
-                error = self.check_for_overlapping(anchor1, anchor2)
-                if error is not None:
-                    errors.append(error)
+                check_for_overlapping(anchor1, anchor2)
 
             for anchor1, load1 in product(step.boundary_conditions, step.loads):
-                #error = self.check_for_overlapping(load1, anchor1, "Load")
-                error = self.check_for_overlapping(load1, anchor1)
-                if error is not None:
-                    errors.append(error)
+                check_for_overlapping(load1, anchor1)
 
         return errors
-
-    #def check_for_overlapping(self, bc1, bc2, face_type):
-    def check_for_overlapping(self, bc1, bc2):
-        bc1_set = set(bc1.face)
-        bc2_set = set(bc2.face)
-
-        if len(bc1_set.intersection(bc2_set)) > 0:
-            return(val.InvalidSetup(
-                #'{} {} has overlapping faces with anchor {}.'.format(face_type, bc1.name, bc2.name),
-                '{} has overlapping faces with {}.'.format(bc1.name, bc2.name),
-                'Please adjust anchors/loads accordingly.'
-            ))
-
-        else:
-            return None
 
     def _validate_requirements(self, check_strict=True, check_optional=False):
         '''
