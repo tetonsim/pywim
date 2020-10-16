@@ -1,6 +1,6 @@
 import enum
 
-from itertools import combinations
+from itertools import combinations, product
 
 from .. import chop, fea, am
 from .. import Meta, WimObject, WimList
@@ -113,9 +113,6 @@ class Job(WimObject):
         Check the step definitions
         '''
         errors = []
-        error_faces = []
-        anchor_faces = {}
-        load_faces = {}
 
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
@@ -136,9 +133,6 @@ class Job(WimObject):
                         'No faces have been selected for anchor ' + bc.name,
                         'Select a face to apply the anchor'
                     ))
-                else:
-                    anchor_faces[bc.name] = (bc.face)
-
 
             if step.loads.is_empty():
                 errors.append(val.InvalidSetup(
@@ -152,32 +146,35 @@ class Job(WimObject):
                         'No faces have been selected for load ' + load.name,
                         'Select a face to apply the load'
                     ))
-                else:
-                    load_faces[load.name] = (load.face)
 
-        check_anchor_faces = anchor_faces.copy()
-        for anchor_name, anchor in anchor_faces.items():
-            anchor = set(anchor)
+            for anchor1, anchor2 in combinations(step.boundary_conditions, 2):
+                #error = self.check_for_overlapping(anchor1, anchor2, "Anchor")
+                error = self.check_for_overlapping(anchor1, anchor2)
+                if error is not None:
+                    errors.append(error)
 
-            for load_name, load in load_faces.items():
-                load = set(load)
-                if len(anchor.intersection(load)) > 0:
-                    error_faces.append([anchor_name, load_name])
+            for anchor1, load1 in product(step.boundary_conditions, step.loads):
+                #error = self.check_for_overlapping(load1, anchor1, "Load")
+                error = self.check_for_overlapping(load1, anchor1)
+                if error is not None:
+                    errors.append(error)
 
-            for check_anchor_name, check_anchor in check_anchor_faces.items():
-                check_anchor = set(check_anchor)
-                if len(check_anchor.intersection(anchor)) > 0 and check_anchor_name != anchor_name:
-                    error_faces.append([anchor_name, check_anchor_name])
+        return errors
 
-            del check_anchor_faces[anchor_name]
+    #def check_for_overlapping(self, bc1, bc2, face_type):
+    def check_for_overlapping(self, bc1, bc2):
+        bc1_set = set(bc1.face)
+        bc2_set = set(bc2.face)
 
-        for faces in error_faces:
-            errors.append(val.InvalidSetup(
-                'The {} and {} boundary conditions contain overlapping faces, which is not supported.'.format(faces[0],faces[1]),
+        if len(bc1_set.intersection(bc2_set)) > 0:
+            return(val.InvalidSetup(
+                #'{} {} has overlapping faces with anchor {}.'.format(face_type, bc1.name, bc2.name),
+                '{} has overlapping faces with {}.'.format(bc1.name, bc2.name),
                 'Please adjust anchors/loads accordingly.'
             ))
 
-        return errors
+        else:
+            return None
 
     def _validate_requirements(self, check_strict=True, check_optional=False):
         '''
