@@ -1,6 +1,6 @@
 import enum
 
-from itertools import combinations
+from itertools import combinations, product
 
 from .. import chop, fea, am
 from .. import Meta, WimObject, WimList
@@ -114,6 +114,16 @@ class Job(WimObject):
         '''
         errors = []
 
+        def check_for_overlapping(bc1, bc2):
+            bc1_set = set(bc1.face)
+            bc2_set = set(bc2.face)
+
+            if len(bc1_set.intersection(bc2_set)) > 0:
+                errors.append(val.InvalidSetup(
+                    '{} has overlapping faces with {}.'.format(bc1.name, bc2.name),
+                    'Please adjust anchors/loads accordingly.'
+                ))
+
         if self.chop.steps.is_empty():
             errors.append(val.InvalidSetup(
                 'No loads or anchors have been defined',
@@ -146,6 +156,12 @@ class Job(WimObject):
                         'No faces have been selected for load ' + load.name,
                         'Select a face to apply the load'
                     ))
+
+            for anchor1, anchor2 in combinations(step.boundary_conditions, 2):
+                check_for_overlapping(anchor1, anchor2)
+
+            for anchor1, load1 in product(step.boundary_conditions, step.loads):
+                check_for_overlapping(load1, anchor1)
 
         return errors
 
