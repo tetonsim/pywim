@@ -2,7 +2,7 @@ import enum
 import sys
 
 from . import job
-from .. import am, chop, fea
+from .. import am, chop
 from .. import Meta, WimObject, WimList, WimTuple
 
 class ResultStatus(enum.Enum):
@@ -43,5 +43,5 @@ class Result(WimObject):
         self.status = ResultStatus.unknown
         self.feasibility_status = FeasibilityStatus.unknown
         self.feasibility_result = feasibility_result
-        self.surface_mesh_results = WimList[fea.result.Database]
+        self.surface_mesh_results = None
 
