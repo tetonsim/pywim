@@ -76,9 +76,13 @@ class Extruder(WimObject):
         # list of names of materials that are available for use in this extruder
         self.usable_materials = WimList(str)
 
-class RegionIdentifier(WimObject):
-    def __init__(self, name=None, percentile : float = 20.):
+class ModelRegion(WimObject):
+    def __init__(self, name : str = None):
         self.name = name if name else ''
+
+class PercentileRegion(ModelRegion):
+    def __init__(self, name, percentile : float = 20.):
+        super().__init__(name)
         self.percentile = percentile
 
 class Job(WimObject):
@@ -89,12 +93,12 @@ class Job(WimObject):
         self.bulk = WimList(fea.model.Material)
         self.extruders = WimList(Extruder)
         self.optimization = opt.Optimization()
-        self.model_regions = WimList(RegionIdentifier)
+        self.model_regions = WimList(ModelRegion)
 
         self.model_regions.extend(
             (
-                RegionIdentifier('high_strain', 20.),
-                RegionIdentifier('low_fos', 20.)
+                PercentileRegion('high_strain', 20.),
+                PercentileRegion('low_fos', 20.)
             )
         )
 
