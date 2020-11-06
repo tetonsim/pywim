@@ -47,14 +47,14 @@ class ResultMult(Result):
 class ModelRegion(WimObject):
     def __init__(self, name=None):
         self.name = name if name else 'model_region'
-        self.region = WimList(chop.mesh.Mesh)
+        self.regions = WimList(chop.mesh.Mesh)
 
 class ModelResults(WimObject):
     def __init__(self):
         self.model_mass = WimTuple(int, float)
         self.maximum_displacement_magnitude = WimTuple(int, float)
         self.minimum_safety_factor = WimTuple(int, float)
-        self.model_regions = WimList(ModelRegion)
+        self.problem_regions = WimList(ModelRegion)
 
 class Increment(WimObject):
     def __init__(self, time=0.0, dtime=1.0):
