@@ -43,4 +43,5 @@ class Result(WimObject):
         self.status = ResultStatus.unknown
         self.feasibility_status = FeasibilityStatus.unknown
         self.feasibility_result = feasibility_result
+        self.surface_mesh_results = None
 
