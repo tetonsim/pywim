@@ -77,7 +77,7 @@ class Extruder(WimObject):
         self.usable_materials = WimList(str)
 
 class ModelRegion(WimObject):
-    def __init__(self, name: str = None, percentile: float = 20.):
+    def __init__(self, name: str = None, percentile: float = 80.):
         self.name = name if name else ''
         self.percentile = percentile
 

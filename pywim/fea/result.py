@@ -1,4 +1,4 @@
-from .. import WimObject, WimList, WimTuple, Meta
+from .. import WimObject, WimList, WimTuple, Meta, chop
 from .model import Mesh
 
 class ResultValue(WimObject):
