@@ -122,6 +122,7 @@ class WimList(list):
 class WimTuple(list):
     def __init__(self, *types):
         self.types = types
+        self.extend([t() for t in types])
 
     def new(self):
         return WimTuple(*self.types)
