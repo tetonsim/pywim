@@ -44,10 +44,11 @@ class ExtrudedLayer(UnitCell):
         self.mesh_seed = 0.1
 
 class Infill(UnitCell):
-    def __init__(self, unit_cell, volume_fraction, layer_width):
+    def __init__(self, unit_cell, volume_fraction, layer_width, layer_height=None):
         super().__init__(unit_cell)
         self.volume_fraction = volume_fraction
         self.layer_width = layer_width
+        self.layer_height = layer_height
 
     @staticmethod
     def FromConfig(config : am.Config):
@@ -55,7 +56,9 @@ class Infill(UnitCell):
             return InfillSquare(config.infill.density, config.layer_width)
         elif config.infill.pattern == am.InfillType.triangle:
             return InfillTriangle(config.infill.density, config.layer_width)
-        
+        elif config.infill.pattern == am.InfillType.cubic:
+            return InfillCubic(config.infill.density, config.layer_width, config.layer_height)
+
         raise Exception('Unrecognized infill unit cell name: {}'.format(config.infill.pattern))
 
 class InfillSquare(Infill):
@@ -67,6 +70,11 @@ class InfillTriangle(Infill):
     def __init__(self, volume_fraction, layer_width):
         super().__init__('infill_triangle', volume_fraction, layer_width)
         self.mesh_seed = 0.1
+
+class InfillCubic(Infill):
+    def __init__(self, volume_fraction, layer_width, layer_height):
+        super().__init__('infill_cubic', volume_fraction, layer_width, layer_height)
+        self.mesh_seed = 0.25
 
 class JobMaterial(WimObject):
     class Source(enum.Enum):
@@ -81,7 +89,7 @@ class JobMaterial(WimObject):
     @classmethod
     def FromMaterial(cls, name, source_name):
         return cls(name, JobMaterial.Source.materials, source_name)
-    
+
     @classmethod
     def FromJob(cls, name, source_name):
         return cls(name, JobMaterial.Source.job, source_name)
