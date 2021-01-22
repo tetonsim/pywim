@@ -227,7 +227,7 @@ class JobValidateTest(unittest.TestCase):
         c2.layer_width = 0.6
         c2.bottom_layers = 1
         c2.infill.density = 30
-        c2.infill.pattern = pywim.am.InfillType.tri_hexagon
+        c2.infill.pattern = pywim.am.InfillType.trihexagon
         c2.infill.orientation = 0.0
         c2.auxiliary['infill_angles'] = []
 
@@ -350,7 +350,7 @@ class JobValidateTest(unittest.TestCase):
         c2.top_layers = 3
         c2.bottom_layers = 1
         c2.infill.density = 30
-        c2.infill.pattern = pywim.am.InfillType.tri_hexagon
+        c2.infill.pattern = pywim.am.InfillType.trihexagon
         c2.infill.orientation = 0.0
         c2.auxiliary['infill_angles'] = []
 
