@@ -339,7 +339,7 @@ STRICT_REQUIREMENTS = {
 
     ListLengthCheck('infill_angles', 'Number of Infill Line Directions', min_value=0, max_value=1),
 
-    SupportedPrintOptionCheck('pattern', 'Infill Pattern', [am.InfillType.grid, am.InfillType.triangle], level_modifier=['infill'])
+    SupportedPrintOptionCheck('pattern', 'Infill Pattern', [am.InfillType.grid, am.InfillType.triangle, am.InfillType.cubic], level_modifier=['infill'])
 }
 
 OPTIONAL_REQUIREMENTS = {

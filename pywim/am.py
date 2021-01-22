@@ -10,6 +10,7 @@ class InfillType(enum.Enum):
     triangle = 2
     triangles = 2
     cubic = 3
+    trihexagon = 4
 
 class Infill(WimObject):
     def __init__(self):
