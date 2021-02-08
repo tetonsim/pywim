@@ -69,6 +69,9 @@ class ThreeMFExtension(threemf.extension.Extension):
             raise WimException('Could not find SmartSlice job asset in: {}'.format(mdl.path))
 
         def add_object_to_job(iitem: int, obj: threemf.model.ObjectModel, transform):
+            if len(obj.mesh.triangles) == 0:
+                return
+
             mesh = chop.mesh.Mesh.from_threemf_object_model(obj)
 
             mesh.name = 'mesh-%i' % iitem
