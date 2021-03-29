@@ -521,33 +521,6 @@ class Mesh:
 
         return self.select_face_by_edge_angle(tri, Mesh._COPLANAR_ANGLE)
 
-    def select_face_between_angle(
-        self,
-        tri: Union[Triangle, int],
-        min_angle: float = _COPLANAR_ANGLE,
-        max_angle: float = _MAX_CONCAVE_ANGLE,
-        clamped: bool = False
-    ) -> Face:
-        '''
-        Returns a list of Triangles that are connected with the given Triangle within
-        the specified minimum and maximum angle. Turning on clamping will compare the max_angle
-        to the input triangle, and turning off clamping will compare the max_angle to neighboring
-        triangles.
-        '''
-        if isinstance(tri, int):
-            tri = next(t for t in self.triangles if t.id == tri)
-
-        if clamped:
-            condition = lambda edge_angle: edge_angle.t1.angle(tri) > min_angle and \
-                edge_angle.t1.angle(tri) < max_angle and \
-                edge_angle.t2.angle(tri) > min_angle and \
-                edge_angle.t2.angle(tri) < max_angle
-        else:
-            condition = lambda edge_angle: edge_angle.angle > min_angle and \
-                edge_angle.angle < max_angle
-
-        return self._select_connected_triangles_edge_condition(tri, condition)
-
     def select_face_by_edge_angle(
         self,
         tri: Union[Triangle, int],
