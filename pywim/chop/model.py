@@ -1,4 +1,3 @@
-
 from . import mesh, slicer
 from .. import am
 from .. import WimObject, WimList, WimTuple
@@ -10,6 +9,7 @@ class BoundaryCondition(WimObject):
         self.type = None
         self.mesh = mesh if mesh else ''
         self.face = WimList(int)
+        self.meta = {}
 
         if face:
             self.face.extend(face)
@@ -27,6 +27,7 @@ class Load(WimObject):
         self.type = None
         self.mesh = mesh if mesh else ''
         self.face = WimList(int)
+        self.meta = {}
 
         if face:
             self.face.extend(face)

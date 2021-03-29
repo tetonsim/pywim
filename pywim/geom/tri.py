@@ -524,18 +524,22 @@ class Mesh:
     def select_face_by_edge_angle(
         self,
         tri: Union[Triangle, int],
-        max_angle: float
+        max_angle: float,
+        clamped: bool = False
     ) -> Face:
         '''
-        Returns a list of Triangles that are connected with the given Triangle and connected
-        through an Edge that is below the given max_angle. In other words Triangle normal
-        vectors are compared to their neighbors and not the original Triangle to determine
-        their inclusion status.
+        Returns a list of Triangles that are connected with the given Triangle within
+        the specified angle. Turning on clamping will compare the max_angle to the input
+        triangle, and turning off clamping will compare the max_angle to neighboring triangles.
         '''
         if isinstance(tri, int):
             tri = next(t for t in self.triangles if t.id == tri)
 
-        edge_condition = lambda edge_angle: edge_angle.angle < max_angle
+        if clamped:
+            edge_condition = lambda edge_angle: edge_angle.t2.angle(tri) < max_angle and \
+                edge_angle.t1.angle(tri) < max_angle
+        else:
+            edge_condition = lambda edge_angle: edge_angle.angle < max_angle
 
         return self._select_connected_triangles_edge_condition(tri, edge_condition)
 
