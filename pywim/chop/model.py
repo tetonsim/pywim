@@ -1,3 +1,4 @@
+from typing import Dict
 
 from . import mesh, slicer
 from .. import am
@@ -5,11 +6,12 @@ from .. import WimObject, WimList, WimTuple
 
 class BoundaryCondition(WimObject):
     DEFAULTTYPENAME = 'fixed'
-    def __init__(self, name=None, mesh=None, face=None):
+    def __init__(self, name=None, mesh=None, face=None, face_properties: Dict={}):
         self.name = name if name else 'bc'
         self.type = None
         self.mesh = mesh if mesh else ''
         self.face = WimList(int)
+        self.face_properties = face_properties
 
         if face:
             self.face.extend(face)
@@ -22,19 +24,20 @@ class FixedBoundaryCondition(BoundaryCondition):
 
 class Load(WimObject):
     DEFAULTTYPENAME = 'force'
-    def __init__(self, name=None, mesh=None, face=None):
+    def __init__(self, name=None, mesh=None, face=None, face_properties: Dict={}):
         self.name = name if name else 'load'
         self.type = None
         self.mesh = mesh if mesh else ''
         self.face = WimList(int)
+        self.face_properties = face_properties
 
         if face:
             self.face.extend(face)
 
 class Force(Load):
     JSONTYPENAME = 'force'
-    def __init__(self, name=None, mesh=None, face=None, force=None, origin=None):
-        super().__init__(name, mesh, face)
+    def __init__(self, name=None, mesh=None, face=None, force=None, origin=None, face_properties: Dict={}):
+        super().__init__(name, mesh, face, face_properties)
         self.type = Force.JSONTYPENAME
         self.force = WimTuple(float, float, float)
         self.origin = WimTuple(float, float, float)
