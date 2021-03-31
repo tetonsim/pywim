@@ -183,7 +183,7 @@ class EqualityCheck(PrevalidationCheck):
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
-        if mesh_value and not are_equal(self.setting_value, mesh_value):
+        if mesh_value is not None and not are_equal(self.setting_value, mesh_value):
             return InvalidPrintSetting(mesh.name, self.setting_name, self.setting_value)
         else:
             return None
@@ -202,7 +202,7 @@ class BoundsCheck(PrevalidationCheck):
     def check_error(self, mesh):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
 
-        if mesh_value and not ( self.min_value <= convert(type(self.min_value), mesh_value) <= self.max_value ):
+        if mesh_value is not None and not ( self.min_value <= convert(type(self.min_value), mesh_value) <= self.max_value ):
             return OutOfBoundsPrintSetting(mesh.name, self.setting_name, self.min_value, self.max_value)
         else:
             return None
@@ -225,7 +225,7 @@ class ListLengthCheck(PrevalidationCheck):
         else:
             mesh_list = mesh_value
 
-        if mesh_value and not ( self.min_value <= len(mesh_list) <= self.max_value ):
+        if mesh_value is not None and not ( self.min_value <= len(mesh_list) <= self.max_value ):
             return ListLengthSetting(mesh.name, self.setting_name, self.min_value, self.max_value)
         else:
             return None
@@ -246,7 +246,7 @@ class SupportedPrintOptionCheck(PrevalidationCheck):
             get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
         )
 
-        if mesh_value and mesh_value not in self.allowable_values:
+        if mesh_value is not None and mesh_value not in self.allowable_values:
             return UnsupportedPrintOptionSetting(mesh.name, self.setting_name, self.allowable_values)
         else:
             return None
@@ -266,7 +266,7 @@ class CompatibilityCheck(PrevalidationCheck):
         mesh_value = get_config_value(mesh.print_config, self.attr_name, self.level_modifier)
         target_value = get_config_value(mesh.print_config, self.target_attr_name, self.level_modifier)
 
-        if mesh_value and not are_equal(target_value, mesh_value):
+        if mesh_value is not None and not are_equal(target_value, mesh_value):
             return IncompatiblePrintSetting(mesh.name, self.setting_name, self.target_name)
         else:
             return None
@@ -284,7 +284,7 @@ class MatchedConfigsCheck(PrevalidationCheck):
         mesh1_value = get_config_value(mesh1.print_config, self.attr_name, self.level_modifier)
         mesh2_value = get_config_value(mesh2.print_config, self.attr_name, self.level_modifier)
 
-        if mesh1_value and mesh2_value and mesh1_value != mesh2_value:
+        if mesh1_value is not None and mesh2_value is not None and mesh1_value != mesh2_value:
             return MismatchedPrintSetting(mesh1.name, mesh2.name, self.setting_name)
         else:
             return None
