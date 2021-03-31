@@ -53,7 +53,7 @@ def set_config_attribute(top_config, configs, attr_name):
             elif isinstance(attr_val, list) and (len(attr_val) == 0):
                 attr_val = None
 
-            if attr_val:
+            if attr_val is not None:
                 for i in range(1, len(sub_levs) + 1):
                     setattr(sub_levs[-i], lev_names[-i], attr_val)
                     attr_name = lev_names[-(i+1)]
