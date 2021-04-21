@@ -336,7 +336,7 @@ class Client:
 
         start_period = 1
         max_poll_period = 30
-        poll_multiplier = 1.25
+        poll_multiplier = 1.5
 
         fperiod = lambda previous_period: min(max_poll_period, previous_period * poll_multiplier)
 
