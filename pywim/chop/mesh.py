@@ -12,9 +12,10 @@ class MeshType(enum.Enum):
     cutting = 3
 
 class MaterialNames(WimObject):
-    def __init__(self, extrusion=None, infill=None, empty=None):
+    def __init__(self, extrusion=None, infill=None, skin=None, empty=None):
         self.extrusion = extrusion if extrusion else 'extrusion'
         self.infill = infill if infill else 'infill'
+        self.skin = skin if skin else 'skin'
         self.empty = empty if empty else 'empty'
 
 class Mesh(WimObject, threemf.mesh.Mesh):
@@ -39,7 +40,8 @@ class Mesh(WimObject, threemf.mesh.Mesh):
 
         mesh.materials = MaterialNames(
             '%s-extrusion' % mesh.name,
-            '%s-infill' % mesh.name
+            '%s-infill' % mesh.name,
+            '%s-solid' % mesh.name
         )
 
         # Check for cura meta data

@@ -47,6 +47,25 @@ def ExtrudedLayer(material : Union[Material, micro.Composite], config : am.Confi
 
     return micro.Run(tree, layer.name)
 
+def Layup(material : Union[Material, micro.Composite], config : am.Config):
+    tree = micro.Tree()
+
+    if isinstance(material, Material):
+        tree.materials.append(material)
+        layup = micro.build.job.Layup(material, config)
+        tree.jobs.append(layup)
+    else:
+        tree.materials.extend([material.fiber, material.matrix])
+
+        hexpack = micro.build.job.Hexpack(material)
+        part = micro.build.job.Particulate(material)
+        sf = micro.build.job.ShortFiber(hexpack, part, material)
+        layup = micro.build.job.Layup(sf, config)
+
+        tree.jobs.extend([hexpack, part, sf, layup])
+
+    return micro.Run(tree, layup.name)
+
 def Infill(material : Union[Material, micro.Composite], config : am.Config):
     tree = micro.Tree()
 

@@ -46,6 +46,17 @@ def ExtrudedLayer(source : Union[Material, micro.Job], config : am.Config, name=
 
     return job
 
+def Layup(source : Union[Material, micro.Job], config : am.Config, name=None):
+    layup = micro.Layup(config)
+    job = micro.Job(name if name else 'layup', layup)
+
+    if isinstance(source, Material):
+        job.materials.append( micro.JobMaterial.FromMaterial('lamina', source.name) )
+    else:
+        job.materials.append( micro.JobMaterial.FromJob('lamina', source.name) )
+
+    return job
+
 def Infill(layer : Union[Material, micro.Job], config : am.Config, name=None):
     infill = micro.Infill.FromConfig(config)
     job = micro.Job(name if name else 'infill', infill)
