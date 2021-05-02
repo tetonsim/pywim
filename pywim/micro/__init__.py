@@ -51,6 +51,8 @@ class Layup(UnitCell):
         if config.skin_orientations:
             for angle in config.skin_orientations:
                 self.angles.append(angle - 90)
+        else:
+            self.angles = [-45, 45]
 
 class Infill(UnitCell):
     def __init__(self, unit_cell, volume_fraction, layer_width, layer_height=None):
