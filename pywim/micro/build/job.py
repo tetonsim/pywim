@@ -2,7 +2,7 @@ from ... import am, micro
 from ...fea.model import Material
 from typing import Union
 
-def Hexpack(composite : micro.Composite, name=None):
+def Hexpack(composite: micro.Composite, name: str = None):
     hexpack = micro.Hexpack(composite.volume_fraction)
     job = micro.Job(name if name else 'hexpack', hexpack)
 
@@ -13,7 +13,7 @@ def Hexpack(composite : micro.Composite, name=None):
 
     return job
 
-def Particulate(composite : micro.Composite, name=None):
+def Particulate(composite: micro.Composite, name: str = None):
     part = micro.ParticulateBCC(composite.volume_fraction)
     job = micro.Job(name if name else 'particulate', part)
 
@@ -24,7 +24,7 @@ def Particulate(composite : micro.Composite, name=None):
 
     return job
 
-def ShortFiber(hexpack : micro.Job, particulate : micro.Job, composite : micro.Composite, name=None):
+def ShortFiber(hexpack: micro.Job, particulate: micro.Job, composite: micro.Composite, name: str = None):
     sf = micro.ShortFiber(composite.volume_fraction, composite.L_over_D)
     job = micro.Job(name if name else 'short_fiber', sf)
 
@@ -35,7 +35,7 @@ def ShortFiber(hexpack : micro.Job, particulate : micro.Job, composite : micro.C
 
     return job
 
-def ExtrudedLayer(source : Union[Material, micro.Job], config : am.Config, name=None):
+def ExtrudedLayer(source: Union[Material, micro.Job], config: am.Config, name: str = None):
     layer = micro.ExtrudedLayer(config)
     job = micro.Job(name if name else 'layer', layer)
 
@@ -46,7 +46,7 @@ def ExtrudedLayer(source : Union[Material, micro.Job], config : am.Config, name=
 
     return job
 
-def Layup(source : Union[Material, micro.Job], config : am.Config, name=None):
+def Layup(source: Union[Material, micro.Job], config: am.Config, name: str = None):
     layup = micro.Layup(config)
     job = micro.Job(name if name else 'layup', layup)
 
@@ -57,7 +57,7 @@ def Layup(source : Union[Material, micro.Job], config : am.Config, name=None):
 
     return job
 
-def Infill(layer : Union[Material, micro.Job], config : am.Config, name=None):
+def Infill(layer: Union[Material, micro.Job], config: am.Config, name: str = None):
     infill = micro.Infill.FromConfig(config)
     job = micro.Job(name if name else 'infill', infill)
 
@@ -67,3 +67,4 @@ def Infill(layer : Union[Material, micro.Job], config : am.Config, name=None):
         job.materials.append( micro.JobMaterial.FromJob('extrusion', layer.name) )
 
     return job
+
