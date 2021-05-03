@@ -43,6 +43,17 @@ class ExtrudedLayer(UnitCell):
         self.overlap = None #am.Config.default_overlap(config.layer_height)
         self.mesh_seed = 0.1
 
+class Layup(UnitCell):
+    def __init__(self, config: am.Config):
+        super().__init__('layup')
+        self.angles = []
+
+        if config.skin_orientations:
+            for angle in config.skin_orientations:
+                self.angles.append(angle - 90)
+        else:
+            self.angles = [-45, 45]
+
 class Infill(UnitCell):
     def __init__(self, unit_cell, volume_fraction, layer_width, layer_height=None):
         super().__init__(unit_cell)

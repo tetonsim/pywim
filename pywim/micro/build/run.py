@@ -2,21 +2,21 @@ from ... import am, micro
 from ...fea.model import Material
 from typing import Union
 
-def Hexpack(composite : micro.Composite):
+def Hexpack(composite: micro.Composite):
     tree = micro.Tree()
     tree.materials.extend([composite.fiber, composite.matrix])
     hexpack = micro.build.job.Hexpack(composite)
     tree.jobs.append(hexpack)
     return micro.Run(tree, hexpack.name)
 
-def Particulate(composite : micro.Composite):
+def Particulate(composite: micro.Composite):
     tree = micro.Tree()
     tree.materials.extend([composite.fiber, composite.matrix])
     part = micro.build.job.Particulate(composite)
     tree.jobs.append(part)
     return micro.Run(tree, part.name)
 
-def ShortFiber(composite : micro.Composite):
+def ShortFiber(composite: micro.Composite):
     tree = micro.Tree()
     tree.materials.extend([composite.fiber, composite.matrix])
 
@@ -28,7 +28,7 @@ def ShortFiber(composite : micro.Composite):
 
     return micro.Run(tree, sf.name)
 
-def ExtrudedLayer(material : Union[Material, micro.Composite], config : am.Config):
+def ExtrudedLayer(material: Union[Material, micro.Composite], config: am.Config):
     tree = micro.Tree()
 
     if isinstance(material, Material):
@@ -47,7 +47,26 @@ def ExtrudedLayer(material : Union[Material, micro.Composite], config : am.Confi
 
     return micro.Run(tree, layer.name)
 
-def Infill(material : Union[Material, micro.Composite], config : am.Config):
+def Layup(material: Union[Material, micro.Composite], config: am.Config):
+    tree = micro.Tree()
+
+    if isinstance(material, Material):
+        tree.materials.append(material)
+        layup = micro.build.job.Layup(material, config)
+        tree.jobs.append(layup)
+    else:
+        tree.materials.extend([material.fiber, material.matrix])
+
+        hexpack = micro.build.job.Hexpack(material)
+        part = micro.build.job.Particulate(material)
+        sf = micro.build.job.ShortFiber(hexpack, part, material)
+        layup = micro.build.job.Layup(sf, config)
+
+        tree.jobs.extend([hexpack, part, sf, layup])
+
+    return micro.Run(tree, layup.name)
+
+def Infill(material: Union[Material, micro.Composite], config: am.Config):
     tree = micro.Tree()
 
     if isinstance(material, Material):
